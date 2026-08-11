@@ -1,0 +1,39 @@
+<!doctype html>
+<!--
+  lang="pt-BR" + translate="no" + <meta name="google" content="notranslate"> sao
+  OBRIGATORIOS, nao cosmeticos.
+
+  POR QUE: com lang="en" (ou sem lang) em conteudo escrito em portugues, o Chrome
+  de quem tem "sempre traduzir ingles" ativado dispara o Google Tradutor. O Tradutor
+  envolve os textos em <font> POR FORA do React; na proxima reconciliacao o React
+  chama removeChild/insertBefore em nos que ja nao sao filhos de quem ele acha que
+  sao, e a tela cai com NotFoundError ("insertBefore em Node..."), alem de exibir
+  textos fatiados. Isso foi um bug real em producao no Portal Apsis.
+  O dom-guard do src/main.jsx e a segunda camada de defesa; esta e a primeira.
+-->
+<html lang="pt-BR" translate="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="google" content="notranslate" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Apsis Carbon - projetos de crédito de carbono, contratos de emissão, inventário de GEE e relatórios de sustentabilidade da APSIS Consultoria."
+    />
+    <meta name="theme-color" content="#1A4731" />
+    <!-- Assets self-hostados em /public de proposito: nada de URL do Storage de
+         outro projeto Supabase (CSP-safe e sem acoplar o Carbon ao portal). -->
+    <link rel="icon" type="image/png" href="/logo-apsis.png" />
+    <link rel="apple-touch-icon" href="/logo-apsis.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Apsis Carbon</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      Este sistema precisa de JavaScript habilitado. Ative o JavaScript no
+      navegador e recarregue a página.
+    </noscript>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

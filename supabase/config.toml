@@ -1,0 +1,21 @@
+# Configuracao do Supabase CLI para o Apsis Carbon.
+# Referencia: https://supabase.com/docs/guides/cli/config
+#
+# project_id e o identificador LOCAL do projeto (nomeia os containers do
+# "supabase start"). Nao e o project ref do projeto hospedado: esse vem do
+# "npx supabase link --project-ref <ref>".
+project_id = "apsis-carbon"
+
+# app-config e um endpoint publico de boot: o navegador o chama ANTES de existir
+# qualquer sessao, portanto sem Authorization. Com verify_jwt = true (default) a
+# plataforma responderia 401 antes do nosso codigo rodar.
+# A funcao devolve apenas linhas de carbon_app_config com publico = true.
+[functions.app-config]
+verify_jwt = false
+
+# carbon-api tambem precisa de verify_jwt = false: o Authorization traz um ID
+# token do AZURE AD, nao um JWT do Supabase Auth. A plataforma nao sabe validar
+# esse token, entao a autenticacao e feita no nosso codigo
+# (supabase/functions/_shared/azureAuth.ts) contra o JWKS da Microsoft.
+[functions.carbon-api]
+verify_jwt = false
