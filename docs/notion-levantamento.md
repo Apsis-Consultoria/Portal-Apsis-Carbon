@@ -13,17 +13,61 @@ tokens da conta, não por bloqueio técnico. A lista do que falta está na seç�
 > **O detalhe de cada página fica em um arquivo próprio**, em `docs/notion/`, gravado assim que
 > a página é lida. Se a sessão for interrompida, o que já foi lido está salvo:
 >
-> | Arquivo | Página |
-> |---|---|
-> | [01-reunioes-apsis-carbon.md](notion/01-reunioes-apsis-carbon.md) | Reuniões Apsis Carbon |
-> | [02-fornecedores.md](notion/02-fornecedores.md) | Fornecedores |
-> | [03-atividades-apsis-carbon.md](notion/03-atividades-apsis-carbon.md) | Atividades Apsis Carbon |
-> | [04-relatorio-de-visitas.md](notion/04-relatorio-de-visitas.md) | Relatório de Visitas |
-> | [05-pdd-parakana.md](notion/05-pdd-parakana.md) | PDD (Parakanã) |
-> | [06-paginas-vazias-e-stubs.md](notion/06-paginas-vazias-e-stubs.md) | vazias, stubs e não abertas |
+> | Arquivo | Página | Conteúdo |
+> |---|---|---|
+> | [01-reunioes-apsis-carbon.md](notion/01-reunioes-apsis-carbon.md) | Reuniões Apsis Carbon | rico |
+> | [02-fornecedores.md](notion/02-fornecedores.md) | Fornecedores | rico |
+> | [03-atividades-apsis-carbon.md](notion/03-atividades-apsis-carbon.md) | Atividades Apsis Carbon | rico |
+> | [04-relatorio-de-visitas.md](notion/04-relatorio-de-visitas.md) | Relatório de Visitas | rico, dado pessoal |
+> | [05-pdd-parakana.md](notion/05-pdd-parakana.md) | PDD (Parakanã) | rico |
+> | [06-paginas-vazias-e-stubs.md](notion/06-paginas-vazias-e-stubs.md) | vazias e stubs do backoffice | negativo |
+> | [07-projetos-parakana.md](notion/07-projetos-parakana.md) | Projetos (Parakanã) | pouco |
+> | [08-monitoring-report.md](notion/08-monitoring-report.md) | Monitoring Report | **o mais rico** |
+> | [09-vvb-findings.md](notion/09-vvb-findings.md) | VVB Findings | rico, 95 registros |
+> | [10-findings-verra.md](notion/10-findings-verra.md) | Findings Verra | rico |
+> | [11-comunidade-parakana.md](notion/11-comunidade-parakana.md) | Comunidade | **dado sensível** |
+> | [12-be-zero.md](notion/12-be-zero.md) | Be Zero | rico, 31 itens |
+> | [13-objetivos-parakana.md](notion/13-objetivos-parakana.md) | Objetivos Parakanã | rico |
+> | [14-compradores.md](notion/14-compradores.md) | Compradores | pouco, lacuna grande |
+> | [15-atividades-parakana-e-menores.md](notion/15-atividades-parakana-e-menores.md) | Atividades Parakanã, Indicadores, Documentos Parakanã | pouco |
+> | [16-consultoria.md](notion/16-consultoria.md) | Consultoria | **vazia** |
+> | [17-novos-negocios-jpf.md](notion/17-novos-negocios-jpf.md) | Novos Negócios JPF | rico |
+> | [18-reunioes-parakana.md](notion/18-reunioes-parakana.md) | Reuniões Parakanã | rico |
 >
-> Continuar a numeração a partir de `07`. Os arquivos por página são a fonte canônica; a
-> seção 4 deste índice é só resumo.
+> Continuar a numeração a partir de `19`. Os arquivos por página são a fonte canônica; a
+> seção 4 deste índice é resumo parcial e desatualizado a partir do item 4.9.
+
+## Balanço da varredura (2026-08-11)
+
+**27 de ~31 páginas visitadas.** Das visitadas:
+
+| Situação | Quantidade | Quais |
+|---|---|---|
+| Conteúdo rico, viram tela | 12 | Reuniões (x2), Fornecedores, Atividades (x2), Relatório de Visitas, PDD, Monitoring Report, VVB Findings, Findings Verra, Be Zero, Objetivos Parakanã, Novos Negócios JPF |
+| Pouco conteúdo, mas estrutura útil | 3 | Projetos, Compradores, Documentos Parakanã |
+| Vazias ou stub | 7 | Objetivos Apsis Carbon, Documentos Apsis Carbon, Marketing, Clientes, CH, Indicadores, **Consultoria** |
+| Índice sem conteúdo próprio | 2 | Base de dados - Apsis Carbon, menu raiz |
+
+Ainda **não varridas** (todas de baixo valor esperado): `Monitoring Report 2`,
+`Documentos Parakanã > Governança Parakanã`, `Editais` (3 subpáginas), `Novos Negócios > Biochar`,
+os blocos `TD` das duas páginas de reunião, e as páginas de acesso externo (2 apostilas de Notion,
+`Projetos Parakanã`, `Green Musk - Investor Relationship`, `Monitoramento`,
+`Treinamento Conta Azul`).
+
+### O que a varredura mudou de entendimento
+
+1. **O valor está no Parakanã, não no backoffice.** O bloco APSIS CARBON tem metade das páginas
+   vazias. O bloco PARAKANÃ é onde a operação real acontece.
+2. **O projeto responde a três processos externos distintos**, não um: VVB (conformidade, 95
+   findings), Verra (registro, 6) e BeZero (rating de crédito, 31 itens). As views são idênticas
+   nas três bases, então é a mesma entidade com origem diferente.
+3. **`Consultoria` está vazia**, contrariando a expectativa: era a prioridade máxima e são três
+   toggles criados há um ano, sem nada dentro. O funil comercial não existe em nenhum sistema.
+4. **Não existe cadastro de projeto** em lugar nenhum, nem controle de estoque e emissão de
+   crédito. São as duas maiores lacunas funcionais, e nenhuma está escrita como demanda.
+5. **Apontamento de horas** é a demanda escrita mais clara.
+6. Há **duplicação acidental de esquema** entre backoffice e projeto (atividades e reuniões), e
+   **três representações diferentes de documento** e de evidência.
 
 ---
 
