@@ -16,6 +16,26 @@
  */
 export const PAGE_ROUTES = {
   BoasVindas: '/BoasVindas',
+  Projetos: '/Projetos',
   NaoAutorizado: '/NaoAutorizado',
   PaginaNaoEncontrada: '/PaginaNaoEncontrada',
 };
+
+/**
+ * URL do PDD de um projeto.
+ *
+ * POR QUE NAO ESTA EM PAGE_ROUTES: o mapa acima e nome-da-pagina -> caminho FIXO, e o
+ * createPageUrl devolve esse caminho sem receber parametro. A tela de PDD depende do id
+ * do projeto ('/Projetos/<id>/PDD'), entao nao existe caminho fixo para ela. Colocar
+ * '/Projetos/:id/PDD' no mapa faria o createPageUrl devolver a URL com o ':id' literal,
+ * que e um link quebrado silencioso.
+ *
+ * O padrao da rota ('/Projetos/:id/PDD') e declarado no src/App.jsx; aqui fica o
+ * gerador, para que a montagem da URL tambem tenha uma fonte unica.
+ *
+ * @param {string} projetoId
+ * @returns {string}
+ */
+export function urlPdd(projetoId) {
+  return `${PAGE_ROUTES.Projetos}/${encodeURIComponent(String(projetoId ?? ''))}/PDD`;
+}

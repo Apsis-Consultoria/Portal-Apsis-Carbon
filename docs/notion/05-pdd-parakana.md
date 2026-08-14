@@ -28,7 +28,14 @@ Views: `Capítulos do PDD`, `Capítulos em andamento`, `Table`.
 | `Responsável` | pessoa |
 | `Cap` | número (capítulo raiz, usado para agrupar) |
 
-45 linhas, todas `Concluído`. Rodapé `COMPLETE 100%`.
+**43 capítulos** transcritos, todos `Concluído`. Rodapé `COMPLETE 100%`.
+
+> Correção de 2026-08-14: a primeira versão deste arquivo dizia "45 linhas". Era erro de
+> contagem meu, feito sobre o texto bruto da página. A estrutura enumerada abaixo tem 43 itens
+> (5 capítulos raiz, 22 de segundo nível e 16 de terceiro), e é esse o número que a migration
+> e o dataset de demonstração usam. Como a contagem de 45 nunca foi verificada linha a linha,
+> não é possível descartar que a tabela do Notion tenha 2 registros que eu não transcrevi.
+> Ao reabrir a página, conferir o rodapé de contagem do Notion contra estes 43.
 
 ## Estrutura completa de capítulos capturada
 
@@ -86,7 +93,7 @@ Serve como seed do template no sistema.
 
 - Tela de PDD por projeto, com árvore de capítulos em até três níveis, status e responsável por
   capítulo, e percentual de conclusão agregado.
-- **Template VCS+CCB pré-carregado**: criar projeto novo já nasce com os 45 capítulos. Isso é
+- **Template VCS+CCB pré-carregado**: criar projeto novo já nasce com os 43 capítulos. Isso é
   valor imediato e barato de implementar, porque a estrutura está toda capturada acima.
 - Os capítulos opcionais (3.4, 4.5, 5.5 marcados como "Optional Criterion") precisam ser
   marcáveis como não aplicáveis, senão nunca fecham 100%.

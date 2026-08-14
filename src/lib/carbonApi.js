@@ -2,6 +2,15 @@ import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { SUPABASE_ANON_KEY, urlFuncao } from "@/lib/supabaseClient";
 import { MODO_DEMO, getConfig } from "@/lib/runtimeConfig";
 import { montarLoginRequest } from "@/lib/msalConfig";
+import {
+  demoListarProjetos,
+  demoObterProjeto,
+  demoCriarProjeto,
+  demoAtualizarProjeto,
+  demoObterPdd,
+  demoCriarPddDoTemplate,
+  demoAtualizarCapituloPdd,
+} from "@/lib/demoProjetos";
 
 /**
  * carbonApi - unico ponto de acesso ao backend do Apsis Carbon (Edge Function carbon-api).
@@ -79,9 +88,12 @@ async function obterIdToken(msal) {
 }
 
 /**
- * chamarApi - GET/POST em {SUPABASE_URL}/functions/v1/carbon-api<caminho>.
+ * chamarApi - GET/POST/PATCH em {SUPABASE_URL}/functions/v1/carbon-api<caminho>.
  *
- * @param {string} caminho  Ex.: '/me', '/modulos'
+ * A Edge Function aceita apenas estes tres metodos; qualquer outro volta como
+ * 405 'metodo_nao_permitido'.
+ *
+ * @param {string} caminho  Ex.: '/me', '/modulos', '/projetos/<uuid>/pdd'
  * @param {{ instance: object, accounts: array }} msal  Vindo do useMsal()
  * @param {{ metodo?: string, corpo?: any, signal?: AbortSignal }} opcoes
  */
@@ -154,8 +166,53 @@ function mensagemDeErro(codigo, status, rota) {
     return "Sua conta nao pertence ao dominio autorizado para o Apsis Carbon.";
   if (codigo === "usuario_inativo")
     return "Seu acesso ao Apsis Carbon esta suspenso. Fale com a equipe responsavel pelo sistema.";
+
+  /* Codigos das rotas de projeto e de PDD. Sao mensagens de INTERFACE: as telas de
+     Projetos e de PDD mostram `erro.message` em toast, entao o texto precisa dizer
+     o que a pessoa faz a seguir, e nao repetir o codigo tecnico. */
+  if (codigo === "sem_permissao")
+    return "Seu perfil nao permite criar nem editar projetos. Fale com a equipe responsavel pelo sistema.";
+  if (codigo === "nome_obrigatorio") return "Informe o nome do projeto para continuar.";
+  if (codigo === "id_invalido") return "O identificador informado nao e valido.";
+  if (codigo === "geometria_invalida")
+    return "A geometria enviada nao e um GeoJSON valido de Polygon ou MultiPolygon.";
+  if (codigo === "status_invalido") return "O status informado para o capitulo nao e valido.";
+  if (codigo === "nao_encontrado") return "O registro nao foi encontrado. Ele pode ter sido removido.";
+
+  /* Codigos que a Edge Function tambem produz nas rotas de escrita. Sem traducao
+     explicita eles cairiam no fallback generico com o codigo tecnico cru, e o
+     'registro_duplicado' em particular e MUITO alcancavel: basta reaproveitar um ID
+     de registro que outro projeto ja usa (indice unico parcial em registro_id). */
+  if (codigo === "registro_duplicado")
+    return "Este ID no registro ja pertence a outro projeto. Confira o numero informado.";
+  if (codigo === "periodo_invalido")
+    return "O fim do periodo de creditacao nao pode ser anterior ao inicio.";
+  if (codigo === "campo_invalido") return "Um dos campos enviados esta fora do formato aceito.";
+  if (codigo === "referencia_invalida")
+    return "Um dos vinculos informados nao existe mais no sistema.";
+  if (codigo === "nada_para_atualizar") return "Nenhuma alteracao foi enviada.";
+  if (codigo === "corpo_invalido") return "A requisicao chegou ao servidor em formato invalido.";
+
   if (codigo) return `O servidor recusou a requisicao (${codigo}).`;
   return `O servidor retornou HTTP ${status} em ${rota}.`;
+}
+
+/**
+ * Executa a versao demonstracao de uma rota e converte ErroDemo em ErroApi.
+ *
+ * Sem isso, o modo demo recusaria entrada invalida com um erro de formato diferente
+ * do de producao, e a tela teria dois caminhos de tratamento de erro - o do demo
+ * (que sempre funciona na revisao) e o real (que ninguem exercita).
+ */
+async function chamarDemo(rota, executar) {
+  try {
+    return await executar();
+  } catch (e) {
+    const codigo = e?.codigo || null;
+    if (!codigo) throw e;
+    const status = codigo === "nao_encontrado" ? 404 : 400;
+    throw new ErroApi(mensagemDeErro(codigo, status, rota), { codigo, status });
+  }
 }
 
 export async function obterPerfil(msal) {
@@ -174,4 +231,71 @@ export async function obterModulos(msal) {
 export async function obterNotificacoes(msal) {
   if (MODO_DEMO) return { notificacoes: [] };
   return chamarApi("/notificacoes", msal);
+}
+
+/* =========================================================================
+   Projetos e PDD (issues #1 e #2)
+
+   MODO DEMONSTRACAO: o projeto Supabase ainda nao foi provisionado, entao as sete
+   funcoes abaixo NAO fazem rede quando MODO_DEMO esta ligado - elas operam sobre o
+   dataset em memoria de src/lib/demoProjetos.js, e as mutacoes alteram esse dataset
+   para as telas serem realmente interativas na revisao.
+
+   Isso vale SOMENTE em desenvolvimento: MODO_DEMO exige import.meta.env.DEV E a
+   variavel VITE_CARBON_DEMO=true (ver src/lib/runtimeConfig.js). Em build de
+   producao MODO_DEMO e false por forca, e como import.meta.env.DEV e estatico o
+   bundler elimina o ramo do demo do bundle.
+
+   O :id vai por encodeURIComponent para nunca montar caminho torto a partir de um
+   valor inesperado; a Edge Function valida o UUID de novo e responde 400
+   'id_invalido' quando nao for.
+   ========================================================================= */
+
+const cam = (valor) => encodeURIComponent(String(valor ?? ""));
+
+export async function listarProjetos(msal) {
+  if (MODO_DEMO) return chamarDemo("/projetos", () => demoListarProjetos());
+  return chamarApi("/projetos", msal);
+}
+
+export async function obterProjeto(msal, id) {
+  if (MODO_DEMO) return chamarDemo(`/projetos/${id}`, () => demoObterProjeto(id));
+  return chamarApi(`/projetos/${cam(id)}`, msal);
+}
+
+export async function criarProjeto(msal, dados) {
+  if (MODO_DEMO) return chamarDemo("/projetos", () => demoCriarProjeto(dados));
+  return chamarApi("/projetos", msal, { metodo: "POST", corpo: dados });
+}
+
+export async function atualizarProjeto(msal, id, dados) {
+  if (MODO_DEMO) return chamarDemo(`/projetos/${id}`, () => demoAtualizarProjeto(id, dados));
+  return chamarApi(`/projetos/${cam(id)}`, msal, { metodo: "PATCH", corpo: dados });
+}
+
+export async function obterPdd(msal, projetoId) {
+  if (MODO_DEMO) return chamarDemo(`/projetos/${projetoId}/pdd`, () => demoObterPdd(projetoId));
+  return chamarApi(`/projetos/${cam(projetoId)}/pdd`, msal);
+}
+
+/**
+ * Cria os capitulos do PDD a partir do template do standard do projeto.
+ * Idempotente no backend (funcao SQL carbon_pdd_criar_do_template): clicar duas
+ * vezes nao duplica capitulo, so devolve criados = 0.
+ */
+export async function criarPddDoTemplate(msal, projetoId) {
+  if (MODO_DEMO) {
+    return chamarDemo(`/projetos/${projetoId}/pdd`, () => demoCriarPddDoTemplate(projetoId));
+  }
+  // Sem corpo de proposito: o standard vem do proprio projeto, no servidor.
+  return chamarApi(`/projetos/${cam(projetoId)}/pdd`, msal, { metodo: "POST" });
+}
+
+export async function atualizarCapituloPdd(msal, capituloId, dados) {
+  if (MODO_DEMO) {
+    return chamarDemo(`/pdd-capitulos/${capituloId}`, () =>
+      demoAtualizarCapituloPdd(capituloId, dados)
+    );
+  }
+  return chamarApi(`/pdd-capitulos/${cam(capituloId)}`, msal, { metodo: "PATCH", corpo: dados });
 }

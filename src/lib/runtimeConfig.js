@@ -70,10 +70,16 @@ export const CONFIG_DEFAULT = {
  * MODO_DEMO - permite revisar o visual (login + boas-vindas) antes do Supabase existir.
  * So liga em dev E com a env explicita. Em build de producao e sempre false por forca:
  * import.meta.env.DEV e estatico, entao o bundler ate elimina o ramo do demo no build.
+ *
+ * SEM Boolean() DE PROPOSITO. Os dois lados sao booleanos (DEV e boolean e o outro lado
+ * e uma comparacao), portanto o wrapper nao mudava o VALOR - mas mudava o BUILD: com
+ * Boolean(...) o Rollup nao dobra a expressao para a constante false, os ramos
+ * `if (MODO_DEMO)` sobrevivem ao tree-shaking e o modulo src/lib/demoProjetos.js ia
+ * inteiro para o bundle de producao, projeto ficticio incluso. Sem o wrapper a expressao
+ * vira `false && ...`, dobra para false, e as funcoes demo* saem do bundle (medido: 6 KB).
+ * Ver a nota de bundle em demoProjetos.js sobre o resto que ainda sobra de proposito.
  */
-export const MODO_DEMO = Boolean(
-  import.meta.env.DEV && import.meta.env.VITE_CARBON_DEMO === "true"
-);
+export const MODO_DEMO = import.meta.env.DEV && import.meta.env.VITE_CARBON_DEMO === "true";
 
 const TIMEOUT_MS = 8000;
 

@@ -10,6 +10,8 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import Layout from '@/Layout';
 import AcessoBloqueado from '@/pages/AcessoBloqueado';
 import BoasVindas from '@/pages/BoasVindas';
+import Projetos from '@/pages/Projetos';
+import ProjetoPdd from '@/pages/ProjetoPdd';
 import NaoAutorizado from '@/pages/NaoAutorizado';
 import PaginaNaoEncontrada from '@/pages/PaginaNaoEncontrada';
 
@@ -31,9 +33,14 @@ import PaginaNaoEncontrada from '@/pages/PaginaNaoEncontrada';
  *
  * Telas que NÃO devem receber o shell (tela cheia) ficam como <Route> explícita
  * abaixo, fora deste laço - é o caso de NaoAutorizado e do 404.
+ *
+ * Telas COM parâmetro na URL também ficam como <Route> explícita, porque o
+ * createPageUrl devolve caminho fixo e não sabe montar '/Projetos/<id>/PDD' - é o
+ * caso do ProjetoPdd (o gerador da URL é o urlPdd, em src/lib/pageRoutes.js).
  */
 const PAGE_COMPONENTS = {
   BoasVindas,
+  Projetos,
 };
 
 /**
@@ -105,6 +112,19 @@ function App() {
                     }
                   />
                 ))}
+
+                {/* PDD de um projeto: tela com shell, mas com parâmetro na URL, então
+                    fica fora do registro acima. A ordem não importa no React Router 6
+                    (ele ranqueia por especificidade, e '/Projetos/:id/PDD' é mais
+                    específica que '/Projetos'), mas mantemos junto para leitura. */}
+                <Route
+                  path="/Projetos/:id/PDD"
+                  element={
+                    <Layout currentPageName="ProjetoPdd">
+                      <ProjetoPdd />
+                    </Layout>
+                  }
+                />
 
                 {/* Tela cheia, sem shell: quem cai aqui não passou na checagem de domínio */}
                 <Route path={createPageUrl('NaoAutorizado')} element={<NaoAutorizado />} />

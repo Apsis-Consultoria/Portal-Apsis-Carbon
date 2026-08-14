@@ -51,7 +51,10 @@ diligence da BeZero (`docs/notion/12-be-zero.md`).
 labels: enhancement
 
 **Contexto.** `docs/notion/05-pdd-parakana.md`. O Notion tem o rastreador de capítulos do PDD com
-45 linhas, hierarquia de até três níveis, status e responsável por capítulo, e percentual agregado.
+43 capítulos, hierarquia de até três níveis, status e responsável por capítulo, e percentual
+agregado. (A versão original desta issue dizia 45, por erro de contagem no levantamento. A
+estrutura enumerada tem 43: 5 raízes, 22 de segundo nível e 16 de terceiro. A issue #2 no
+GitHub ainda traz o número antigo e precisa ser atualizada.)
 A estrutura completa está capturada no arquivo de levantamento.
 
 **Escopo.** Tela de PDD por projeto: árvore de capítulos, status e responsável por capítulo,

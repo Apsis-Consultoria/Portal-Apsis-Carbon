@@ -24,7 +24,7 @@ Views: `Em andamento`, `Por Status`, `Timeline`, `Concluídas`. As mesmas quatro
 | `Prazo` | **data única** | no backoffice é `Duração`, um intervalo |
 | `Prioridade` | seleção (`Alta`, `Média`) | igual |
 | `Tipo` | seleção (`JPF`) | igual, mas os dois registros usam o mesmo valor |
-| — | — | **não tem `HH planejadas` nem `HH Executada`** |
+| - | - | **não tem `HH planejadas` nem `HH Executada`** |
 
 ### O que isso revela
 

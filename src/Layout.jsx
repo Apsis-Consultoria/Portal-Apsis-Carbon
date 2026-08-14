@@ -3,7 +3,7 @@
  *
  * Diferença central em relação ao Layout do Portal APSIS: aqui NÃO existe árvore de
  * menu hardcoded nem filtro de permissão por perfil. A navegação é a soma de
- *   1. um item fixo "Boas-Vindas"; e
+ *   1. os itens fixos (ITENS_FIXOS, telas próprias do Carbon); e
  *   2. os módulos vindos da tabela carbon_modulos, lidos pela Edge Function carbon-api.
  * Assim, liberar um módulo novo é um INSERT no banco, sem deploy do frontend.
  */
@@ -22,7 +22,7 @@ import {
   // ícones disponíveis para os módulos (ver mapa ICONES)
   Home, Leaf, TreePine, FileText, FileCheck2, BarChart3, Factory, Globe2,
   ClipboardList, Users, Settings, Sparkles, Cloud, Recycle, Handshake, Award,
-  ShieldCheck, Calculator, Layers, Megaphone,
+  ShieldCheck, Calculator, Layers, Megaphone, FolderTree,
 } from 'lucide-react';
 
 const LOGO_SRC = '/login/logo-apsis-transp.png';
@@ -57,9 +57,38 @@ const ICONES = {
   Calculator,
   Layers,
   Megaphone,
+  FolderTree,
 };
 
 const resolverIcone = (nome) => ICONES[nome] || Leaf;
+
+/**
+ * Itens fixos da navegação: telas próprias do Carbon, que existem no bundle e não
+ * dependem de cadastro em carbon_modulos.
+ *
+ * POR QUE "Projetos" É FIXO: carbon_modulos está vazia enquanto os módulos de negócio
+ * não são definidos, então um item que só viesse do banco deixaria a tela de Projetos
+ * inalcançável pelo menu - só por URL digitada à mão.
+ *
+ * `paginas` lista os currentPageName que devem acender o item. O PDD é tela filha de
+ * Projetos ('/Projetos/<id>/PDD'), por isso mantém o mesmo item aceso.
+ */
+const ITENS_FIXOS = [
+  {
+    chave: 'BoasVindas',
+    label: 'Boas-Vindas',
+    icone: 'Home',
+    rota: createPageUrl('BoasVindas'),
+    paginas: ['BoasVindas'],
+  },
+  {
+    chave: 'Projetos',
+    label: 'Projetos',
+    icone: 'FolderTree',
+    rota: createPageUrl('Projetos'),
+    paginas: ['Projetos', 'ProjetoPdd'],
+  },
+];
 
 /**
  * Cabeçalho único por página, exibido só na topbar.
@@ -68,6 +97,8 @@ const resolverIcone = (nome) => ICONES[nome] || Leaf;
  */
 const PAGE_HEADERS = {
   BoasVindas: { title: 'Boas-Vindas', subtitle: 'Apsis Carbon' },
+  Projetos: { title: 'Projetos', subtitle: 'Cadastro dos projetos de carbono' },
+  ProjetoPdd: { title: 'PDD', subtitle: 'Capítulos do Project Design Document' },
 };
 
 export default function Layout({ children, currentPageName }) {
@@ -120,18 +151,12 @@ export default function Layout({ children, currentPageName }) {
 
   const totalNotificacoes = notificacoes.length;
 
-  // Item fixo + módulos ordenados por `ordem` (linhas sem ordem vão para o fim).
+  // Itens fixos + módulos ordenados por `ordem` (linhas sem ordem vão para o fim).
   const itensNav = useMemo(() => {
-    const fixo = {
-      chave: 'BoasVindas',
-      label: 'Boas-Vindas',
-      icone: 'Home',
-      rota: createPageUrl('BoasVindas'),
-    };
     const doBanco = [...modulos].sort(
       (a, b) => (a?.ordem ?? Number.MAX_SAFE_INTEGER) - (b?.ordem ?? Number.MAX_SAFE_INTEGER),
     );
-    return [fixo, ...doBanco];
+    return [...ITENS_FIXOS, ...doBanco];
   }, [modulos]);
 
   // Fecha o menu do usuário ao clicar fora
@@ -163,11 +188,13 @@ export default function Layout({ children, currentPageName }) {
   };
 
   /**
-   * Item ativo. A página fixa é identificada por currentPageName; os módulos, pelo
-   * pathname, porque a rota deles vem do banco e não passa por PAGE_ROUTES.
+   * Item ativo. As páginas fixas são identificadas por currentPageName (cada item
+   * declara em `paginas` quais telas o acendem, o que mantém "Projetos" aceso também
+   * no PDD); os módulos, pelo pathname, porque a rota deles vem do banco e não passa
+   * por PAGE_ROUTES.
    */
   const estaAtivo = (item) => {
-    if (item.chave === 'BoasVindas') return currentPageName === 'BoasVindas';
+    if (Array.isArray(item.paginas)) return item.paginas.includes(currentPageName);
     if (!item.rota) return false;
     return location.pathname === item.rota || location.pathname.startsWith(item.rota + '/');
   };

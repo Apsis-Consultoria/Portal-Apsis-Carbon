@@ -15,9 +15,58 @@ import NaoAutorizado from "@/pages/NaoAutorizado";
  * load e nao reagiria a navegacao. Com apenas login + boas-vindas, o Carbon nao precisa
  * de logica de rota publica.
  *
- * Nao existe bypass de autenticacao neste arquivo: o unico modo especial e o MODO_DEMO,
- * que so liga em dev por env explicita e DESABILITA o login em vez de liberar o acesso.
+ * MODO DEMONSTRACAO - por que existe um caminho que nao passa pelo Azure AD:
+ *
+ * Enquanto o projeto Supabase nao existe, o login com a Microsoft nao pode funcionar (falta
+ * clientId/tenantId, que vem do banco). Sem uma porta alternativa, as telas de negocio ficam
+ * inalcancaveis e nao ha como revisar o produto. Este bloco e essa porta.
+ *
+ * Por que e seguro: em MODO_DEMO as funcoes de src/lib/carbonApi.js NAO fazem rede - operam
+ * sobre o dataset ficticio de src/lib/demoProjetos.js. Entrar em modo demonstracao nao da
+ * acesso a dado nenhum, porque nao existe backend do outro lado.
+ *
+ * Barreiras, nesta ordem:
+ *   1. MODO_DEMO exige import.meta.env.DEV, que e estatico: em build de producao a expressao
+ *      dobra para false e o Rollup elimina este ramo (ver a nota em runtimeConfig.js);
+ *   2. exige tambem a env explicita VITE_CARBON_DEMO=true;
+ *   3. NUNCA por deteccao de hostname - foi o erro que o portal-apsis registra como decisao
+ *      de seguranca, porque qualquer subdominio com "preview" no nome burlaria a autenticacao;
+ *   4. a entrada e um clique deliberado, nao automatica, para a tela de login continuar
+ *      revisavel;
+ *   5. enquanto ativo, uma tarja fixa avisa que os dados sao ficticios.
  */
+
+/** Chave de sessao do modo demonstracao. sessionStorage, e nao localStorage, de proposito:
+ *  o estado morre ao fechar a aba e nunca sobrevive a um restart do navegador. */
+const CHAVE_DEMO = "carbonModoDemoAtivo";
+
+function lerDemoAtivo() {
+  if (!MODO_DEMO) return false;
+  try {
+    return sessionStorage.getItem(CHAVE_DEMO) === "true";
+  } catch {
+    // Navegacao privada pode negar sessionStorage. Sem persistencia, sem demo.
+    return false;
+  }
+}
+
+/** Tarja fixa, sempre visivel, para ninguem confundir dado ficticio com dado real. */
+function TarjaDemo({ aoSair }) {
+  return (
+    <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 rounded-full border border-amber-300 bg-amber-50 px-4 py-2 shadow-lg">
+      <span className="text-[11px] font-semibold text-amber-800">
+        Modo demonstração - dados fictícios, sem backend
+      </span>
+      <button
+        type="button"
+        onClick={aoSair}
+        className="text-[11px] font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-950"
+      >
+        Sair
+      </button>
+    </div>
+  );
+}
 
 /** Extrai o dominio (depois do @) do e-mail da conta, em minusculas. */
 function dominioDaConta(conta) {
@@ -47,6 +96,27 @@ export default function AuthGuard({ children }) {
   // Mensagem de falha de login exibida NA TELA. Nao usamos o toast do sonner aqui de
   // proposito: o <Toaster /> vive dentro do App, que nao esta montado nesta ramificacao.
   const [erroLogin, setErroLogin] = useState("");
+  // Modo demonstracao ativo nesta aba. Inicializado do sessionStorage para sobreviver a
+  // navegacao entre telas e a F5, sem sobreviver ao fechamento da aba.
+  const [demoAtivo, setDemoAtivo] = useState(lerDemoAtivo);
+
+  const entrarNoDemo = () => {
+    try {
+      sessionStorage.setItem(CHAVE_DEMO, "true");
+    } catch {
+      // Sem sessionStorage o estado nao persiste entre telas, mas a sessao atual funciona.
+    }
+    setDemoAtivo(true);
+  };
+
+  const sairDoDemo = () => {
+    try {
+      sessionStorage.removeItem(CHAVE_DEMO);
+    } catch {
+      // nada a fazer
+    }
+    setDemoAtivo(false);
+  };
 
   /**
    * A autenticacao e decidida por `accounts`, e NAO por useIsAuthenticated().
@@ -126,6 +196,18 @@ export default function AuthGuard({ children }) {
     return <Aguardando rotulo="Carregando..." />;
   }
 
+  // Modo demonstracao ativado por clique: libera a aplicacao com o dataset ficticio.
+  // Sem conta do Azure, entao a saudacao da Boas-Vindas fica sem nome e as telas que dependem
+  // de backend real mostram os estados vazios - o que e honesto, porque backend nao existe.
+  if (MODO_DEMO && demoAtivo && !temConta) {
+    return (
+      <>
+        {children}
+        <TarjaDemo aoSair={sairDoDemo} />
+      </>
+    );
+  }
+
   if (!temConta) {
     const rotuloBotao = loading ? "Redirecionando..." : "Entre com a sua conta Microsoft";
     const dominio = config?.app?.dominioPermitido || "apsis.com.br";
@@ -155,9 +237,24 @@ export default function AuthGuard({ children }) {
         </button>
 
         {MODO_DEMO && (
-          <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
-            Modo demonstração - configure o Supabase para entrar
-          </p>
+          <div className="w-full flex flex-col items-center gap-3">
+            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
+              Modo demonstração - configure o Supabase para entrar
+            </p>
+            {/* Porta de entrada do modo demonstracao. Existe para as telas de negocio serem
+                revisaveis antes de o Supabase existir; nao da acesso a dado nenhum, porque em
+                MODO_DEMO o carbonApi nao faz rede. Ver o cabecalho deste arquivo. */}
+            <button
+              type="button"
+              onClick={entrarNoDemo}
+              className="w-full flex items-center justify-center gap-2 border border-white/30 text-white/90 hover:bg-white/10 hover:border-white/50 font-semibold py-3 px-6 rounded-xl transition-colors"
+            >
+              Entrar em modo demonstração
+            </button>
+            <p className="text-[11px] text-white/45 text-center">
+              Abre as telas com dados fictícios, sem backend. Só existe em desenvolvimento.
+            </p>
+          </div>
         )}
 
         {erroLogin && (

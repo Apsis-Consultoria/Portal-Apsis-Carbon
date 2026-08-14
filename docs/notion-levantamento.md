@@ -303,7 +303,8 @@ Views `Capítulos do PDD`, `Capítulos em andamento` e `Table`.
 Colunas: `Capítulo` (numeração hierárquica: 1, 1.1, 2.2.1 ...), `Nome do capítulo`,
 `Status`, `Responsável`, `Cap` (agrupador do capítulo raiz).
 
-Estrutura completa capturada, 45 linhas, todas em `Concluído`, rodapé `COMPLETE 100%`:
+Estrutura completa capturada, 43 capítulos, todos em `Concluído`, rodapé `COMPLETE 100%`
+(corrigido de 45 em 2026-08-14: erro de contagem, ver a nota em `notion/05-pdd-parakana.md`):
 
 1. Summary of Project Benefits (1.1 Unique Project Benefits, 1.2 Standardized Benefit Metrics)
 2. Project Details (2.1 Goals/Design/Long-Term Viability, 2.2 Without-project Land Use
