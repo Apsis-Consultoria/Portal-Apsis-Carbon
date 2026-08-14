@@ -47,7 +47,9 @@ const ARQUIVO = join(AQUI, '..', 'docs', 'issues', 'BACKLOG-INICIAL.md');
 const args = new Set(process.argv.slice(2));
 const modoLinks = args.has('--links');
 const modoSeco = args.has('--dry-run');
-const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
+// .trim() e proposital: colar token no terminal costuma arrastar espaco ou quebra de
+// linha, e um token com espaco no fim falha com 401 sem explicacao obvia.
+const token = (process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '').trim();
 
 /** Quebra o markdown em issues. Cada issue comeca em "## ISSUE: ". */
 function extrairIssues(markdown) {
@@ -94,6 +96,64 @@ async function api(caminho, opcoes = {}) {
   return { ok: resposta.ok, status: resposta.status, corpo };
 }
 
+/**
+ * Confere, em dois passos, ANTES de tentar qualquer coisa, para nao confundir
+ * "token invalido" com "token valido sem acesso ao repositorio". Os dois davam 404
+ * na primeira versao deste script, e a mensagem culpava o escopo por engano.
+ */
+async function verificarAcesso() {
+  // Passo 1: o token autentica?
+  const quem = await api('/user');
+  if (quem.status === 401) {
+    console.error('\nO token nao foi aceito pelo GitHub (HTTP 401).\n');
+    console.error('Causas, em ordem de probabilidade:');
+    console.error('  1. A variavel ficou vazia. No PowerShell, o token e o que voce DIGITA no');
+    console.error('     prompt do Read-Host, nao o texto que voce passa como argumento dele.');
+    console.error('     Confira antes de rodar:  $env:GH_TOKEN.Length');
+    console.error('     Deve dar algo em torno de 90 caracteres, nunca 0.');
+    console.error('  2. O token expirou ou foi revogado.');
+    console.error('  3. Sobrou espaco ou quebra de linha no valor (o script ja faz trim).');
+    process.exit(1);
+  }
+  if (!quem.ok) {
+    console.error(`\nFalha ao validar o token: HTTP ${quem.status} ${JSON.stringify(quem.corpo)}`);
+    process.exit(1);
+  }
+  console.log(`Token valido, autenticado como: ${quem.corpo.login}`);
+
+  // Passo 2: esse token ve ESTE repositorio?
+  const repo = await api(`/repos/${REPO}`);
+  if (repo.status === 404) {
+    console.error(`\nO token autentica, mas nao ve o repositorio ${REPO} (HTTP 404).`);
+    console.error('Num repositorio privado o GitHub responde 404, e nao 403, para quem nao tem');
+    console.error('acesso: ele nao revela nem que o repositorio existe.\n');
+    console.error('Causas, em ordem de probabilidade:');
+    console.error('  1. Token fine-grained SEM o repositorio selecionado, ou sem a permissao');
+    console.error('     "Issues: Read and write".');
+    console.error('  2. Token fine-grained em repositorio de ORGANIZACAO: a organizacao precisa');
+    console.error('     permitir tokens fine-grained, e o token precisa ser aprovado por ela.');
+    console.error('     Se a Apsis-Consultoria nao tiver isso liberado, use um token CLASSICO');
+    console.error('     com escopo "repo", que funciona sem aprovacao da organizacao.');
+    console.error('  3. O nome do repositorio mudou. Ajuste a constante REPO no topo do arquivo.');
+    process.exit(1);
+  }
+  if (repo.status === 403) {
+    console.error(`\nAcesso negado ao repositorio (HTTP 403): ${JSON.stringify(repo.corpo)}`);
+    console.error('Costuma ser aprovacao pendente do token pela organizacao.');
+    process.exit(1);
+  }
+  if (!repo.ok) {
+    console.error(`\nFalha ao ler o repositorio: HTTP ${repo.status} ${JSON.stringify(repo.corpo)}`);
+    process.exit(1);
+  }
+  if (repo.corpo.has_issues === false) {
+    console.error('\nAs Issues estao DESABILITADAS neste repositorio.');
+    console.error(`Habilite em https://github.com/${REPO}/settings e rode de novo.`);
+    process.exit(1);
+  }
+  console.log(`Repositorio acessivel: ${repo.corpo.full_name} (${repo.corpo.private ? 'privado' : 'publico'})`);
+}
+
 /** Titulos ja existentes no repositorio, para nao duplicar. */
 async function titulosExistentes() {
   const titulos = new Set();
@@ -101,15 +161,9 @@ async function titulosExistentes() {
     const { ok, status, corpo } = await api(
       `/repos/${REPO}/issues?state=all&per_page=100&page=${pagina}`
     );
-    if (!ok) {
-      if (status === 404) {
-        throw new Error(
-          `Repositorio ${REPO} nao encontrado (404). Se o repo e privado, o token precisa do ` +
-          `escopo "repo". Se o nome mudou de novo, ajuste a constante REPO no topo deste arquivo.`
-        );
-      }
-      throw new Error(`Falha ao listar issues: HTTP ${status} ${JSON.stringify(corpo)}`);
-    }
+    // verificarAcesso() ja rodou antes daqui, entao 404 nesta altura seria algo raro
+    // (repositorio renomeado no meio da execucao, por exemplo).
+    if (!ok) throw new Error(`Falha ao listar issues: HTTP ${status} ${JSON.stringify(corpo)}`);
     if (!Array.isArray(corpo) || corpo.length === 0) break;
     // a API de issues devolve pull requests tambem; filtra
     for (const item of corpo) if (!item.pull_request) titulos.add(item.title);
@@ -183,8 +237,12 @@ if (!token) {
   process.exit(1);
 }
 
-console.log(`Repositorio: ${REPO}`);
-console.log('Conferindo issues existentes para nao duplicar...');
+console.log(`Repositorio alvo: ${REPO}`);
+console.log(`Token recebido: ${token.length} caracteres\n`);
+
+await verificarAcesso();
+
+console.log('\nConferindo issues existentes para nao duplicar...');
 const existentes = await titulosExistentes();
 console.log(`${existentes.size} issues ja no repositorio.\n`);
 
