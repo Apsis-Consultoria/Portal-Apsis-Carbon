@@ -3,9 +3,11 @@
  *
  * Diferença central em relação ao Layout do Portal APSIS: aqui NÃO existe árvore de
  * menu hardcoded nem filtro de permissão por perfil. A navegação é a soma de
- *   1. os itens fixos (ITENS_FIXOS, telas próprias do Carbon); e
+ *   1. os itens fixos, DERIVADOS do registro de páginas (src/paginas.config.js); e
  *   2. os módulos vindos da tabela carbon_modulos, lidos pela Edge Function carbon-api.
- * Assim, liberar um módulo novo é um INSERT no banco, sem deploy do frontend.
+ * Assim, liberar um módulo novo é um INSERT no banco, sem deploy do frontend, e
+ * publicar uma tela nova do Carbon é criar um src/paginas/<domínio>.paginas.js - este
+ * arquivo não muda em nenhum dos dois casos.
  */
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -14,6 +16,7 @@ import { useMsal } from '@azure/msal-react';
 import { useQuery } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { rotaInternaSegura, urlExternaSegura } from '@/utils/urlSegura';
+import { ITENS_MENU_FIXOS, paginaPorNome } from '@/paginas.config';
 import { obterModulos, obterNotificacoes } from '@/lib/carbonApi';
 import { getConfig } from '@/lib/runtimeConfig';
 import {
@@ -25,7 +28,23 @@ import {
   ShieldCheck, Calculator, Layers, Megaphone, FolderTree,
 } from 'lucide-react';
 
-const LOGO_SRC = '/login/logo-apsis-transp.png';
+/**
+ * Marca do shell. É a MESMA arte da tela de login (`CarbonLoginLayout`): APSIS em
+ * laranja com a palavra CARBON em branco logo abaixo, desenhada para fundo escuro.
+ * Antes o shell montava a marca à mão (o símbolo quadrado mais um "CARBON" em letra
+ * espaçada), e o resultado era uma segunda versão da identidade, com peso e
+ * espaçamento diferentes dos da porta de entrada do sistema.
+ */
+const LOGO_SRC = '/login/logo-apsis-carbon.png';
+
+/**
+ * Só o símbolo, para a sidebar recolhida.
+ *
+ * A arte do login é horizontal (350x100): dentro dos 72px da sidebar recolhida a
+ * palavra CARBON teria cerca de 4px de altura e viraria um borrão. Marca reduzida a
+ * símbolo é o comportamento normal de uma identidade, não uma exceção.
+ */
+const LOGO_SIMBOLO_SRC = '/login/logo-apsis-transp.png';
 
 /**
  * Mapa explícito nome-do-ícone -> componente do lucide-react.
@@ -63,43 +82,21 @@ const ICONES = {
 const resolverIcone = (nome) => ICONES[nome] || Leaf;
 
 /**
- * Itens fixos da navegação: telas próprias do Carbon, que existem no bundle e não
- * dependem de cadastro em carbon_modulos.
+ * Itens fixos da navegação e cabeçalho da topbar: os dois vêm do registro de páginas
+ * (src/paginas.config.js), e não de listas escritas aqui.
  *
- * POR QUE "Projetos" É FIXO: carbon_modulos está vazia enquanto os módulos de negócio
- * não são definidos, então um item que só viesse do banco deixaria a tela de Projetos
- * inalcançável pelo menu - só por URL digitada à mão.
+ * ITENS_MENU_FIXOS já chega com { chave, label, icone, grupo, rota, paginas }, ordenado
+ * por menu.ordem. `paginas` lista os currentPageName que devem acender o item - a tela
+ * pai mais toda tela que se declarou filha por `menuPai` (é assim que o PDD, em
+ * '/Projetos/<id>/PDD', mantém o item "Projetos" aceso).
  *
- * `paginas` lista os currentPageName que devem acender o item. O PDD é tela filha de
- * Projetos ('/Projetos/<id>/PDD'), por isso mantém o mesmo item aceso.
+ * `grupo` está disponível em cada item mas ainda NÃO é renderizado: a sidebar não tem
+ * cabeçalho de seção nesta entrega. O campo existe no registro para que o agrupamento
+ * visual, quando for pedido, não exija mudar a forma de toda entrada de PAGINAS.
+ *
+ * Regra herdada do portal e mantida: nenhuma tela renderiza <h1> de título próprio; o
+ * título e o subtítulo saem daqui, uma vez, na topbar.
  */
-const ITENS_FIXOS = [
-  {
-    chave: 'BoasVindas',
-    label: 'Boas-Vindas',
-    icone: 'Home',
-    rota: createPageUrl('BoasVindas'),
-    paginas: ['BoasVindas'],
-  },
-  {
-    chave: 'Projetos',
-    label: 'Projetos',
-    icone: 'FolderTree',
-    rota: createPageUrl('Projetos'),
-    paginas: ['Projetos', 'ProjetoPdd'],
-  },
-];
-
-/**
- * Cabeçalho único por página, exibido só na topbar.
- * Regra herdada do portal: nenhuma tela renderiza <h1> de título próprio.
- * O subtítulo cai no fallback "Apsis Carbon" quando a página não está mapeada.
- */
-const PAGE_HEADERS = {
-  BoasVindas: { title: 'Boas-Vindas', subtitle: 'Apsis Carbon' },
-  Projetos: { title: 'Projetos', subtitle: 'Cadastro dos projetos de carbono' },
-  ProjetoPdd: { title: 'PDD', subtitle: 'Capítulos do Project Design Document' },
-};
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -151,12 +148,13 @@ export default function Layout({ children, currentPageName }) {
 
   const totalNotificacoes = notificacoes.length;
 
-  // Itens fixos + módulos ordenados por `ordem` (linhas sem ordem vão para o fim).
+  // Telas do Carbon (registro de páginas) + módulos do banco ordenados por `ordem`
+  // (linhas sem ordem vão para o fim).
   const itensNav = useMemo(() => {
     const doBanco = [...modulos].sort(
       (a, b) => (a?.ordem ?? Number.MAX_SAFE_INTEGER) - (b?.ordem ?? Number.MAX_SAFE_INTEGER),
     );
-    return [...ITENS_FIXOS, ...doBanco];
+    return [...ITENS_MENU_FIXOS, ...doBanco];
   }, [modulos]);
 
   // Fecha o menu do usuário ao clicar fora
@@ -274,13 +272,16 @@ export default function Layout({ children, currentPageName }) {
       );
     });
 
-  const cabecalho = PAGE_HEADERS[currentPageName] || {};
+  /* Título da topbar: o registro de páginas primeiro; depois o rótulo do item de menu
+     (é o caso de um módulo vindo de carbon_modulos, que não está no registro); e por
+     último o próprio nome da página, para uma tela nova nunca aparecer sem título. */
+  const paginaAtual = paginaPorNome(currentPageName);
   const tituloPagina =
-    cabecalho.title ||
+    paginaAtual?.titulo ||
     itensNav.find((i) => i.chave === currentPageName)?.label ||
     currentPageName ||
     'Apsis Carbon';
-  const subtituloPagina = cabecalho.subtitle || 'Apsis Carbon';
+  const subtituloPagina = paginaAtual?.subtitulo || 'Apsis Carbon';
 
   return (
     <div className="min-h-screen bg-[#F4F6F4] flex font-sans">
@@ -327,23 +328,20 @@ export default function Layout({ children, currentPageName }) {
         className={`hidden md:flex flex-col sidebar-transition bg-[var(--apsis-green)] relative z-30 ${collapsed ? 'w-[72px]' : 'w-[240px]'}`}
         style={{ minHeight: '100vh' }}
       >
-        {/* Logo direto sobre o verde (sem cartão branco), com o selo CARBON abaixo */}
+        {/* A mesma marca da tela de login, direto sobre o verde (a arte já é para fundo
+            escuro e já traz a palavra CARBON, então não há cartão branco nem selo de
+            texto). Recolhida, a sidebar mostra só o símbolo. */}
         <div className={`border-b border-white/10 overflow-hidden ${collapsed ? 'px-3 py-3' : 'py-3 px-4'}`}>
           <div
             key={collapsed ? 'logo-min' : 'logo-full'}
             className={`logo-reveal flex flex-col items-center ${collapsed ? 'w-11 mx-auto' : 'w-full py-2.5'}`}
           >
             <img
-              src={LOGO_SRC}
-              alt="APSIS"
-              className={`object-contain ${collapsed ? 'w-full h-auto' : 'h-9 w-auto'}`}
+              src={collapsed ? LOGO_SIMBOLO_SRC : LOGO_SRC}
+              alt="Apsis Carbon"
+              className={`object-contain ${collapsed ? 'w-full h-auto' : 'w-[150px] h-auto'}`}
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
-            {!collapsed && (
-              <span className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.32em] text-white/45">
-                Carbon
-              </span>
-            )}
           </div>
         </div>
 
@@ -387,11 +385,13 @@ export default function Layout({ children, currentPageName }) {
           <aside className="relative z-50 w-64 h-full bg-[var(--apsis-green)] flex flex-col">
             <div className="flex items-center justify-between px-4 py-4 border-b border-white/10 w-full">
               <div className="flex flex-col items-center w-full overflow-hidden">
-                <div className="text-white text-xs font-bold tracking-wider uppercase mb-1">Carbon</div>
-                <div className="logo-reveal bg-white rounded-xl px-3 py-2 flex items-center justify-center overflow-hidden w-40">
+                {/* Mesma marca do login e da sidebar desktop. O cartão branco saiu
+                    junto com o "CARBON" em texto: a arte é para fundo escuro e já
+                    traz a palavra. */}
+                <div className="logo-reveal flex items-center justify-center overflow-hidden w-40">
                   <img
                     src={LOGO_SRC}
-                    alt="APSIS"
+                    alt="Apsis Carbon"
                     className="w-full h-auto object-contain"
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
