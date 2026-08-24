@@ -1,10 +1,24 @@
 // -----------------------------------------------------------------------------
 // Rotas de projeto de carbono (issue #1).
 // -----------------------------------------------------------------------------
-// GET   carbon-api/projetos       -> { projetos: [...] }
-// POST  carbon-api/projetos       -> { projeto } (201)
-// GET   carbon-api/projetos/:id   -> { projeto }  (com geometria em GeoJSON)
-// PATCH carbon-api/projetos/:id   -> { projeto }
+// GET   carbon-api/projetos              -> { projetos: [...], pode_criar }
+// POST  carbon-api/projetos              -> { projeto } (201)
+// GET   carbon-api/projetos/:id          -> { projeto, equipe, pode_escrever }
+// PATCH carbon-api/projetos/:id          -> { projeto }
+// PATCH carbon-api/projetos/:id/equipe   -> { equipe, nao_encontrados }
+//
+// PORTAO DE LEITURA. Quem enxerga um projeto e quem PARTICIPA dele, pela tabela
+// carbon_projeto_equipe (migration 20260822090000_projeto_equipe). Admin ignora a
+// tabela e ve tudo; gestor NAO ve tudo, apenas escreve no que ja enxerga.
+//
+// O portao e aplicado DENTRO da consulta que traz o dado, por inner join (ver
+// comVisibilidade). Nao existe um "conferir" separado do "ler": sem o join que
+// casa o usuario, a consulta simplesmente nao devolve linha. Duas consultas
+// abririam uma janela entre uma e outra, e a segunda leria sem o filtro.
+//
+// "Nao existe" e "voce nao participa" respondem o MESMO 404, pelo mesmo caminho
+// de codigo. Distinguir os dois transformaria a rota num oraculo: bastaria pedir
+// ids ate parar de receber 404 para descobrir quantos projetos a APSIS tem.
 //
 // Objetos SQL de que este modulo depende (migration 20260812150000_projetos_e_pdd):
 //   public.carbon_projeto_definir_geometria(p_projeto_id uuid, p_geojson jsonb)
@@ -20,6 +34,7 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { respostaErro, respostaJson } from '../../_shared/cors.ts';
 import type { Contexto, Rota } from './tipos.ts';
+import { ehAdmin, podeEscrever } from './acesso.ts';
 import {
   ehObjeto,
   ErroRota,
@@ -31,7 +46,9 @@ import {
   lerNumero,
   lerTexto,
   LIMITE_GEOJSON_CHARS,
+  LIMITE_ITENS_LISTA,
   LIMITE_TEXTO_CURTO,
+  listaBranca,
   paraNumero,
   veioNoCorpo,
 } from './helpers.ts';
@@ -207,7 +224,73 @@ function montarProjeto(linha: LinhaProjeto, geometria?: unknown): Record<string,
  * existe antes de responder, e duplicar a consulta la garantiria divergencia de
  * colunas com o tempo.
  */
-export async function lerProjeto(
+/**
+ * Consulta de carbon_projetos JA com o portao de leitura aplicado.
+ *
+ * Para admin, a consulta e a de sempre. Para todo o resto, um inner join com
+ * carbon_projeto_equipe filtrado pelo usuario da requisicao: a linha so existe
+ * no resultado se a pessoa participar.
+ *
+ * O embed NAO e ambiguo aqui: carbon_projetos recebe uma unica chave estrangeira
+ * vinda de carbon_projeto_equipe (projeto_id). O caminho inverso e que seria
+ * ambiguo, porque carbon_projeto_equipe tem DUAS FKs para carbon_usuarios
+ * (usuario_id e criado_por) - e por isso que lerEquipe nao usa embed.
+ *
+ * Mesmo idioma de rotas/modulos.ts, que ja resolve visibilidade por join.
+ */
+function comVisibilidade(ctx: Contexto) {
+  const base = ctx.admin.from('carbon_projetos');
+  return ehAdmin(ctx.registro)
+    ? base.select(COLUNAS_PROJETO)
+    : base
+        .select(`${COLUNAS_PROJETO}, carbon_projeto_equipe!inner(usuario_id)`)
+        .eq('carbon_projeto_equipe.usuario_id', ctx.registro.id);
+}
+
+/**
+ * Remove a coluna que so existe para o join filtrar. Sem isto, o objeto do
+ * projeto sairia para a tela com um array carbon_projeto_equipe pendurado.
+ */
+function semJuncao(linha: Record<string, unknown>): LinhaProjeto {
+  const { carbon_projeto_equipe: _ignorado, ...resto } = linha;
+  return resto as LinhaProjeto;
+}
+
+/**
+ * Le um projeto CONFERINDO a visibilidade. E esta a funcao que os outros modulos
+ * de rota devem usar para resolver um projeto a partir do id da URL.
+ *
+ * Devolve null tanto para "nao existe" quanto para "voce nao participa", de
+ * proposito: o chamador responde 404 nos dois casos, pelo mesmo caminho, sem
+ * diferenca de tempo entre eles.
+ */
+export async function lerProjetoVisivel(
+  ctx: Contexto,
+  id: string,
+): Promise<LinhaProjeto | null> {
+  const { data, error } = await comVisibilidade(ctx).eq('id', id).maybeSingle();
+
+  if (error) {
+    console.error('Falha ao ler carbon_projetos:', error.message);
+    throw new ErroRota('erro_interno', 500);
+  }
+  return data ? semJuncao(data as Record<string, unknown>) : null;
+}
+
+/**
+ * Releitura SEM portao, para uso interno deste modulo apenas.
+ *
+ * Existe por um motivo estreito: em criar() e em atualizar(), a linha acabou de
+ * ser escrita pelo proprio chamador, que ja passou pelo portao. Reaplicar o
+ * filtro na releitura faria um admin que nao pertence a equipe receber 404
+ * DEPOIS de a escrita ter sido aplicada - a tela mostraria erro e o dado estaria
+ * gravado, que e exatamente o modo de falha que a RPC carbon_projeto_atualizar
+ * existe para evitar.
+ *
+ * NAO e exportada, e nao deve ser. Quem precisa resolver um projeto a partir de
+ * um id que veio da URL usa lerProjetoVisivel.
+ */
+async function relerProjeto(
   admin: SupabaseClient,
   id: string,
 ): Promise<LinhaProjeto | null> {
@@ -341,25 +424,75 @@ function montarDadosProjeto(
  * tela poder mostrar ou esconder sem uma segunda rota.
  */
 async function listar(ctx: Contexto): Promise<Response> {
-  const { data, error } = await ctx.admin
-    .from('carbon_projetos')
-    .select(COLUNAS_PROJETO)
+  const { data, error } = await comVisibilidade(ctx)
     .order('ativo', { ascending: false })
     .order('nome', { ascending: true });
 
+  // Erro de banco responde 500, e nao lista vazia. Uma consulta que falhou e uma
+  // pessoa sem projeto nenhum sao coisas diferentes, e devolver [] nas duas faria
+  // a tela dizer "voce nao participa de nenhum projeto" quando o banco caiu.
   if (error) {
     console.error('Falha ao ler carbon_projetos:', error.message);
     return respostaErro('erro_interno', 500);
   }
 
-  const projetos = ((data ?? []) as LinhaProjeto[]).map((linha) => montarProjeto(linha));
-  return respostaJson({ projetos });
+  const projetos = ((data ?? []) as Record<string, unknown>[]).map((linha) =>
+    montarProjeto(semJuncao(linha))
+  );
+
+  // pode_criar vai no envelope para a tela poder explicar a lista vazia de forma
+  // diferente para quem pode criar projeto e para quem depende de ser incluido.
+  // Nao e a tela recalculando a regra: e o servidor dizendo o que ele decidiu.
+  return respostaJson({ projetos, pode_criar: podeEscrever(ctx.registro) });
 }
 
 async function obter(ctx: Contexto): Promise<Response> {
-  const linha = await lerProjeto(ctx.admin, ctx.params.id);
+  const linha = await lerProjetoVisivel(ctx, ctx.params.id);
   if (!linha) return respostaErro('nao_encontrado', 404);
-  return respostaJson({ projeto: await montarProjetoComGeometria(ctx.admin, linha) });
+
+  return respostaJson({
+    projeto: await montarProjetoComGeometria(ctx.admin, linha),
+    equipe: await lerEquipe(ctx, linha.id),
+    pode_escrever: podeEscrever(ctx.registro),
+  });
+}
+
+/**
+ * Quem participa deste projeto.
+ *
+ * DUAS consultas, sem embed do PostgREST, e isso e obrigatorio:
+ * carbon_projeto_equipe tem DUAS chaves estrangeiras para carbon_usuarios
+ * (usuario_id e criado_por), entao `.select('carbon_usuarios!inner(...)')` e
+ * ambiguo e responde PGRST201, derrubando GET /projetos/:id para todo mundo.
+ *
+ * O precedente de rotas/secureshare.ts usa embed e funciona, mas so porque
+ * carbon_secure_share_equipe nao tem coluna criado_por. Copiar aquele idioma
+ * para ca quebraria.
+ */
+async function lerEquipe(ctx: Contexto, projetoId: string): Promise<unknown[]> {
+  const { data: vinculos, error } = await ctx.admin
+    .from('carbon_projeto_equipe')
+    .select('usuario_id')
+    .eq('projeto_id', projetoId);
+
+  if (error) {
+    console.error('Falha ao ler carbon_projeto_equipe:', error.message);
+    throw new ErroRota('erro_interno', 500);
+  }
+
+  const ids = (vinculos ?? []).map((l) => String(l.usuario_id));
+  if (!ids.length) return [];
+
+  const { data: pessoas, error: erroPessoas } = await ctx.admin
+    .from('carbon_usuarios')
+    .select('id, email, nome')
+    .in('id', ids);
+
+  if (erroPessoas) {
+    console.error('Falha ao ler carbon_usuarios:', erroPessoas.message);
+    throw new ErroRota('erro_interno', 500);
+  }
+  return pessoas ?? [];
 }
 
 /**
@@ -393,7 +526,11 @@ async function criar(ctx: Contexto): Promise<Response> {
     );
   }
 
-  let linha = data as LinhaProjeto;
+  // `as unknown as` e nao `as` direto: o tipo que o supabase-js infere para o
+  // retorno de insert().select() e uma uniao que inclui GenericStringError, e o
+  // TypeScript recusa a conversao direta por nao haver sobreposicao suficiente.
+  // O `error` ja foi tratado acima, entao aqui data e a linha.
+  let linha = data as unknown as LinhaProjeto;
 
   if (geometria) {
     const gravou = await definirGeometria(ctx.admin, linha.id, geometria);
@@ -413,7 +550,7 @@ async function criar(ctx: Contexto): Promise<Response> {
 
     // Releitura obrigatoria: area_calculada_ha e preenchida pela trigger na
     // gravacao da geometria, depois do retorno do insert.
-    const atualizada = await lerProjeto(ctx.admin, linha.id);
+    const atualizada = await relerProjeto(ctx.admin, linha.id);
     if (atualizada) linha = atualizada;
   }
 
@@ -434,6 +571,12 @@ async function criar(ctx: Contexto): Promise<Response> {
 async function atualizar(ctx: Contexto): Promise<Response> {
   const corpo = ctx.corpo ?? {};
   const id = ctx.params.id;
+
+  // Portao ANTES da RPC. O papel ja foi conferido pelo index (escrita: true), mas
+  // papel e uma pergunta sobre a pessoa, nao sobre a linha: sem isto, um gestor
+  // editaria e arquivaria projeto de que nem participa.
+  if (!(await lerProjetoVisivel(ctx, id))) return respostaErro('nao_encontrado', 404);
+
   const dados = montarDadosProjeto(corpo, 'atualizar');
   const mexeGeometria = veioNoCorpo(corpo, 'geometria');
 
@@ -472,9 +615,120 @@ async function atualizar(ctx: Contexto): Promise<Response> {
 
   // Releitura em vez de returning: area_calculada_ha e atualizado_em vem de
   // trigger, e a geometria precisa voltar como GeoJSON.
-  const linha = await lerProjeto(ctx.admin, id);
+  const linha = await relerProjeto(ctx.admin, id);
   if (!linha) return respostaErro('nao_encontrado', 404);
   return respostaJson({ projeto: await montarProjetoComGeometria(ctx.admin, linha) });
+}
+
+// -----------------------------------------------------------------------------
+// PATCH carbon-api/projetos/:id/equipe
+// -----------------------------------------------------------------------------
+// Corpo: { adicionar: ['<EMAIL>'], remover: ['<EMAIL>'] }. Mesmo contrato do
+// PATCH de equipe do Secure Share, para as duas telas se parecerem.
+//
+// Por e-mail e nao por uuid porque e o que a tela tem em maos ao digitar.
+//
+// QUEM PODE CHAMAR sai da composicao de dois portoes que ja existem, sem regra
+// nova: `escrita: true` exige admin ou gestor (conferido no index.ts), e
+// lerProjetoVisivel exige participar. O bootstrap - o primeiro membro de um
+// projeto novo - e resolvido pela trigger do banco, que poe o criador na equipe.
+
+async function atualizarEquipe(ctx: Contexto): Promise<Response> {
+  const projeto = await lerProjetoVisivel(ctx, ctx.params.id);
+  if (!projeto) return respostaErro('nao_encontrado', 404);
+
+  const corpo = listaBranca(ctx.corpo, ['adicionar', 'remover']);
+
+  const lista = (valor: unknown, campo: string): string[] => {
+    if (valor === undefined || valor === null) return [];
+    if (!Array.isArray(valor) || valor.length > LIMITE_ITENS_LISTA) {
+      throw new ErroRota('campo_invalido', 400, campo);
+    }
+    return valor
+      .map((e) => lerTexto(e, campo, 320))
+      .filter((e): e is string => !!e)
+      .map((e) => e.toLowerCase());
+  };
+
+  const adicionar = lista(corpo.adicionar, 'adicionar');
+  const remover = lista(corpo.remover, 'remover');
+  if (!adicionar.length && !remover.length) throw new ErroRota('nada_para_atualizar', 400);
+
+  const naoEncontrados: string[] = [];
+
+  if (adicionar.length) {
+    // Dominio conferido contra a config, e nao contra um literal: o valor vem de
+    // carbon_app_config e ja chega normalizado no contexto.
+    const sufixo = `@${ctx.dominio}`;
+    const externos = adicionar.filter((e) => !e.endsWith(sufixo));
+    if (externos.length) throw new ErroRota('colaborador_externo', 400, externos[0]);
+
+    const { data: usuarios, error } = await ctx.admin
+      .from('carbon_usuarios')
+      .select('id, email')
+      .in('email', adicionar);
+    if (error) {
+      console.error('Falha ao resolver colaboradores:', error.message);
+      throw new ErroRota('erro_interno', 500);
+    }
+
+    const achados = new Map((usuarios ?? []).map((u) => [String(u.email).toLowerCase(), u.id]));
+    for (const email of adicionar) if (!achados.has(email)) naoEncontrados.push(email);
+
+    if (achados.size) {
+      const { error: erroInsere } = await ctx.admin
+        .from('carbon_projeto_equipe')
+        .upsert(
+          [...achados.values()].map((usuario_id) => ({
+            projeto_id: projeto.id,
+            usuario_id,
+            criado_por: ctx.registro.id,
+          })),
+          { onConflict: 'projeto_id,usuario_id', ignoreDuplicates: true },
+        );
+      if (erroInsere) lancarErroEscrita(erroInsere as ErroBanco, 'carbon_projeto_equipe');
+    }
+  }
+
+  if (remover.length) {
+    const { data: usuarios, error } = await ctx.admin
+      .from('carbon_usuarios')
+      .select('id')
+      .in('email', remover);
+    // O erro e tratado, e nao descartado: engolir aqui faria a revogacao NAO
+    // acontecer e a rota responder 200 com a equipe intacta. Quem clicou em
+    // remover iria embora achando que tirou o acesso de alguem.
+    if (error) {
+      console.error('Falha ao resolver colaboradores para remocao:', error.message);
+      throw new ErroRota('erro_interno', 500);
+    }
+
+    const ids = (usuarios ?? []).map((u) => String(u.id));
+    if (ids.length) {
+      // Guarda contra esvaziar a equipe, conferida DEPOIS das adicoes desta mesma
+      // requisicao (trocar duas pessoas de uma vez e legitimo). Projeto sem
+      // ninguem so apareceria para admin, e nao existiria via de reentrada: quem
+      // inclui precisa participar.
+      const restantes = await lerEquipe(ctx, projeto.id);
+      const sobra = (restantes as { id: string }[]).filter((p) => !ids.includes(p.id));
+      if (!sobra.length) throw new ErroRota('equipe_vazia', 400);
+
+      const { error: erroRemove } = await ctx.admin
+        .from('carbon_projeto_equipe')
+        .delete()
+        .eq('projeto_id', projeto.id)
+        .in('usuario_id', ids);
+      if (erroRemove) lancarErroEscrita(erroRemove as ErroBanco, 'carbon_projeto_equipe');
+    }
+  }
+
+  return respostaJson({
+    equipe: await lerEquipe(ctx, projeto.id),
+    // Nao e erro: quem nunca entrou no Apsis Carbon ainda nao tem linha em
+    // carbon_usuarios (ela nasce no primeiro login). A tela avisa e mantem os
+    // demais que foram incluidos.
+    nao_encontrados: naoEncontrados,
+  });
 }
 
 export const rotas: Rota[] = [
@@ -482,4 +736,5 @@ export const rotas: Rota[] = [
   { metodo: 'POST', padrao: 'projetos', escrita: true, handler: criar },
   { metodo: 'GET', padrao: 'projetos/:id', escrita: false, handler: obter },
   { metodo: 'PATCH', padrao: 'projetos/:id', escrita: true, handler: atualizar },
+  { metodo: 'PATCH', padrao: 'projetos/:id/equipe', escrita: true, handler: atualizarEquipe },
 ];

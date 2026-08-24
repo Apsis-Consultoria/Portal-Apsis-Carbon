@@ -35,7 +35,7 @@ import {
   paraNumero,
   veioNoCorpo,
 } from './helpers.ts';
-import { lerProjeto } from './projetos.ts';
+import { lerProjetoVisivel } from './projetos.ts';
 
 const COLUNAS_CAPITULO =
   'id, projeto_id, capitulo, nome, cap, nivel, ordem, estado, rodada, ' +
@@ -153,7 +153,7 @@ async function lerCapitulo(
 
 async function obter(ctx: Contexto): Promise<Response> {
   const projetoId = ctx.params.id;
-  const projeto = await lerProjeto(ctx.admin, projetoId);
+  const projeto = await lerProjetoVisivel(ctx, projetoId);
   if (!projeto) return respostaErro('nao_encontrado', 404);
 
   const { capitulos, progresso } = await lerRelatorio(ctx.admin, projetoId);
@@ -169,7 +169,7 @@ async function obter(ctx: Contexto): Promise<Response> {
  */
 async function criar(ctx: Contexto): Promise<Response> {
   const projetoId = ctx.params.id;
-  const projeto = await lerProjeto(ctx.admin, projetoId);
+  const projeto = await lerProjetoVisivel(ctx, projetoId);
   if (!projeto) return respostaErro('nao_encontrado', 404);
 
   const { data, error } = await ctx.admin.rpc('carbon_mr_criar_do_template', {

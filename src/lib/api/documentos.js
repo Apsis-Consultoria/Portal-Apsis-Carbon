@@ -1,4 +1,4 @@
-import { MODO_DEMO } from "@/lib/runtimeConfig";
+import { MODO_DEMO, MODO_DEMO_ATIVO } from "@/lib/runtimeConfig";
 import { cam, chamarApi, chamarDemo } from "@/lib/api/base";
 import {
   demoAtualizarDocumento,
@@ -27,7 +27,7 @@ import {
  * src/lib/demo/documentos.js, e as mutacoes alteram esse dataset para a tela ser
  * realmente interativa na revisao.
  *
- * O `if (MODO_DEMO)` fica SEM Boolean() em volta de proposito: com o wrapper o Rollup
+ * O `if (MODO_DEMO && MODO_DEMO_ATIVO())` fica SEM Boolean() em volta de proposito: com o wrapper o Rollup
  * nao dobra a expressao para a constante false, os ramos sobrevivem ao tree-shaking e o
  * dataset ficticio inteiro iria para o bundle de producao. Ver o cabecalho de
  * src/lib/api/projetos.js.
@@ -72,13 +72,13 @@ function montarConsulta(filtros = {}) {
  */
 export async function listarDocumentos(msal, filtros = {}) {
   const caminho = `/documentos${montarConsulta(filtros)}`;
-  if (MODO_DEMO) return chamarDemo(caminho, () => demoListarDocumentos(filtros));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo(caminho, () => demoListarDocumentos(filtros));
   return chamarApi(caminho, msal);
 }
 
 /** Documento com a familia de versoes e os vinculos, em uma resposta. */
 export async function obterDocumento(msal, id) {
-  if (MODO_DEMO) return chamarDemo(`/documentos/${id}`, () => demoObterDocumento(id));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo(`/documentos/${id}`, () => demoObterDocumento(id));
   return chamarApi(`/documentos/${cam(id)}`, msal);
 }
 
@@ -90,12 +90,12 @@ export async function obterDocumento(msal, id) {
  * pendente registrada na issue #6.
  */
 export async function criarDocumento(msal, dados) {
-  if (MODO_DEMO) return chamarDemo("/documentos", () => demoCriarDocumento(dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo("/documentos", () => demoCriarDocumento(dados));
   return chamarApi("/documentos", msal, { metodo: "POST", corpo: dados });
 }
 
 export async function atualizarDocumento(msal, id, dados) {
-  if (MODO_DEMO) return chamarDemo(`/documentos/${id}`, () => demoAtualizarDocumento(id, dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo(`/documentos/${id}`, () => demoAtualizarDocumento(id, dados));
   return chamarApi(`/documentos/${cam(id)}`, msal, { metodo: "PATCH", corpo: dados });
 }
 
@@ -107,7 +107,7 @@ export async function atualizarDocumento(msal, id, dados) {
  * do proprio arquivo: herdar a URL criaria duas versoes apontando para o mesmo arquivo.
  */
 export async function criarVersaoDocumento(msal, id, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/documentos/${id}/versoes`, () => demoCriarVersaoDocumento(id, dados));
   }
   return chamarApi(`/documentos/${cam(id)}/versoes`, msal, { metodo: "POST", corpo: dados });
@@ -122,7 +122,7 @@ export async function criarVersaoDocumento(msal, id, dados) {
  * tela, e um campo de UUID solto e pior do que nao ter campo.
  */
 export async function criarVinculoDocumento(msal, documentoId, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/documentos/${documentoId}/vinculos`, () =>
       demoCriarVinculoDocumento(documentoId, dados)
     );
@@ -135,7 +135,7 @@ export async function criarVinculoDocumento(msal, documentoId, dados) {
 
 /** Remove um vinculo. Apaga so a ligacao: documento e item continuam intactos. */
 export async function removerVinculoDocumento(msal, vinculoId) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/documento-vinculos/${vinculoId}`, () =>
       demoRemoverVinculoDocumento(vinculoId)
     );

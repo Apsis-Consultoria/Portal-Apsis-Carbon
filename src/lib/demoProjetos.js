@@ -3,7 +3,7 @@
  *
  * POR QUE EXISTE: o projeto Supabase do Apsis Carbon ainda NAO foi provisionado, e as
  * telas precisam ser revisaveis localmente antes disso. Em MODO_DEMO (ver
- * src/lib/runtimeConfig.js: exige dev E VITE_CARBON_DEMO=true) as sete funcoes de
+ * src/lib/runtimeConfig.js: exige dev E o clique no botao de demonstracao) as sete funcoes de
  * projeto/PDD do carbonApi nao fazem rede: operam sobre o estado em memoria deste
  * arquivo, e as mutacoes ALTERAM esse estado, para a tela ser de fato interativa.
  *
@@ -98,7 +98,10 @@ const TEMPLATE_BRUTO = [
    cliente e nao dado pessoal. Se algum dia incomodar, a saida e tornar a lista lazy
    (funcao em vez de const de topo), nao anotar pureza - a anotacao foi testada aqui e
    nao surtiu efeito. */
-export const TEMPLATE_PDD_VCS_CCB = TEMPLATE_BRUTO.map(([capitulo, nome, opcional], i) => ({
+// Anotacao de pureza: sem ela o Rollup nao dobra o .map do topo do modulo,
+// mantem a chamada no bundle de producao e, com ela, o TEMPLATE_BRUTO inteiro
+// e tudo o mais que o modulo define. Ver a nota longa em src/lib/demoProjetos.js.
+export const TEMPLATE_PDD_VCS_CCB = /* @__PURE__ */ TEMPLATE_BRUTO.map(([capitulo, nome, opcional], i) => ({
   capitulo,
   nome,
   cap: Number(capitulo.split('.')[0]),
@@ -338,7 +341,13 @@ function instanciarTemplate(projetoId, { comStatusInicial = false } = {}) {
    listagem (o backend devolve so tem_geometria). Assim o demo tem o mesmo formato
    de payload da Edge Function.                                               */
 
-const areaCalculadaDemo = areaAproximadaHa(GEOMETRIA_DEMO);
+// A anotacao de pureza na chamada abaixo nao e enfeite: sem ela o Rollup nao
+// consegue provar que a chamada nao tem efeito colateral, mantem a chamada no
+// bundle de producao e, junto com ela, TUDO que ela referencia. Foi assim que a
+// geometria ficticia (GEOMETRIA_DEMO) vazou para o dist mesmo com todos os
+// ramos de demonstracao ja eliminados: esta chamada era o unico fio que a
+// segurava. Conferir com:  grep -c -- "-51.9" dist/assets/*.js  (tem que dar 0)
+const areaCalculadaDemo = /* @__PURE__ */ areaAproximadaHa(GEOMETRIA_DEMO);
 
 let projetos = [
   {
@@ -370,9 +379,54 @@ let projetos = [
 
 /** projeto_id -> lista de capitulos. Projeto novo nasce SEM PDD, de proposito: e
  *  assim que se testa o estado vazio e o botao "Criar PDD a partir do template". */
-let capitulosPorProjeto = {
-  [PROJETO_DEMO_ID]: instanciarTemplate(PROJETO_DEMO_ID, { comStatusInicial: true }),
-};
+/* ===== Estado ficticio, criado na PRIMEIRA leitura ========================
+   Nada de dado no topo do modulo, e nao e estilo: com um `let` de topo cuja
+   chave e computada ([PROJETO_DEMO_ID]) o Rollup nao consegue provar que a
+   inicializacao e inofensiva, mantem o binding no bundle de PRODUCAO e, com
+   ele, tudo o que a inicializacao referencia (o template inteiro, os mapas de
+   estado, as datas). Foi assim que este modulo continuou no dist mesmo com
+   todos os ramos `if (MODO_DEMO && MODO_DEMO_ATIVO())` ja eliminados.
+   Dentro de uma funcao, nada disso e avaliado ate alguem chamar - e em
+   producao ninguem chama, porque as chamadas estao nos ramos eliminados.
+   Mesmo padrao de src/lib/demo/secureshare.js.                             */
+let capitulosPorProjeto = null;
+
+/** projeto_id -> lista de capitulos. Projeto novo nasce SEM PDD, de proposito:
+ *  e assim que se testa o estado vazio e o botao "Criar PDD a partir do
+ *  template". */
+function bd() {
+  if (!capitulosPorProjeto) {
+    capitulosPorProjeto = {
+      [PROJETO_DEMO_ID]: instanciarTemplate(PROJETO_DEMO_ID, { comStatusInicial: true }),
+    };
+  }
+  return capitulosPorProjeto;
+}
+
+/* ===== Equipe do projeto ==================================================
+   Espelha a tabela carbon_projeto_equipe: quem participa é quem enxerga o projeto.
+   Criada na PRIMEIRA leitura pelo mesmo motivo dos capítulos (ver a nota acima): dado
+   no topo do módulo com chave computada sobrevive ao tree-shaking do build de produção.
+
+   LGPD: o endereço abaixo é um alias institucional de área e fictício, nunca o e-mail
+   de uma pessoa. Vale para todo dado de demonstração deste arquivo.               */
+let equipePorProjeto = null;
+
+function equipesBd() {
+  if (!equipePorProjeto) {
+    equipePorProjeto = {
+      [PROJETO_DEMO_ID]: [
+        { id: 'demo-equipe-0001', email: 'equipe.carbon@apsis.com.br', nome: 'Equipe Carbon' },
+      ],
+    };
+  }
+  return equipePorProjeto;
+}
+
+/** Cópia da equipe do projeto, no formato [{ id, email, nome }] da Edge Function. */
+function equipeDoProjeto(projetoId) {
+  return (equipesBd()[projetoId] || []).map(({ id, email, nome }) => ({ id, email, nome }));
+}
 
 /* ===== Serializacao (mesmo formato da Edge Function) ====================== */
 
@@ -449,17 +503,35 @@ function filtrarCampos(dados) {
 
 /* ===== Funcoes que imitam o backend ====================================== */
 
+/**
+ * Imita o envelope novo de GET /projetos: { projetos, pode_criar }.
+ *
+ * `pode_criar` é true porque o modo demonstração existe para revisar a tela inteira,
+ * inclusive o formulário de criação. A decisão continua sendo do servidor - aqui o
+ * servidor é este arquivo, e ele responde true. A tela apenas renderiza o booleano
+ * que recebeu, sem recalcular a regra por perfil.
+ */
 export async function demoListarProjetos() {
   await esperar();
   const lista = [...projetos]
     .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'))
     .map((p) => serializarProjeto(p));
-  return { projetos: lista };
+  return { projetos: lista, pode_criar: true };
 }
 
+/**
+ * Imita o envelope novo de GET /projetos/:id: { projeto, equipe, pode_escrever }.
+ *
+ * `pode_escrever` é true pelo mesmo motivo de `pode_criar` na listagem: sem ele o painel
+ * de equipe apareceria em modo somente leitura no único modo em que a tela é revisável.
+ */
 export async function demoObterProjeto(id) {
   await esperar();
-  return { projeto: serializarProjeto(acharProjeto(id), { comGeometria: true }) };
+  return {
+    projeto: serializarProjeto(acharProjeto(id), { comGeometria: true }),
+    equipe: equipeDoProjeto(id),
+    pode_escrever: true,
+  };
 }
 
 export async function demoCriarProjeto(dados) {
@@ -496,6 +568,13 @@ export async function demoCriarProjeto(dados) {
   };
 
   projetos = [...projetos, projeto];
+  /* Projeto novo NASCE com quem criou na equipe, como no backend. Sem isto o projeto
+     recém-criado sumiria da lista assim que a leitura passasse a ser por participação -
+     e é exatamente essa promessa que o estado vazio da tela faz. Em demonstração não há
+     conta autenticada, então quem entra é o mesmo alias fictício da equipe inicial. */
+  equipesBd()[projeto.id] = [
+    { id: novoId(), email: 'equipe.carbon@apsis.com.br', nome: 'Equipe Carbon' },
+  ];
   return { projeto: serializarProjeto(projeto, { comGeometria: true }) };
 }
 
@@ -521,7 +600,7 @@ export async function demoAtualizarProjeto(id, dados) {
 }
 
 function estadoPdd(projetoId) {
-  const capitulos = [...(capitulosPorProjeto[projetoId] || [])].sort((a, b) => a.ordem - b.ordem);
+  const capitulos = [...(bd()[projetoId] || [])].sort((a, b) => a.ordem - b.ordem);
   return { capitulos, progresso: calcularProgressoPdd(capitulos) };
 }
 
@@ -548,7 +627,7 @@ export async function demoCriarPddDoTemplate(projetoId) {
   await esperar();
   const projeto = acharProjeto(projetoId);
 
-  const existentes = capitulosPorProjeto[projetoId] || [];
+  const existentes = bd()[projetoId] || [];
   const numeros = new Set(existentes.map((c) => c.capitulo));
   const doTemplate = STANDARDS_COM_TEMPLATE.includes(projeto.standard)
     ? instanciarTemplate(projetoId)
@@ -556,7 +635,7 @@ export async function demoCriarPddDoTemplate(projetoId) {
   const novos = doTemplate.filter((c) => !numeros.has(c.capitulo));
 
   capitulosPorProjeto = {
-    ...capitulosPorProjeto,
+    ...bd(),
     [projetoId]: [...existentes, ...novos],
   };
 
@@ -567,7 +646,7 @@ export async function demoAtualizarCapituloPdd(capituloId, dados) {
   await esperar();
 
   let alvo = null;
-  for (const lista of Object.values(capitulosPorProjeto)) {
+  for (const lista of Object.values(bd())) {
     const achado = lista.find((c) => c.id === capituloId);
     if (achado) {
       alvo = achado;
@@ -589,4 +668,53 @@ export async function demoAtualizarCapituloPdd(capituloId, dados) {
 
   alvo.atualizado_em = agora();
   return { capitulo: { ...alvo } };
+}
+
+/**
+ * Imita o PATCH /projetos/:id/equipe.
+ *
+ * Recusa com os MESMOS códigos do backend, e é por isso que as três regras estão aqui:
+ *
+ * - 'colaborador_externo': só entra e-mail @apsis.com.br. Quem é de fora não tem conta
+ *   no Apsis Carbon, então a linha em carbon_projeto_equipe apontaria para ninguém;
+ * - 'equipe_vazia': esvaziar a equipe tiraria o projeto da lista de todo mundo que não
+ *   é administrador, sem nenhuma tela capaz de desfazer isso;
+ * - 'nada_para_atualizar': corpo sem adicionar nem remover.
+ *
+ * `nao_encontrados` volta sempre vazio: em demonstração toda conta @apsis.com.br é
+ * tratada como já cadastrada. Em produção ele traz quem ainda não fez o primeiro login.
+ */
+export async function demoAtualizarEquipe(projetoId, dados = {}) {
+  await esperar();
+  acharProjeto(projetoId);
+
+  const normalizar = (lista) =>
+    (Array.isArray(lista) ? lista : []).map((e) => String(e).trim().toLowerCase()).filter(Boolean);
+
+  const adicionar = normalizar(dados.adicionar);
+  const remover = normalizar(dados.remover);
+  if (!adicionar.length && !remover.length) throw new ErroDemo('nada_para_atualizar');
+
+  if (adicionar.some((email) => !email.endsWith('@apsis.com.br'))) {
+    throw new ErroDemo('colaborador_externo');
+  }
+
+  const atual = equipesBd()[projetoId] || [];
+  const restantes = atual.filter((pessoa) => !remover.includes(pessoa.email));
+  const jaTem = new Set(restantes.map((pessoa) => pessoa.email));
+  const novos = adicionar
+    .filter((email) => !jaTem.has(email))
+    .map((email) => ({
+      id: novoId(),
+      email,
+      // Em produção o nome vem de carbon_usuarios. Aqui é derivado do próprio e-mail,
+      // para nenhum nome de pessoa ficar escrito no código (regra 7 do CLAUDE.md).
+      nome: email.split('@')[0].replace(/\./g, ' '),
+    }));
+
+  const nova = [...restantes, ...novos];
+  if (!nova.length) throw new ErroDemo('equipe_vazia');
+
+  equipesBd()[projetoId] = nova;
+  return { equipe: equipeDoProjeto(projetoId), nao_encontrados: [] };
 }

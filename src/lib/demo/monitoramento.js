@@ -3,7 +3,7 @@
  *
  * POR QUE EXISTE: o projeto Supabase do Apsis Carbon ainda NÃO foi provisionado, e a tela
  * precisa ser revisável localmente antes disso. Em MODO_DEMO (ver src/lib/runtimeConfig.js:
- * exige dev E VITE_CARBON_DEMO=true) as funções de src/lib/api/monitoramento.js não fazem
+ * exige dev E o clique no botao de demonstracao) as funções de src/lib/api/monitoramento.js não fazem
  * rede: operam sobre o estado em memória deste arquivo, e as mutações ALTERAM esse estado,
  * para a tela ser de fato interativa - inclusive o gesto central da issue, que é abrir uma
  * nova rodada de revisão e ver o número da volta subir.
@@ -98,7 +98,10 @@ const TEMPLATE_BRUTO = [
    de módulo é livre de efeito colateral. Sobram poucos KB com a numeração e os títulos dos
    32 capítulos. É aceitável de propósito: é metodologia PÚBLICA do padrão VCS+CCB, não é
    dado de cliente e não é dado pessoal. */
-export const TEMPLATE_MR_VCS_CCB = TEMPLATE_BRUTO.map(([capitulo, nome], i) => ({
+// Anotacao de pureza: sem ela o Rollup nao dobra o .map do topo do modulo,
+// mantem a chamada no bundle de producao e, com ela, o TEMPLATE_BRUTO inteiro
+// e tudo o mais que o modulo define. Ver a nota longa em src/lib/demoProjetos.js.
+export const TEMPLATE_MR_VCS_CCB = /* @__PURE__ */ TEMPLATE_BRUTO.map(([capitulo, nome], i) => ({
   capitulo,
   nome,
   cap: Number(capitulo.split('.')[0]),
@@ -331,9 +334,32 @@ function instanciarTemplate(projetoId, { comEstadoInicial = false } = {}) {
 
 /** projeto_id -> lista de capítulos. Projeto sem chave aqui está sem relatório, que é
  *  como se testa o estado vazio e o botão "Criar relatório a partir do template". */
-let capitulosPorProjeto = {
-  [PROJETO_DEMO_ID]: instanciarTemplate(PROJETO_DEMO_ID, { comEstadoInicial: true }),
-};
+// Anotacao de pureza pelo mesmo motivo de src/lib/demoProjetos.js: sem ela o
+// Rollup mantem a chamada, e com ela os mapas de status ficticios, no bundle de
+// producao.
+/* ===== Estado ficticio, criado na PRIMEIRA leitura ========================
+   Nada de dado no topo do modulo, e nao e estilo: com um `let` de topo cuja
+   chave e computada ([PROJETO_DEMO_ID]) o Rollup nao consegue provar que a
+   inicializacao e inofensiva, mantem o binding no bundle de PRODUCAO e, com
+   ele, tudo o que a inicializacao referencia (o template inteiro, os mapas de
+   estado, as datas). Foi assim que este modulo continuou no dist mesmo com
+   todos os ramos `if (MODO_DEMO && MODO_DEMO_ATIVO())` ja eliminados.
+   Dentro de uma funcao, nada disso e avaliado ate alguem chamar - e em
+   producao ninguem chama, porque as chamadas estao nos ramos eliminados.
+   Mesmo padrao de src/lib/demo/secureshare.js.                             */
+let capitulosPorProjeto = null;
+
+/** projeto_id -> lista de capitulos. Projeto sem chave aqui esta sem relatorio,
+ *  que e como se testa o estado vazio e o botao "Criar relatorio a partir do
+ *  template". */
+function estado() {
+  if (!capitulosPorProjeto) {
+    capitulosPorProjeto = {
+      [PROJETO_DEMO_ID]: instanciarTemplate(PROJETO_DEMO_ID, { comEstadoInicial: true }),
+    };
+  }
+  return capitulosPorProjeto;
+}
 
 /**
  * Confere que o projeto existe e devolve a linha, no mesmo formato da API.
@@ -350,12 +376,12 @@ async function projetoDemo(projetoId) {
 }
 
 function estadoRelatorio(projetoId) {
-  const capitulos = [...(capitulosPorProjeto[projetoId] || [])].sort((a, b) => a.ordem - b.ordem);
+  const capitulos = [...(estado()[projetoId] || [])].sort((a, b) => a.ordem - b.ordem);
   return { capitulos, progresso: calcularProgressoMonitoramento(capitulos) };
 }
 
 function acharCapitulo(capituloId) {
-  for (const lista of Object.values(capitulosPorProjeto)) {
+  for (const lista of Object.values(estado())) {
     const achado = lista.find((c) => c.id === capituloId);
     if (achado) return achado;
   }
@@ -385,7 +411,7 @@ export async function demoCriarMonitoramentoDoTemplate(projetoId) {
   await esperar();
   const projeto = await projetoDemo(projetoId);
 
-  const existentes = capitulosPorProjeto[projetoId] || [];
+  const existentes = estado()[projetoId] || [];
   const numeros = new Set(existentes.map((c) => c.capitulo));
   const doTemplate = STANDARDS_COM_TEMPLATE.includes(projeto?.standard)
     ? instanciarTemplate(projetoId)
@@ -393,7 +419,7 @@ export async function demoCriarMonitoramentoDoTemplate(projetoId) {
   const novos = doTemplate.filter((c) => !numeros.has(c.capitulo));
 
   capitulosPorProjeto = {
-    ...capitulosPorProjeto,
+    ...estado(),
     [projetoId]: [...existentes, ...novos],
   };
 

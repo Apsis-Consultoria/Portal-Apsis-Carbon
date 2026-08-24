@@ -5,8 +5,17 @@
 -- Decisao arquitetural CARBON-001 (ver docs/arquitetura-config-backend.md):
 -- toda a configuracao de runtime do frontend vive no banco, na tabela
 -- carbon_app_config, e e servida pela Edge Function publica "app-config".
--- O navegador conhece apenas VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY, que sao
--- publicos por design. A protecao real e a RLS declarada aqui.
+-- A protecao real e a RLS declarada aqui.
+--
+-- NOTA DE 21/08/2026, corrigindo o comentario original desta migration: ele dizia
+-- "o navegador conhece apenas VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY, que sao
+-- publicos por design". Isso deixou de valer. O frontend nao tem MAIS NENHUMA
+-- variavel de ambiente: ele chama o caminho relativo /api/<funcao> e quem sabe o
+-- endereco do projeto e a hospedagem, por rewrite (ver src/lib/endpoint.js). Com a
+-- URL no bundle, qualquer visitante da tela de login descobria o endereco e podia
+-- bater direto nas Edge Functions, fora do nosso dominio, sem log nem limite de
+-- taxa. Apenas o COMENTARIO foi corrigido: o efeito desta migration nao mudou e
+-- ela nao deve ser reaplicada por causa disto.
 --
 -- SEGREDOS: nada de segredo entra nesta tabela, nem mesmo em linhas com
 -- publico = false. Chaves de integracao e a service_role key existem somente

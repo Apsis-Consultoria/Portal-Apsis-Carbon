@@ -42,7 +42,7 @@ import {
   avancarRodadaCapitulo,
 } from '@/lib/api/monitoramento';
 import { obterProjeto } from '@/lib/api/projetos';
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { createPageUrl } from '@/utils';
 import { urlPdd } from '@/lib/pageRoutes';
 
@@ -544,7 +544,7 @@ export default function ProjetoMonitoramento() {
   /* Em modo demonstração não existe conta no MSAL (o login fica desabilitado) e as funções
      da API não usam token, então `autenticado` não pode ser exigido: a tela ficaria vazia
      no único modo em que ela é revisável sem Supabase. */
-  const habilitado = (MODO_DEMO || autenticado) && Boolean(projetoId);
+  const habilitado = ((MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado) && Boolean(projetoId);
 
   const projetoQuery = useQuery({
     queryKey: ['carbon', 'projeto', projetoId],

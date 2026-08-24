@@ -58,8 +58,8 @@ import {
   PERIODICIDADES,
   JANELA_A_VENCER_DIAS,
 } from '@/lib/api/fornecedores';
-import { listarProjetos } from '@/lib/api/projetos';
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { listarProjetos, normalizarListaProjetos } from '@/lib/api/projetos';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { rotaDaPagina } from '@/lib/pageRoutes';
 import Cartao from '@/components/ui/Cartao';
 import CabecalhoSecao from '@/components/ui/CabecalhoSecao';
@@ -681,7 +681,7 @@ export default function Contratos() {
   const { instance, accounts } = useMsal();
   const msal = useMemo(() => ({ instance, accounts }), [instance, accounts]);
   const autenticado = (accounts?.length ?? 0) > 0;
-  const habilitado = MODO_DEMO || autenticado;
+  const habilitado = (MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado;
   const queryClient = useQueryClient();
 
   /* A tela de Fornecedores linka para cá com ?fornecedor_id=..., e é assim que o
@@ -760,8 +760,9 @@ export default function Contratos() {
   const projetosQuery = useQuery({
     queryKey: ['carbon', 'projetos'],
     queryFn: async () => {
-      const resposta = await listarProjetos(msal);
-      return Array.isArray(resposta) ? resposta : (resposta?.projetos ?? []);
+      /* normalizarListaProjetos: a chave ['carbon', 'projetos'] é compartilhada; ler o
+         envelope aqui é o que impede outra tela de encontrar um formato diferente. */
+      return normalizarListaProjetos(await listarProjetos(msal));
     },
     enabled: habilitado,
   });
@@ -778,7 +779,7 @@ export default function Contratos() {
   const parcelas = parcelasQuery.data?.parcelas ?? [];
   const totais = parcelasQuery.data?.totais ?? null;
   const fornecedores = fornecedoresQuery.data?.fornecedores ?? [];
-  const projetos = projetosQuery.data ?? [];
+  const projetos = projetosQuery.data?.projetos ?? [];
   const detalhe = detalheQuery.data?.contrato ?? null;
   const parcelasDoDetalhe = detalheQuery.data?.parcelas ?? [];
 

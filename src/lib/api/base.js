@@ -1,5 +1,5 @@
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
-import { SUPABASE_ANON_KEY, urlFuncao } from "@/lib/supabaseClient";
+import { caminhoFuncao } from "@/lib/endpoint";
 import { getConfig } from "@/lib/runtimeConfig";
 import { montarLoginRequest } from "@/lib/msalConfig";
 
@@ -10,9 +10,13 @@ import { montarLoginRequest } from "@/lib/msalConfig";
  * modulo (src/lib/api/<dominio>.js) que importa `chamarApi` daqui. Assim uma frente
  * nova de trabalho nao precisa editar um arquivo que todas as outras tambem editam.
  *
- * Autenticacao: enviamos o ID token do Azure AD no Authorization e a anon key no header
- * apikey (exigido pelo gateway do Supabase). A Edge Function valida o token contra o JWKS
- * da Microsoft (aud, iss, tid) e o dominio do e-mail antes de tocar no banco com service_role.
+ * Autenticacao: enviamos o ID token do Azure AD no Authorization, e mais nada. A Edge
+ * Function valida o token contra o JWKS da Microsoft (aud, iss, tid) e o dominio do e-mail
+ * antes de tocar no banco com service_role.
+ *
+ * SEM anon key. As funcoes sao publicadas com --no-verify-jwt, entao a anon key nunca
+ * participou de autorizacao: era so identificacao de projeto no gateway, e o gateway agora
+ * e alcancado pelo rewrite de /api da hospedagem. Ver src/lib/endpoint.js.
  *
  * Nao usamos o access token porque quem consome nao e o Microsoft Graph: e a nossa funcao,
  * e o aud do access token do Graph nao seria o nosso clientId.
@@ -83,7 +87,7 @@ async function obterIdToken(msal) {
 }
 
 /**
- * chamarApi - GET/POST/PATCH em {SUPABASE_URL}/functions/v1/carbon-api<caminho>.
+ * chamarApi - GET/POST/PATCH em /api/carbon-api<caminho> (caminho relativo, sem env).
  *
  * A Edge Function aceita hoje apenas estes tres metodos; qualquer outro volta como
  * 405 'metodo_nao_permitido'.
@@ -105,11 +109,10 @@ export async function chamarApi(caminho, msal, opcoes = {}) {
 
   let resposta;
   try {
-    resposta = await fetch(`${urlFuncao("carbon-api")}${rota}`, {
+    resposta = await fetch(`${caminhoFuncao("carbon-api")}${rota}`, {
       method: metodo,
       headers: {
         Authorization: `Bearer ${idToken}`,
-        apikey: SUPABASE_ANON_KEY,
         Accept: "application/json",
         ...(corpo ? { "Content-Type": "application/json" } : {}),
       },
@@ -148,6 +151,66 @@ export async function chamarApi(caminho, msal, opcoes = {}) {
 }
 
 /**
+ * enviarFormData - POST multipart para OUTRA Edge Function que nao a carbon-api.
+ *
+ * Existe porque o roteador do carbon-api le todo corpo nao-GET como JSON, entao
+ * upload de arquivo mora em funcao propria (hoje: carbon-secure-share-upload).
+ * O portao de autenticacao e o MESMO: ID token do Azure AD no Authorization.
+ *
+ * DIFERENCAS EM RELACAO A chamarApi, todas por causa do arquivo:
+ *   - sem Content-Type: o navegador precisa montar o boundary do multipart
+ *     sozinho. Definir 'multipart/form-data' na mao produz um corpo que o
+ *     servidor nao consegue separar;
+ *   - sem o timeout de 10s: um envio de 200 MB em rede de escritorio passa
+ *     disso com folga. Quem cancela e o `signal` de quem chamou;
+ *   - aceita 207, que a funcao de upload usa para "parte subiu, parte nao".
+ *
+ * @returns {{ status: number, dados: any }} status junto porque 200 e 207 sao
+ *          respostas diferentes para a tela, e nao dois sucessos iguais.
+ */
+export async function enviarFormData(nomeFuncao, msal, formData, { signal = null } = {}) {
+  const idToken = await obterIdToken(msal);
+
+  let resposta;
+  try {
+    resposta = await fetch(caminhoFuncao(nomeFuncao), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        Accept: "application/json",
+      },
+      body: formData,
+      signal,
+    });
+  } catch (e) {
+    if (e?.name === "AbortError") {
+      throw new ErroApi("O envio foi cancelado.", { codigo: "cancelado" });
+    }
+    throw new ErroApi(`Falha de rede ao enviar para ${nomeFuncao}.`, { codigo: "falha_rede" });
+  }
+
+  let dados = null;
+  try {
+    const texto = await resposta.text();
+    dados = texto ? JSON.parse(texto) : null;
+  } catch {
+    dados = null;
+  }
+
+  // 207 = envio parcial. Nao e erro: a tela precisa mostrar o que subiu E o que
+  // falhou, e transformar isso em throw perderia a lista dos que deram certo.
+  if (!resposta.ok && resposta.status !== 207) {
+    const codigo = dados?.erro || null;
+    throw new ErroApi(mensagemDeErro(codigo, resposta.status, nomeFuncao), {
+      codigo,
+      status: resposta.status,
+    });
+  }
+
+  return { status: resposta.status, dados };
+}
+
+/**
  * Traduz os codigos do contrato para texto de interface em pt-BR.
  *
  * Os codigos 'nao_autenticado', 'usuario_inativo' e o 'interacao_necessaria' do
@@ -175,7 +238,31 @@ export function mensagemDeErro(codigo, status, rota) {
   if (codigo === "geometria_invalida")
     return "A geometria enviada nao e um GeoJSON valido de Polygon ou MultiPolygon.";
   if (codigo === "status_invalido") return "O status informado para o capitulo nao e valido.";
+  /* 'nao_encontrado' cobre DOIS casos de proposito: o registro nao existe, e o registro
+     existe mas voce nao participa dele. O texto e deliberadamente o mesmo nos dois. Se a
+     mensagem separasse "nao existe" de "sem acesso", a propria tela viraria um oraculo de
+     existencia: bastaria varrer identificadores para descobrir quais projetos ha no
+     sistema. Nao troque este texto por um mais especifico. */
   if (codigo === "nao_encontrado") return "O registro nao foi encontrado. Ele pode ter sido removido.";
+
+  /* Codigos do painel de equipe do projeto (PATCH /projetos/:id/equipe). Sao os dois
+     unicos motivos de recusa que a pessoa consegue resolver sozinha na tela, entao o
+     texto diz a acao, e nao so o diagnostico.
+
+     DONO UNICO: e aqui. `atualizarEquipe`, em src/lib/api/projetos.js, chegou a ter um
+     mapa MENSAGENS_EQUIPE proprio que sobrescrevia estes textos no catch; ele foi
+     apagado justamente para nao existirem dois textos para o mesmo codigo, que
+     divergiriam na primeira revisao de copy sem ninguem saber qual a tela mostra.
+     Se um dia estes codigos precisarem de texto diferente por rota, mova para o modulo
+     de dominio e apague DAQUI, nunca mantenha os dois.
+
+     ACENTUACAO: as mensagens novas vao acentuadas (regra 5 do CLAUDE.md) enquanto as
+     antigas deste arquivo nao estao. A inconsistencia e visivel em toast e merece uma
+     passada de correcao no arquivo inteiro, em commit proprio - nao propague o erro. */
+  if (codigo === "colaborador_externo")
+    return "Só é possível incluir na equipe quem tem conta corporativa da APSIS. Confira o endereço digitado e tente de novo.";
+  if (codigo === "equipe_vazia")
+    return "O projeto precisa de pelo menos uma pessoa na equipe. Inclua outra pessoa antes de remover esta.";
 
   /* Codigos que a Edge Function tambem produz nas rotas de escrita. Sem traducao
      explicita eles cairiam no fallback generico com o codigo tecnico cru, e o

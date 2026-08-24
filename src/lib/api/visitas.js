@@ -1,4 +1,4 @@
-import { MODO_DEMO } from "@/lib/runtimeConfig";
+import { MODO_DEMO, MODO_DEMO_ATIVO } from "@/lib/runtimeConfig";
 import { cam, chamarApi, chamarDemo, ErroApi } from "@/lib/api/base";
 import {
   demoListarViagens,
@@ -21,7 +21,7 @@ import {
  * src/lib/demo/visitas.js, e as mutacoes alteram esse dataset para a tela ser realmente
  * interativa na revisao.
  *
- * O `if (MODO_DEMO)` fica SEM Boolean() em volta de proposito: com o wrapper o Rollup
+ * O `if (MODO_DEMO && MODO_DEMO_ATIVO())` fica SEM Boolean() em volta de proposito: com o wrapper o Rollup
  * nao dobra a expressao para a constante false, os ramos sobrevivem ao tree-shaking e o
  * dataset ficticio inteiro vai para o bundle de producao. Ver a nota longa em
  * src/lib/runtimeConfig.js.
@@ -132,19 +132,19 @@ const CHAVES_VISITAS = [
  * de visitas. Nenhum dado de contato.
  */
 export async function listarViagens(msal, filtros = {}) {
-  if (MODO_DEMO) return chamarNoDemo("/viagens", () => demoListarViagens(filtros));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo("/viagens", () => demoListarViagens(filtros));
   return chamar(`/viagens${consulta(filtros, CHAVES_VIAGENS)}`, msal);
 }
 
 /** POST /viagens -> { viagem } */
 export async function criarViagem(msal, dados) {
-  if (MODO_DEMO) return chamarNoDemo("/viagens", () => demoCriarViagem(dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo("/viagens", () => demoCriarViagem(dados));
   return chamar("/viagens", msal, { metodo: "POST", corpo: dados });
 }
 
 /** PATCH /viagens/:id -> { viagem } */
 export async function atualizarViagem(msal, id, dados) {
-  if (MODO_DEMO) return chamarNoDemo(`/viagens/${id}`, () => demoAtualizarViagem(id, dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo(`/viagens/${id}`, () => demoAtualizarViagem(id, dados));
   return chamar(`/viagens/${cam(id)}`, msal, { metodo: "PATCH", corpo: dados });
 }
 
@@ -163,7 +163,7 @@ export async function atualizarViagem(msal, id, dados) {
  * ou nao) para a tela poder dizer que ha dado ali sem exibi-lo.
  */
 export async function listarVisitas(msal, filtros = {}) {
-  if (MODO_DEMO) return chamarNoDemo("/visitas", () => demoListarVisitas(filtros));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo("/visitas", () => demoListarVisitas(filtros));
   return chamar(`/visitas${consulta(filtros, CHAVES_VISITAS)}`, msal);
 }
 
@@ -176,13 +176,13 @@ export async function listarVisitas(msal, filtros = {}) {
  * cadastrado - e assim que a tela explica a ausencia em vez de sugerir que nao ha nada.
  */
 export async function obterVisita(msal, id) {
-  if (MODO_DEMO) return chamarNoDemo(`/visitas/${id}`, () => demoObterVisita(id));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo(`/visitas/${id}`, () => demoObterVisita(id));
   return chamar(`/visitas/${cam(id)}`, msal);
 }
 
 /** POST /visitas -> { visita, viagem, auditoria } (o detalhe inteiro) */
 export async function criarVisita(msal, dados) {
-  if (MODO_DEMO) return chamarNoDemo("/visitas", () => demoCriarVisita(dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo("/visitas", () => demoCriarVisita(dados));
   return chamar("/visitas", msal, { metodo: "POST", corpo: dados });
 }
 
@@ -198,7 +198,7 @@ export async function criarVisita(msal, dados) {
  * nasceria sempre sem dono - exatamente o problema que a issue #12 existe para resolver.
  */
 export async function atualizarVisita(msal, id, dados) {
-  if (MODO_DEMO) return chamarNoDemo(`/visitas/${id}`, () => demoAtualizarVisita(id, dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo(`/visitas/${id}`, () => demoAtualizarVisita(id, dados));
   return chamar(`/visitas/${cam(id)}`, msal, { metodo: "PATCH", corpo: dados });
 }
 
@@ -215,7 +215,7 @@ export async function atualizarVisita(msal, id, dados) {
  * no servidor - repetir devolve `ja_estava: true`, sem novo registro.
  */
 export async function anonimizarVisita(msal, id, motivo) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo(`/visitas/${id}/anonimizar`, () => demoAnonimizarVisita(id, motivo));
   }
   return chamar(`/visitas/${cam(id)}/anonimizar`, msal, {
@@ -231,7 +231,7 @@ export async function anonimizarVisita(msal, id, motivo) {
  * vencido. Prazo de retencao que ninguem executa e so uma frase na politica.
  */
 export async function anonimizarVencidas(msal, limite) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo("/visitas/anonimizar-vencidas", () => demoAnonimizarVencidas(limite));
   }
   return chamar("/visitas/anonimizar-vencidas", msal, {
@@ -271,7 +271,7 @@ export async function exportarVisitas(msal, opcoes = {}) {
     corpo[chave] = valor;
   }
 
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo("/visitas/exportacao", () => demoExportarVisitas(corpo));
   }
   return chamar("/visitas/exportacao", msal, { metodo: "POST", corpo });

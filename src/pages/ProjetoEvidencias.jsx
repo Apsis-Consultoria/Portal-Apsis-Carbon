@@ -37,7 +37,7 @@ import {
   criarEvidenciasDoTemplate,
   atualizarItemEvidencia,
 } from '@/lib/api/evidencias';
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { urlPdd } from '@/lib/pageRoutes';
 import { createPageUrl } from '@/utils';
 
@@ -395,7 +395,7 @@ export default function ProjetoEvidencias() {
   /* Em modo demonstração não existe conta no MSAL (o login fica desabilitado) e as
      funções de api não usam token, então `autenticado` não pode ser exigido: a tela
      ficaria vazia no único modo em que ela é revisável sem Supabase. */
-  const habilitado = (MODO_DEMO || autenticado) && Boolean(projetoId);
+  const habilitado = ((MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado) && Boolean(projetoId);
 
   const projetoQuery = useQuery({
     queryKey: ['carbon', 'projeto', projetoId],

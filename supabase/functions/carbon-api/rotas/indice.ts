@@ -21,6 +21,7 @@ import { rotas as rotasModulos } from './modulos.ts';
 import { rotas as rotasNotificacoes } from './notificacoes.ts';
 import { rotas as rotasProjetos } from './projetos.ts';
 import { rotas as rotasPdd } from './pdd.ts';
+import { rotas as rotasSecureShare } from './secureshare.ts';
 
 export const TODAS_AS_ROTAS: Rota[] = [
   ...rotasMe,
@@ -28,6 +29,7 @@ export const TODAS_AS_ROTAS: Rota[] = [
   ...rotasNotificacoes,
   ...rotasProjetos,
   ...rotasPdd,
+  ...rotasSecureShare,
 ];
 
 // Guarda de colisao. Duas rotas com o mesmo metodo e o mesmo padrao fariam a
