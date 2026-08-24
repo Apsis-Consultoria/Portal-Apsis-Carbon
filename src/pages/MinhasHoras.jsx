@@ -37,7 +37,7 @@ import {
   ArrowRight, Hourglass,
 } from 'lucide-react';
 
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { createPageUrl } from '@/utils';
 import {
   obterMinhasHoras,
@@ -255,7 +255,7 @@ export default function MinhasHoras() {
   const { instance, accounts } = useMsal();
   const msal = useMemo(() => ({ instance, accounts }), [instance, accounts]);
   const autenticado = (accounts?.length ?? 0) > 0;
-  const habilitado = MODO_DEMO || autenticado;
+  const habilitado = (MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado;
   const queryClient = useQueryClient();
 
   const [semana, setSemana] = useState(SEMANA_DE_HOJE);

@@ -1,4 +1,4 @@
-import { MODO_DEMO } from "@/lib/runtimeConfig";
+import { MODO_DEMO, MODO_DEMO_ATIVO } from "@/lib/runtimeConfig";
 import { cam, chamarApi, chamarDemo } from "@/lib/api/base";
 import {
   demoObterFindings,
@@ -24,7 +24,7 @@ import {
  * SQL (denominador sem 'nao_aplicavel', dois eixos de progresso independentes,
  * subitens_pct nulo quando nao ha subitem).
  *
- * O `if (MODO_DEMO)` fica SEM Boolean() em volta de proposito: com o wrapper o Rollup
+ * O `if (MODO_DEMO && MODO_DEMO_ATIVO())` fica SEM Boolean() em volta de proposito: com o wrapper o Rollup
  * nao dobra a expressao para a constante false, os ramos sobrevivem ao tree-shaking e
  * o dataset ficticio inteiro iria para o bundle de producao.
  *
@@ -40,7 +40,7 @@ import {
  * @param {{ origem?: 'vvb'|'verra'|'bezero'|null }} filtros  origem vazia = todas
  */
 export async function obterFindings(msal, projetoId, { origem = null } = {}) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/projetos/${projetoId}/findings`, () =>
       demoObterFindings(projetoId, origem)
     );
@@ -55,7 +55,7 @@ export async function obterFindings(msal, projetoId, { origem = null } = {}) {
  * rodada e sequencia, nao escolha de quem cadastra.
  */
 export async function criarRodadaAuditoria(msal, projetoId, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/projetos/${projetoId}/auditoria-rodadas`, () =>
       demoCriarRodadaAuditoria(projetoId, dados)
     );
@@ -67,7 +67,7 @@ export async function criarRodadaAuditoria(msal, projetoId, dados) {
 }
 
 export async function atualizarRodadaAuditoria(msal, rodadaId, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/auditoria-rodadas/${rodadaId}`, () =>
       demoAtualizarRodadaAuditoria(rodadaId, dados)
     );
@@ -79,7 +79,7 @@ export async function atualizarRodadaAuditoria(msal, rodadaId, dados) {
 }
 
 export async function criarFinding(msal, rodadaId, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/auditoria-rodadas/${rodadaId}/findings`, () =>
       demoCriarFinding(rodadaId, dados)
     );
@@ -91,7 +91,7 @@ export async function criarFinding(msal, rodadaId, dados) {
 }
 
 export async function atualizarFinding(msal, findingId, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/findings/${findingId}`, () => demoAtualizarFinding(findingId, dados));
   }
   return chamarApi(`/findings/${cam(findingId)}`, msal, { metodo: "PATCH", corpo: dados });
@@ -107,7 +107,7 @@ export async function atualizarFinding(msal, findingId, dados) {
  * Devolve o FINDING inteiro, porque criar subitem muda o progresso agregado.
  */
 export async function criarSubitensFinding(msal, findingId, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/findings/${findingId}/subitens`, () =>
       demoCriarSubitensFinding(findingId, dados)
     );
@@ -120,7 +120,7 @@ export async function criarSubitensFinding(msal, findingId, dados) {
 
 /** Marca, desmarca ou renomeia um subitem. Devolve o finding com o progresso novo. */
 export async function atualizarSubitemFinding(msal, subitemId, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/finding-subitens/${subitemId}`, () =>
       demoAtualizarSubitemFinding(subitemId, dados)
     );
@@ -133,7 +133,7 @@ export async function atualizarSubitemFinding(msal, subitemId, dados) {
 
 /** Remove um subitem. E a unica exclusao do dominio: ver o cabecalho de findings.ts. */
 export async function removerSubitemFinding(msal, subitemId) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/finding-subitens/${subitemId}`, () =>
       demoRemoverSubitemFinding(subitemId)
     );

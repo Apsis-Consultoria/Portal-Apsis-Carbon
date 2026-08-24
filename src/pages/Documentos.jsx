@@ -52,8 +52,8 @@ import {
   listarDocumentos,
   obterDocumento,
 } from '@/lib/api/documentos';
-import { listarProjetos } from '@/lib/api/projetos';
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { listarProjetos, normalizarListaProjetos } from '@/lib/api/projetos';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { urlExternaSegura } from '@/utils/urlSegura';
 
 /* ===== Domínio ============================================================
@@ -601,7 +601,7 @@ export default function Documentos() {
   /* Em modo demonstração não existe conta no MSAL (o login fica desabilitado) e as
      funções de api/documentos não usam token: exigir `autenticado` deixaria a tela
      permanentemente vazia justamente no modo que existe para revisá-la. */
-  const habilitado = MODO_DEMO || autenticado;
+  const habilitado = (MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado;
   const queryClient = useQueryClient();
 
   const [filtroProjeto, setFiltroProjeto] = useState('');
@@ -633,13 +633,14 @@ export default function Documentos() {
   const projetosQuery = useQuery({
     queryKey: ['carbon', 'projetos'],
     queryFn: async () => {
-      const resposta = await listarProjetos(msal);
-      return Array.isArray(resposta) ? resposta : (resposta?.projetos ?? []);
+      /* normalizarListaProjetos: a chave ['carbon', 'projetos'] é compartilhada; ler o
+         envelope aqui é o que impede outra tela de encontrar um formato diferente. */
+      return normalizarListaProjetos(await listarProjetos(msal));
     },
     enabled: habilitado,
   });
 
-  const projetos = projetosQuery.data ?? [];
+  const projetos = projetosQuery.data?.projetos ?? [];
   const nomePorProjeto = useMemo(() => {
     const mapa = new Map();
     for (const projeto of projetos) mapa.set(projeto?.id, projeto?.nome);

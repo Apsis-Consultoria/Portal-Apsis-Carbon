@@ -41,7 +41,7 @@ import {
   obterFornecedor,
   atualizarFornecedor,
 } from '@/lib/api/fornecedores';
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { rotaDaPagina } from '@/lib/pageRoutes';
 import Cartao from '@/components/ui/Cartao';
 import CabecalhoSecao from '@/components/ui/CabecalhoSecao';
@@ -472,7 +472,7 @@ export default function Fornecedores() {
     /* Em modo demonstração não existe conta no MSAL (o login fica desabilitado) e as
        funções da API não usam token: exigir `autenticado` deixaria a tela
        permanentemente vazia justamente no modo que existe para revisá-la. */
-    enabled: MODO_DEMO || autenticado,
+    enabled: (MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado,
   });
 
   const fornecedores = listaQuery.data?.fornecedores ?? [];
@@ -482,7 +482,7 @@ export default function Fornecedores() {
   const detalheQuery = useQuery({
     queryKey: ['carbon', 'fornecedor', idAberto],
     queryFn: async () => obterFornecedor(msal, idAberto),
-    enabled: Boolean(idAberto) && (MODO_DEMO || autenticado),
+    enabled: Boolean(idAberto) && ((MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado),
   });
 
   const detalhe = detalheQuery.data?.fornecedor ?? null;

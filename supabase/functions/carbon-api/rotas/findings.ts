@@ -56,7 +56,7 @@ import {
   paraNumero,
   veioNoCorpo,
 } from './helpers.ts';
-import { lerProjeto } from './projetos.ts';
+import { lerProjetoVisivel } from './projetos.ts';
 
 // -----------------------------------------------------------------------------
 // Vocabulario, espelhando os CHECKs da migration
@@ -313,7 +313,7 @@ function montarDadosFinding(
  */
 async function obterFindings(ctx: Contexto): Promise<Response> {
   const projetoId = ctx.params.id;
-  const projeto = await lerProjeto(ctx.admin, projetoId);
+  const projeto = await lerProjetoVisivel(ctx, projetoId);
   if (!projeto) return respostaErro('nao_encontrado', 404);
 
   // ?origem= e filtro, nao obrigacao. Valor torto e recusado em vez de ignorado:
@@ -359,7 +359,7 @@ async function criarRodada(ctx: Contexto): Promise<Response> {
   const corpo = ctx.corpo ?? {};
   const projetoId = ctx.params.id;
 
-  const projeto = await lerProjeto(ctx.admin, projetoId);
+  const projeto = await lerProjetoVisivel(ctx, projetoId);
   if (!projeto) return respostaErro('nao_encontrado', 404);
 
   const origem = lerEnum(corpo.origem, ORIGENS, 'campo_invalido', 'origem');

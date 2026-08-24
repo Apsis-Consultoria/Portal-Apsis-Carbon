@@ -1,4 +1,4 @@
-import { MODO_DEMO } from "@/lib/runtimeConfig";
+import { MODO_DEMO, MODO_DEMO_ATIVO } from "@/lib/runtimeConfig";
 import { cam, chamarApi, chamarDemo, ErroApi } from "@/lib/api/base";
 import {
   demoListarFornecedores,
@@ -32,7 +32,7 @@ import {
  * MODO_DEMO ligado estas funcoes NAO fazem rede - operam sobre o dataset em memoria
  * de src/lib/demo/fornecedores.js, que reproduz as mesmas regras de calculo do SQL.
  *
- * O `if (MODO_DEMO)` fica SEM Boolean() em volta de proposito: com o wrapper o
+ * O `if (MODO_DEMO && MODO_DEMO_ATIVO())` fica SEM Boolean() em volta de proposito: com o wrapper o
  * Rollup nao dobra a expressao para a constante false, os ramos sobrevivem ao
  * tree-shaking e o dataset ficticio inteiro vai para o bundle de producao. Ver a
  * nota longa em src/lib/runtimeConfig.js.
@@ -162,13 +162,13 @@ const CHAVES_FORNECEDORES = ["busca", "status", "ativo", "pagina", "limite"];
  * sem expor o dado. Ver o requisito de privacidade da issue #10.
  */
 export async function listarFornecedores(msal, filtros = {}) {
-  if (MODO_DEMO) return chamarNoDemo("/fornecedores", () => demoListarFornecedores(filtros));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo("/fornecedores", () => demoListarFornecedores(filtros));
   return chamar(`/fornecedores${consulta(filtros, CHAVES_FORNECEDORES)}`, msal);
 }
 
 /** POST /fornecedores -> { fornecedor } */
 export async function criarFornecedor(msal, dados) {
-  if (MODO_DEMO) return chamarNoDemo("/fornecedores", () => demoCriarFornecedor(dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo("/fornecedores", () => demoCriarFornecedor(dados));
   return chamar("/fornecedores", msal, { metodo: "POST", corpo: dados });
 }
 
@@ -180,7 +180,7 @@ export async function criarFornecedor(msal, dados) {
  * a tela nao deve inferir permissao por conta propria, so obedecer a esse booleano.
  */
 export async function obterFornecedor(msal, id) {
-  if (MODO_DEMO) return chamarNoDemo(`/fornecedores/${id}`, () => demoObterFornecedor(id));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo(`/fornecedores/${id}`, () => demoObterFornecedor(id));
   return chamar(`/fornecedores/${cam(id)}`, msal);
 }
 
@@ -192,7 +192,7 @@ export async function obterFornecedor(msal, id) {
  * nunca apaga o que ja estava cadastrado.
  */
 export async function atualizarFornecedor(msal, id, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo(`/fornecedores/${id}`, () => demoAtualizarFornecedor(id, dados));
   }
   return chamar(`/fornecedores/${cam(id)}`, msal, { metodo: "PATCH", corpo: dados });
@@ -223,25 +223,25 @@ const CHAVES_CONTRATOS = [
  * nao gerada. E informacao, e a tela mostra em vez de esconder.
  */
 export async function listarContratos(msal, filtros = {}) {
-  if (MODO_DEMO) return chamarNoDemo("/contratos", () => demoListarContratos(filtros));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo("/contratos", () => demoListarContratos(filtros));
   return chamar(`/contratos${consulta(filtros, CHAVES_CONTRATOS)}`, msal);
 }
 
 /** POST /contratos -> { contrato } */
 export async function criarContrato(msal, dados) {
-  if (MODO_DEMO) return chamarNoDemo("/contratos", () => demoCriarContrato(dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo("/contratos", () => demoCriarContrato(dados));
   return chamar("/contratos", msal, { metodo: "POST", corpo: dados });
 }
 
 /** GET /contratos/:id -> { contrato, parcelas, totais } */
 export async function obterContrato(msal, id) {
-  if (MODO_DEMO) return chamarNoDemo(`/contratos/${id}`, () => demoObterContrato(id));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo(`/contratos/${id}`, () => demoObterContrato(id));
   return chamar(`/contratos/${cam(id)}`, msal);
 }
 
 /** PATCH /contratos/:id -> { contrato } */
 export async function atualizarContrato(msal, id, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo(`/contratos/${id}`, () => demoAtualizarContrato(id, dados));
   }
   return chamar(`/contratos/${cam(id)}`, msal, { metodo: "PATCH", corpo: dados });
@@ -267,7 +267,7 @@ export async function atualizarContrato(msal, id, dados) {
  * parcelas EM ABERTO e regera - e recusa com 409 se houver parcela paga.
  */
 export async function gerarParcelas(msal, contratoId, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo(`/contratos/${contratoId}/parcelas-gerar`, () =>
       demoGerarParcelas(contratoId, dados)
     );
@@ -285,7 +285,7 @@ export async function gerarParcelas(msal, contratoId, dados) {
  * corpo: o servidor usa o proximo da serie do contrato.
  */
 export async function criarParcela(msal, contratoId, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo(`/contratos/${contratoId}/parcelas`, () =>
       demoCriarParcela(contratoId, dados)
     );
@@ -322,7 +322,7 @@ const CHAVES_PARCELAS = [
  * `centro_custo` aceita 'sem_centro' para alcancar as parcelas sem centro de custo.
  */
 export async function listarParcelas(msal, filtros = {}) {
-  if (MODO_DEMO) return chamarNoDemo("/parcelas", () => demoListarParcelas(filtros));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo("/parcelas", () => demoListarParcelas(filtros));
   return chamar(`/parcelas${consulta(filtros, CHAVES_PARCELAS)}`, msal);
 }
 
@@ -336,7 +336,7 @@ export async function listarParcelas(msal, filtros = {}) {
  * O contrato volta junto porque os agregados dele mudaram com a baixa.
  */
 export async function atualizarParcela(msal, id, dados) {
-  if (MODO_DEMO) return chamarNoDemo(`/parcelas/${id}`, () => demoAtualizarParcela(id, dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo(`/parcelas/${id}`, () => demoAtualizarParcela(id, dados));
   return chamar(`/parcelas/${cam(id)}`, msal, { metodo: "PATCH", corpo: dados });
 }
 
@@ -348,6 +348,6 @@ export async function atualizarParcela(msal, id, dados) {
  * pagamento primeiro.
  */
 export async function removerParcela(msal, id) {
-  if (MODO_DEMO) return chamarNoDemo(`/parcelas/${id}`, () => demoRemoverParcela(id));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo(`/parcelas/${id}`, () => demoRemoverParcela(id));
   return chamar(`/parcelas/${cam(id)}`, msal, { metodo: "DELETE" });
 }

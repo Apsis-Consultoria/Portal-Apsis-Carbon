@@ -58,6 +58,17 @@ export type Contexto = {
   corpo: Record<string, unknown> | null;
   /** URL completa da requisicao, para ler query string (ver paginar()). */
   url: URL;
+  /**
+   * Dominio corporativo aceito, ja normalizado (trim + minusculas), vindo de
+   * carbon_app_config.app.dominioPermitido.
+   *
+   * Normalizado AQUI, e nao em cada uso: o index.ts copia o valor cru da config e
+   * quem normaliza hoje e o _shared/azureAuth.ts, dentro dele. Um espaco a mais
+   * ou uma maiuscula na linha `app` do banco faria o LOGIN continuar passando
+   * (porque azureAuth normaliza) e qualquer comparacao nova aqui reprovar todos
+   * os e-mails - uma divergencia que so apareceria em producao.
+   */
+  dominio: string;
 };
 
 /** Metodos que o roteador sabe casar. OPTIONS e tratado antes, no preflight. */

@@ -63,7 +63,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
-import { listarProjetos, obterProjeto } from '@/lib/api/projetos';
+import { listarProjetos, normalizarListaProjetos, obterProjeto } from '@/lib/api/projetos';
 import {
   atualizarFinding,
   atualizarSubitemFinding,
@@ -73,7 +73,7 @@ import {
   obterFindings,
   removerSubitemFinding,
 } from '@/lib/api/findings';
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { createPageUrl } from '@/utils';
 import { montarUrl } from '@/lib/pageRoutes';
 
@@ -1300,19 +1300,20 @@ function EscolherProjeto() {
   const { instance, accounts } = useMsal();
   const msal = useMemo(() => ({ instance, accounts }), [instance, accounts]);
   const navigate = useNavigate();
-  const habilitado = MODO_DEMO || (accounts?.length ?? 0) > 0;
+  const habilitado = (MODO_DEMO && MODO_DEMO_ATIVO()) || (accounts?.length ?? 0) > 0;
 
   const projetosQuery = useQuery({
     queryKey: ['carbon', 'projetos'],
     queryFn: async () => {
-      const resposta = await listarProjetos(msal);
-      return Array.isArray(resposta?.projetos) ? resposta.projetos : [];
+      /* normalizarListaProjetos: a chave ['carbon', 'projetos'] é compartilhada; ler o
+         envelope aqui é o que impede outra tela de encontrar um formato diferente. */
+      return normalizarListaProjetos(await listarProjetos(msal));
     },
     enabled: habilitado,
   });
 
   const projetos = useMemo(
-    () => (projetosQuery.data ?? []).filter((p) => p?.ativo !== false),
+    () => (projetosQuery.data?.projetos ?? []).filter((p) => p?.ativo !== false),
     [projetosQuery.data],
   );
 
@@ -1397,7 +1398,7 @@ function FindingsDoProjeto({ projetoId }) {
   /* Em modo demonstração não existe conta no MSAL (o login fica desabilitado) e as
      funções da API não usam token, então `autenticado` não pode ser exigido: a tela
      ficaria vazia no único modo em que ela é revisável sem Supabase. */
-  const habilitado = (MODO_DEMO || (accounts?.length ?? 0) > 0) && Boolean(projetoId);
+  const habilitado = ((MODO_DEMO && MODO_DEMO_ATIVO()) || (accounts?.length ?? 0) > 0) && Boolean(projetoId);
 
   const projetoQuery = useQuery({
     queryKey: ['carbon', 'projeto', projetoId],

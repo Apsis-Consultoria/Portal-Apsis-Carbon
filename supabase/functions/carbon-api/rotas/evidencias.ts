@@ -34,7 +34,7 @@ import {
   paraNumero,
   veioNoCorpo,
 } from './helpers.ts';
-import { lerProjeto } from './projetos.ts';
+import { lerProjetoVisivel } from './projetos.ts';
 
 const COLUNAS_ITEM =
   'id, projeto_id, codigo, secao, exigencia, ordem, status_resposta, ' +
@@ -199,7 +199,7 @@ async function lerChecklist(
 
 async function obter(ctx: Contexto): Promise<Response> {
   const projetoId = ctx.params.id;
-  const projeto = await lerProjeto(ctx.admin, projetoId);
+  const projeto = await lerProjetoVisivel(ctx, projetoId);
   if (!projeto) return respostaErro('nao_encontrado', 404);
 
   return respostaJson(await lerChecklist(ctx.admin, projetoId));
@@ -215,7 +215,7 @@ async function obter(ctx: Contexto): Promise<Response> {
  */
 async function criar(ctx: Contexto): Promise<Response> {
   const projetoId = ctx.params.id;
-  const projeto = await lerProjeto(ctx.admin, projetoId);
+  const projeto = await lerProjetoVisivel(ctx, projetoId);
   if (!projeto) return respostaErro('nao_encontrado', 404);
 
   const { data, error } = await ctx.admin.rpc('carbon_evidencias_criar_do_template', {

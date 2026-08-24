@@ -36,8 +36,8 @@ import {
   atualizarReuniao,
   gerarSerieReunioes,
 } from '@/lib/api/reunioes';
-import { listarProjetos } from '@/lib/api/projetos';
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { listarProjetos, normalizarListaProjetos } from '@/lib/api/projetos';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { montarUrl } from '@/lib/pageRoutes';
 import Cartao from '@/components/ui/Cartao';
 import CabecalhoSecao from '@/components/ui/CabecalhoSecao';
@@ -300,7 +300,7 @@ export default function Reunioes() {
   const { instance, accounts } = useMsal();
   const msal = useMemo(() => ({ instance, accounts }), [instance, accounts]);
   const autenticado = (accounts?.length ?? 0) > 0;
-  const habilitado = MODO_DEMO || autenticado;
+  const habilitado = (MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado;
   const queryClient = useQueryClient();
 
   const [filtros, setFiltros] = useState({ escopo: '', tipo: '', parceiro: '' });
@@ -342,8 +342,9 @@ export default function Reunioes() {
   const projetosQuery = useQuery({
     queryKey: ['carbon', 'projetos'],
     queryFn: async () => {
-      const resposta = await listarProjetos(msal);
-      return Array.isArray(resposta) ? resposta : (resposta?.projetos ?? []);
+      /* normalizarListaProjetos: a chave ['carbon', 'projetos'] é compartilhada; ler o
+         envelope aqui é o que impede outra tela de encontrar um formato diferente. */
+      return normalizarListaProjetos(await listarProjetos(msal));
     },
     enabled: habilitado,
   });
@@ -351,7 +352,7 @@ export default function Reunioes() {
   const reunioes = reunioesQuery.data?.reunioes ?? [];
   const total = reunioesQuery.data?.total ?? 0;
   const resumo = reunioesQuery.data?.resumo ?? null;
-  const projetos = projetosQuery.data ?? [];
+  const projetos = projetosQuery.data?.projetos ?? [];
 
   const opcoesProjeto = useMemo(
     () => [

@@ -3,14 +3,19 @@ node_modules
 dist
 dist-ssr
 
-# Variaveis de ambiente (NUNCA commitar com valores reais)
+# Variaveis de ambiente.
+#
+# O FRONTEND NAO TEM NENHUMA (regra 4 do CLAUDE.md) e o .env.example foi apagado
+# junto com src/lib/supabaseClient.js. Estas linhas ficam como rede de seguranca:
+# se alguem criar um .env por engano, ele nao entra no repositorio.
+#
+# A unica variavel do projeto, SUPABASE_FUNCTIONS_URL, e lida pelo vite.config.js
+# no Node e vive na sessao do terminal, nunca em arquivo.
 .env
 .env.local
 .env.*.local
 .env.development
 .env.production
-# Excecao: o template fica no repositorio
-!.env.example
 
 # Logs
 logs

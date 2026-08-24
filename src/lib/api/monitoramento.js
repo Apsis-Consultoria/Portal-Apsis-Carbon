@@ -1,4 +1,4 @@
-import { MODO_DEMO } from "@/lib/runtimeConfig";
+import { MODO_DEMO, MODO_DEMO_ATIVO } from "@/lib/runtimeConfig";
 import { cam, chamarApi, chamarDemo, ErroApi } from "@/lib/api/base";
 import {
   demoObterMonitoramento,
@@ -15,7 +15,7 @@ import {
  *   PATCH /mr-capitulos/:id                  estado, rodada, responsavel, textos
  *   POST  /mr-capitulos/:id/rodada           abre a proxima rodada de revisao
  *
- * Sobre o modo demonstracao e o motivo de o `if (MODO_DEMO)` nao ter Boolean() em volta,
+ * Sobre o modo demonstracao e o motivo de o `if (MODO_DEMO && MODO_DEMO_ATIVO())` nao ter Boolean() em volta,
  * ver o cabecalho de src/lib/api/projetos.js: a constante precisa aparecer crua para o
  * Rollup dobrar a condicao e nao levar o dataset de demonstracao para o bundle.
  *
@@ -60,7 +60,7 @@ async function comMensagensDoDominio(executar) {
 
 export async function obterMonitoramento(msal, projetoId) {
   return comMensagensDoDominio(() => {
-    if (MODO_DEMO) {
+    if (MODO_DEMO && MODO_DEMO_ATIVO()) {
       return chamarDemo(`/projetos/${projetoId}/monitoramento`, () =>
         demoObterMonitoramento(projetoId)
       );
@@ -76,7 +76,7 @@ export async function obterMonitoramento(msal, projetoId) {
  */
 export async function criarMonitoramentoDoTemplate(msal, projetoId) {
   return comMensagensDoDominio(() => {
-    if (MODO_DEMO) {
+    if (MODO_DEMO && MODO_DEMO_ATIVO()) {
       return chamarDemo(`/projetos/${projetoId}/monitoramento`, () =>
         demoCriarMonitoramentoDoTemplate(projetoId)
       );
@@ -93,7 +93,7 @@ export async function criarMonitoramentoDoTemplate(msal, projetoId) {
  */
 export async function atualizarCapituloMonitoramento(msal, capituloId, dados) {
   return comMensagensDoDominio(() => {
-    if (MODO_DEMO) {
+    if (MODO_DEMO && MODO_DEMO_ATIVO()) {
       return chamarDemo(`/mr-capitulos/${capituloId}`, () =>
         demoAtualizarCapituloMonitoramento(capituloId, dados)
       );
@@ -113,7 +113,7 @@ export async function atualizarCapituloMonitoramento(msal, capituloId, dados) {
  */
 export async function avancarRodadaCapitulo(msal, capituloId) {
   return comMensagensDoDominio(() => {
-    if (MODO_DEMO) {
+    if (MODO_DEMO && MODO_DEMO_ATIVO()) {
       return chamarDemo(`/mr-capitulos/${capituloId}/rodada`, () =>
         demoNovaRodadaCapitulo(capituloId)
       );

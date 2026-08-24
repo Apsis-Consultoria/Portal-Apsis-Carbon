@@ -1,4 +1,4 @@
-import { MODO_DEMO } from "@/lib/runtimeConfig";
+import { MODO_DEMO, MODO_DEMO_ATIVO } from "@/lib/runtimeConfig";
 import { cam, chamarApi, chamarDemo, ErroApi } from "@/lib/api/base";
 import {
   demoListarReunioes,
@@ -21,7 +21,7 @@ import {
  * src/lib/demo/reunioes.js, e as mutacoes alteram esse dataset para a tela ser
  * realmente interativa na revisao.
  *
- * O `if (MODO_DEMO)` fica SEM Boolean() em volta de proposito: com o wrapper o Rollup
+ * O `if (MODO_DEMO && MODO_DEMO_ATIVO())` fica SEM Boolean() em volta de proposito: com o wrapper o Rollup
  * nao dobra a expressao para a constante false, os ramos sobrevivem ao tree-shaking e o
  * dataset ficticio inteiro vai para o bundle de producao. Ver a nota longa em
  * src/lib/runtimeConfig.js.
@@ -106,25 +106,25 @@ function consulta(filtros = {}) {
  * operacao) - diferente de nao filtrar, que traz tudo.
  */
 export async function listarReunioes(msal, filtros = {}) {
-  if (MODO_DEMO) return chamarNoDemo("/reunioes", () => demoListarReunioes(filtros));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo("/reunioes", () => demoListarReunioes(filtros));
   return chamar(`/reunioes${consulta(filtros)}`, msal);
 }
 
 /** GET /reunioes/:id -> { reuniao, ata, pendencias } */
 export async function obterReuniao(msal, id) {
-  if (MODO_DEMO) return chamarNoDemo(`/reunioes/${id}`, () => demoObterReuniao(id));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo(`/reunioes/${id}`, () => demoObterReuniao(id));
   return chamar(`/reunioes/${cam(id)}`, msal);
 }
 
 /** POST /reunioes -> { reuniao } */
 export async function criarReuniao(msal, dados) {
-  if (MODO_DEMO) return chamarNoDemo("/reunioes", () => demoCriarReuniao(dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo("/reunioes", () => demoCriarReuniao(dados));
   return chamar("/reunioes", msal, { metodo: "POST", corpo: dados });
 }
 
 /** PATCH /reunioes/:id -> { reuniao, ata, pendencias } (o detalhe inteiro) */
 export async function atualizarReuniao(msal, id, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo(`/reunioes/${id}`, () => demoAtualizarReuniao(id, dados));
   }
   return chamar(`/reunioes/${cam(id)}`, msal, { metodo: "PATCH", corpo: dados });
@@ -138,7 +138,7 @@ export async function atualizarReuniao(msal, id, dados) {
  * `ignoradas`, portanto clicar duas vezes nao duplica a agenda.
  */
 export async function gerarSerieReunioes(msal, id, quantidade) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo(`/reunioes/${id}/serie`, () =>
       demoGerarSerieReunioes(id, quantidade)
     );
@@ -158,7 +158,7 @@ export async function gerarSerieReunioes(msal, id, quantidade) {
  * reuniao, preenchida durante ela, e o fluxo real da pauta.
  */
 export async function criarAta(msal, reuniaoId, dados = {}) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo(`/reunioes/${reuniaoId}/ata`, () => demoCriarAta(reuniaoId, dados));
   }
   return chamar(`/reunioes/${cam(reuniaoId)}/ata`, msal, { metodo: "POST", corpo: dados });
@@ -171,7 +171,7 @@ export async function criarAta(msal, reuniaoId, dados = {}) {
  * carimbo de aprovacao de uma evidencia de auditoria nao ser editavel a mao.
  */
 export async function atualizarAta(msal, ataId, dados) {
-  if (MODO_DEMO) return chamarNoDemo(`/atas/${ataId}`, () => demoAtualizarAta(ataId, dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarNoDemo(`/atas/${ataId}`, () => demoAtualizarAta(ataId, dados));
   return chamar(`/atas/${cam(ataId)}`, msal, { metodo: "PATCH", corpo: dados });
 }
 
@@ -179,7 +179,7 @@ export async function atualizarAta(msal, ataId, dados) {
 
 /** POST /atas/:id/pendencias -> { pendencia } */
 export async function criarPendencia(msal, ataId, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo(`/atas/${ataId}/pendencias`, () => demoCriarPendencia(ataId, dados));
   }
   return chamar(`/atas/${cam(ataId)}/pendencias`, msal, { metodo: "POST", corpo: dados });
@@ -187,7 +187,7 @@ export async function criarPendencia(msal, ataId, dados) {
 
 /** PATCH /ata-pendencias/:id -> { pendencia } */
 export async function atualizarPendencia(msal, id, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo(`/ata-pendencias/${id}`, () => demoAtualizarPendencia(id, dados));
   }
   return chamar(`/ata-pendencias/${cam(id)}`, msal, { metodo: "PATCH", corpo: dados });
@@ -195,7 +195,7 @@ export async function atualizarPendencia(msal, id, dados) {
 
 /** DELETE /ata-pendencias/:id -> { removido: true } */
 export async function removerPendencia(msal, id) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo(`/ata-pendencias/${id}`, () => demoRemoverPendencia(id));
   }
   return chamar(`/ata-pendencias/${cam(id)}`, msal, { metodo: "DELETE" });

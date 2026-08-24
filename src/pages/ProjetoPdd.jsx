@@ -23,7 +23,7 @@ import {
   User, MessageSquare, Sparkles, FolderTree,
 } from 'lucide-react';
 import { obterProjeto, obterPdd, criarPddDoTemplate, atualizarCapituloPdd } from '@/lib/carbonApi';
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { createPageUrl } from '@/utils';
 
 /* ===== Domínio ============================================================
@@ -379,7 +379,7 @@ export default function ProjetoPdd() {
   /* Em modo demonstração não existe conta no MSAL (o login fica desabilitado) e as
      funções do carbonApi não usam token, então `autenticado` não pode ser exigido: a
      tela ficaria vazia no único modo em que ela é revisável sem Supabase. */
-  const habilitado = (MODO_DEMO || autenticado) && Boolean(projetoId);
+  const habilitado = ((MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado) && Boolean(projetoId);
 
   const projetoQuery = useQuery({
     queryKey: ['carbon', 'projeto', projetoId],
@@ -483,12 +483,17 @@ export default function ProjetoPdd() {
     );
   }
 
+  /* 'nao_encontrado' passou a cobrir DOIS casos, e o texto não escolhe um: com a leitura
+     por participação, projeto que existe mas do qual a conta não faz parte responde o
+     mesmo 404 de projeto inexistente. É de propósito - um texto que separasse os dois
+     transformaria esta tela num oráculo de existência de projeto para quem só trocasse o
+     id na URL. */
   const codigoErro = projetoQuery.error?.codigo || pddQuery.error?.codigo || null;
   if (codigoErro === 'nao_encontrado' || codigoErro === 'id_invalido') {
     return (
       <TelaAviso
-        titulo="Projeto não encontrado"
-        texto="O projeto pode ter sido removido, ou o endereço está incorreto."
+        titulo="Projeto não disponível"
+        texto="Este projeto não está disponível para a sua conta. Ele pode não existir, ou você ainda não faz parte da equipe dele."
       />
     );
   }

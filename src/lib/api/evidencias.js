@@ -1,4 +1,4 @@
-import { MODO_DEMO } from "@/lib/runtimeConfig";
+import { MODO_DEMO, MODO_DEMO_ATIVO } from "@/lib/runtimeConfig";
 import { cam, chamarApi, chamarDemo } from "@/lib/api/base";
 import {
   demoObterEvidencias,
@@ -14,7 +14,7 @@ import {
  *   POST  /projetos/:id/evidencias
  *   PATCH /evidencia-itens/:id
  *
- * Sobre o modo demonstracao e o motivo de o `if (MODO_DEMO)` NAO ter Boolean() em
+ * Sobre o modo demonstracao e o motivo de o `if (MODO_DEMO && MODO_DEMO_ATIVO())` NAO ter Boolean() em
  * volta (com o wrapper o Rollup nao dobra a expressao para false, os ramos sobrevivem
  * ao tree-shaking e o dataset ficticio inteiro vai para o bundle de producao), ver o
  * cabecalho de src/lib/api/projetos.js.
@@ -30,7 +30,7 @@ import {
  * documento nenhum, que e informacao diferente de "ainda nao sei".
  */
 export async function obterEvidencias(msal, projetoId) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/projetos/${projetoId}/evidencias`, () => demoObterEvidencias(projetoId));
   }
   return chamarApi(`/projetos/${cam(projetoId)}/evidencias`, msal);
@@ -42,7 +42,7 @@ export async function obterEvidencias(msal, projetoId) {
  * duas vezes nao duplica item, so devolve criados = 0.
  */
 export async function criarEvidenciasDoTemplate(msal, projetoId) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/projetos/${projetoId}/evidencias`, () =>
       demoCriarEvidenciasDoTemplate(projetoId)
     );
@@ -60,7 +60,7 @@ export async function criarEvidenciasDoTemplate(msal, projetoId) {
  * sobrescrever o que outra pessoa acabou de salvar no outro eixo.
  */
 export async function atualizarItemEvidencia(msal, itemId, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/evidencia-itens/${itemId}`, () =>
       demoAtualizarItemEvidencia(itemId, dados)
     );
