@@ -299,106 +299,142 @@ type ClienteConvite = { id: string; nome: string; email: string; status: string 
 const LIMITE_CONVITES_AUTOMATICOS = 10;
 
 /**
- * Corpo do convite, bilingue: ingles em cima, portugues embaixo.
+ * HTML do convite.
  *
- * BILINGUE E NAO ESCOLHIDO POR CLIENTE porque nao existe coluna de idioma em
- * carbon_secure_share_clientes, e criar uma e decisao de produto que ninguem
- * tomou. Quem le do outro lado costuma ser comprador de credito, auditor de VVB
- * ou verificador do Verra, entao ingles primeiro e a escolha que erra menos - e
- * a mesma ordem que a interface do portal do cliente ja usa.
+ * DESENHO, refeito em 24/08/2026 no formato do convite da Auditoria de EPOs, que
+ * ja circula com cliente: faixa de marca, cartao branco, caixa "como entrar" e UM
+ * botao. O anterior era o mesmo e-mail escrito duas vezes de cima a baixo, e
+ * ficava com o dobro do tamanho sem dizer nada a mais.
  *
- * O QUE ESTE E-MAIL NAO PODE CONTER, e o motivo:
- *   - empresa, AP/OS, nome do projeto ou de arquivo. Um endereco digitado errado
- *     entregaria a um estranho a informacao de que aquela empresa e cliente da
- *     APSIS num projeto de carbono, que e exatamente o sigilo que o portal
- *     existe para proteger. O assunto tambem e generico pelo mesmo motivo.
- *   - senha, codigo ou qualquer segredo. O codigo de entrada sai da
- *     carbon-ss-codigo, a cada login, e vive minutos.
- *   - imagem remota, pixel de rastreio ou anexo.
+ * BILINGUE, mas so na PROSA. A caixa de como entrar, o botao e a assinatura sao
+ * unicos, com rotulo nos dois idiomas. Quem le portugues nao precisa rolar um
+ * e-mail inteiro em ingles para achar o botao. O ingles vem primeiro pela mesma
+ * razao que a interface tem ingles por padrao: auditor de VVB e destinatario
+ * possivel, e nao existe coluna de idioma em carbon_secure_share_clientes.
  *
- * O NUMERO DE DIGITOS DO CODIGO NAO APARECE AQUI de proposito. A constante mora
- * num lugar so, no _shared/otp.ts do repositorio secure-share-carbon, e os dois
- * repositorios publicam em ciclos diferentes: escrever "6 digitos" neste texto
- * criaria uma segunda fonte de verdade que passaria a mentir no dia em que a
- * constante mudasse, sem nenhum teste para perceber.
+ * MARCA TIPOGRAFICA, e nao <img>. Nao ha URL publica onde hospedar o PNG (o
+ * portalUrl esta vazio, e o logo de src/ nao e alcancavel de fora), e cliente de
+ * e-mail bloqueia imagem remota por padrao - o cabecalho apareceria quebrado
+ * justamente na primeira impressao. Mesma decisao ja registrada para a marca
+ * d'agua do PDF, pelo mesmo motivo.
+ *
+ * TABELA E ESTILO INLINE, sem <style> e sem flex: o Outlook ignora folha de
+ * estilo em <head> e nao implementa flexbox. O que parece datado aqui e o que
+ * sobrevive.
  */
 function htmlConvite(
   cliente: ClienteConvite,
   cfg: ConfigSecureShare,
   consultor: { nome: string; email: string },
 ): string {
-  // Com portalUrl vazio o e-mail sai SEM botao e SEM link, e continua util: ele
-  // avisa que o acesso existe e diz com quem falar. O botao aparece sozinho no
-  // dia em que carbon_app_config ganhar o endereco - sem publicar codigo.
-  const botao = cfg.portalUrl
-    ? `<p style="margin:0 0 18px"><a href="${esc(cfg.portalUrl)}" style="background:#1A4731;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Open the portal / Abrir o portal</a></p>
-       <p style="margin:0 0 18px;font-size:12px;color:#8A9990;word-break:break-all">${esc(cfg.portalUrl)}</p>`
-    : `<p style="margin:0 0 18px;padding:12px 14px;background:#FDF6E7;border:1px solid #E8D7AE;border-radius:8px;font-size:13px;color:#8A5A12">
-         The portal address will be sent to you by the consultant below.<br />
-         O endereco do portal sera enviado a voce pelo consultor indicado abaixo.
-       </p>`;
-
-  const assinatura = `
-    <p style="margin:0 0 4px;font-size:13px;color:#5C7060">
-      APSIS Consultoria Empresarial<br />
-      ${esc(consultor.nome)} &middot;
-      <a href="mailto:${esc(consultor.email)}" style="color:#1A4731">${esc(consultor.email)}</a>
-    </p>`;
+  // Com portalUrl vazio nao ha botao: um <a> sem href vira texto morto, e um
+  // botao que nao leva a lugar nenhum e pior do que a ausencia dele. A frase
+  // substituta diz o que fazer. O botao aparece sozinho no dia em que
+  // carbon_app_config ganhar o endereco, sem publicar codigo.
+  const acao = cfg.portalUrl
+    ? `<tr><td align="center" style="padding:4px 0 22px">
+         <a href="${esc(cfg.portalUrl)}" style="background:#1A4731;color:#ffffff;padding:14px 30px;border-radius:999px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block">
+           Ir para a tela de entrada &rarr;
+         </a>
+       </td></tr>`
+    : `<tr><td style="padding:4px 0 22px">
+         <div style="padding:13px 16px;background:#FDF6E7;border:1px solid #E8D7AE;border-radius:10px;font-size:13px;color:#8A5A12;line-height:1.6">
+           The portal address will be sent to you by the consultant below.<br />
+           O endere&ccedil;o do portal ser&aacute; enviado a voc&ecirc; pelo consultor indicado abaixo.
+         </div>
+       </td></tr>`;
 
   return `
-    <div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;color:#1A2B1F">
-      <div style="background:#1A4731;padding:22px 26px;border-radius:12px 12px 0 0">
-        <div style="color:#fff;font-size:19px;font-weight:700">APSIS Secure Share</div>
-        <div style="color:#C9D9CF;font-size:13px;margin-top:2px">Document portal / Portal de documentos</div>
-      </div>
-      <div style="border:1px solid #DDE3DE;border-top:none;border-radius:0 0 12px 12px;padding:26px">
+<div style="background:#F3F5F3;padding:26px 12px;font-family:Segoe UI,Arial,sans-serif">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="width:100%;max-width:520px;border-collapse:collapse">
 
-        <p style="margin:0 0 14px">Hello, ${esc(cliente.nome)}.</p>
-        <p style="margin:0 0 18px">
-          You now have access to the APSIS Secure Share portal, where the documents
-          prepared for you are made available.
+    <tr>
+      <td align="center" style="background:#1A4731;border-radius:14px 14px 0 0;padding:26px 24px 22px">
+        <div style="background:#ffffff;border-radius:10px;padding:14px 26px;display:inline-block">
+          <div style="font-size:23px;font-weight:800;color:#F47920;letter-spacing:1px;line-height:1">APSIS</div>
+          <div style="font-size:11px;font-weight:700;color:#1A4731;letter-spacing:5px;line-height:1;margin-top:3px">CARBON</div>
+        </div>
+        <div style="color:#ffffff;font-size:17px;font-weight:700;margin-top:18px">Acesso ao Secure Share</div>
+        <div style="color:#A8C4B4;font-size:12px;margin-top:5px">Documentos do seu projeto de carbono &middot; APSIS Consultoria</div>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="background:#ffffff;border-radius:0 0 14px 14px;padding:28px 26px 24px;color:#1A2B1F;font-size:14px;line-height:1.65">
+
+        <p style="margin:0 0 18px;font-weight:700">Hello, ${esc(cliente.nome)} / Ol&aacute;, ${esc(cliente.nome)},</p>
+
+        <p style="margin:0 0 14px">
+          You now have access to the <strong>APSIS Secure Share</strong>, where the documents
+          of your carbon project are kept: what has already been delivered, what is under
+          review, and the files you send back to us.
         </p>
-        <table style="width:100%;border-collapse:collapse;margin:0 0 18px">
-          <tr><td style="padding:10px 14px;background:#F4F6F4;border-radius:8px 8px 0 0;font-size:13px;color:#5C7060">Sign in with this address</td></tr>
-          <tr><td style="padding:0 14px 12px;background:#F4F6F4;border-radius:0 0 8px 8px;font-size:15px;font-weight:600">${esc(cliente.email)}</td></tr>
+        <p style="margin:0 0 20px">
+          To sign in, type your e-mail on the entry screen. A six-digit code arrives at this
+          address within the minute, and you type it on the screen.
+          <strong>There is no password to create or to remember.</strong>
+        </p>
+
+        <div style="border-top:1px solid #E4E9E5;margin:0 0 20px"></div>
+
+        <p style="margin:0 0 14px">
+          Voc&ecirc; passou a ter acesso ao <strong>APSIS Secure Share</strong>, onde ficam os
+          documentos do seu projeto de carbono: o que j&aacute; foi entregue, o que est&aacute;
+          em an&aacute;lise e os arquivos que voc&ecirc; envia de volta para n&oacute;s.
+        </p>
+        <p style="margin:0 0 22px">
+          Para entrar, informe o seu e-mail na tela de entrada. Um c&oacute;digo de seis
+          d&iacute;gitos chega neste endere&ccedil;o na hora, e voc&ecirc; digita na tela.
+          <strong>N&atilde;o h&aacute; senha para criar nem para lembrar.</strong>
+        </p>
+
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;border:1px solid #DDE3DE;border-radius:10px;margin:0 0 22px">
+          <tr>
+            <td colspan="2" style="padding:13px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;color:#8A9990">
+              HOW TO SIGN IN &middot; COMO ENTRAR
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:6px 16px 4px;font-size:13px;color:#5C7060;width:38%">Your e-mail &middot; Seu e-mail</td>
+            <td style="padding:6px 16px 4px;font-size:14px;font-weight:600;color:#1A4731;word-break:break-all">${esc(cliente.email)}</td>
+          </tr>
+          <tr>
+            <td style="padding:0 16px 14px;font-size:13px;color:#5C7060">Your key &middot; Sua chave</td>
+            <td style="padding:0 16px 14px;font-size:13px;color:#8A9990">
+              o c&oacute;digo que chega aqui quando voc&ecirc; pedir
+            </td>
+          </tr>
         </table>
-        <p style="margin:0 0 18px">
-          <strong>There is no password.</strong> Type your address on the portal and we
-          send a single-use code to this mailbox. Type the code and you are in. The code
-          is valid for a few minutes and works only once, so a new one is sent every time
-          you sign in.
-        </p>
-        ${botao}
-        <p style="margin:0 0 18px;font-size:12px;color:#8A9990;line-height:1.6">
-          APSIS will never ask you for that code by phone, message or e-mail. If you were
-          not expecting this message, please ignore it.
-        </p>
-        ${assinatura}
 
-        <hr style="border:none;border-top:1px solid #DDE3DE;margin:24px 0" />
+        ${acao}
 
-        <p style="margin:0 0 14px">Ola, ${esc(cliente.nome)}.</p>
-        <p style="margin:0 0 18px">
-          Voce passou a ter acesso ao portal APSIS Secure Share, onde ficam disponiveis
-          os documentos preparados para voce.
-        </p>
-        <table style="width:100%;border-collapse:collapse;margin:0 0 18px">
-          <tr><td style="padding:10px 14px;background:#F4F6F4;border-radius:8px 8px 0 0;font-size:13px;color:#5C7060">Entre com este endereco</td></tr>
-          <tr><td style="padding:0 14px 12px;background:#F4F6F4;border-radius:0 0 8px 8px;font-size:15px;font-weight:600">${esc(cliente.email)}</td></tr>
-        </table>
-        <p style="margin:0 0 18px">
-          <strong>Nao existe senha.</strong> Digite o seu endereco no portal e nos
-          enviamos um codigo de uso unico para esta caixa. Digite o codigo e pronto. O
-          codigo vale por alguns minutos e serve uma vez so, entao um novo e enviado a
-          cada entrada.
-        </p>
         <p style="margin:0 0 18px;font-size:12px;color:#8A9990;line-height:1.6">
-          A APSIS nunca vai pedir esse codigo por telefone, mensagem ou e-mail. Se voce
-          nao estava esperando esta mensagem, por favor ignore.
+          The code is valid for a few minutes and works only once. APSIS will never ask you
+          for it by phone or message.<br />
+          O c&oacute;digo vale por alguns minutos e serve uma vez s&oacute;. A APSIS nunca vai
+          pedir esse c&oacute;digo por telefone ou mensagem.
         </p>
-        ${assinatura}
-      </div>
-    </div>`;
+
+        <div style="border-top:1px solid #E4E9E5;margin:0 0 16px"></div>
+
+        <p style="margin:0;font-size:13px;color:#5C7060;line-height:1.6">
+          ${esc(consultor.nome)}<br />
+          <a href="mailto:${esc(consultor.email)}" style="color:#1A4731;text-decoration:none">${esc(consultor.email)}</a><br />
+          <span style="color:#8A9990">APSIS Consultoria Empresarial</span>
+        </p>
+
+      </td>
+    </tr>
+
+    <tr>
+      <td align="center" style="padding:16px 20px 0;font-size:11px;color:#8A9990;line-height:1.6">
+        Se voc&ecirc; n&atilde;o estava esperando esta mensagem, por favor ignore.<br />
+        If you were not expecting this message, please ignore it.
+      </td>
+    </tr>
+
+  </table>
+</div>`;
 }
 
 /**
