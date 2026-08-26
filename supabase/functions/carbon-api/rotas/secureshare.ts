@@ -55,6 +55,7 @@ import {
 } from '../../_shared/graph.ts';
 import type { Contexto, Rota } from './tipos.ts';
 import { ehAdmin } from './acesso.ts';
+import { LOGO_CARBON_CID, LOGO_CARBON_PNG_BASE64 } from '../../_shared/marcaEmail.ts';
 import {
   ErroRota,
   exigir,
@@ -274,7 +275,19 @@ function nomePasta(projeto: { ap_os: string | null; empresa: string; pasta?: str
   const apOs = limparParte(projeto.ap_os ?? '');
   const bruto = apOs && empresa ? `${apOs} - ${empresa}` : apOs || empresa;
 
-  return bruto.replace(/\s+/g, ' ').trim().replace(/[ .]+$/, '');
+  const limpo = bruto.replace(/\s+/g, ' ').trim().replace(/[ .]+$/, '');
+
+  // VAZIO E DEVOLVIDO COMO null, e nao como string vazia, de proposito.
+  //
+  // limparParte remove caracteres proibidos no SharePoint. Empresa e AP/OS
+  // compostos so por esses caracteres (por exemplo "***" ou "..") reduzem a
+  // nada, e o nome da pasta vira ''. Com string vazia, caminhoNaBiblioteca
+  // monta o caminho da PASTA BASE: a listagem de um cliente passaria a devolver
+  // a pasta de TODOS os clientes, e um upload cairia na raiz da biblioteca.
+  //
+  // Devolver null em vez de '' faz o TypeScript apontar cada ponto que precisa
+  // decidir o que fazer - que era exatamente o que faltava.
+  return limpo === '' ? null : limpo;
 }
 
 // -----------------------------------------------------------------------------
@@ -312,11 +325,10 @@ const LIMITE_CONVITES_AUTOMATICOS = 10;
  * razao que a interface tem ingles por padrao: auditor de VVB e destinatario
  * possivel, e nao existe coluna de idioma em carbon_secure_share_clientes.
  *
- * MARCA TIPOGRAFICA, e nao <img>. Nao ha URL publica onde hospedar o PNG (o
- * portalUrl esta vazio, e o logo de src/ nao e alcancavel de fora), e cliente de
- * e-mail bloqueia imagem remota por padrao - o cabecalho apareceria quebrado
- * justamente na primeira impressao. Mesma decisao ja registrada para a marca
- * d'agua do PDF, pelo mesmo motivo.
+ * A MARCA E A ARTE REAL, embutida como anexo (cid:), e nao <img src="http">
+ * nem data: base64. O porque de cada descarte esta em _shared/marcaEmail.ts.
+ * Ela vai SOBRE O VERDE porque a palavra CARBON e branca na arte e some em fundo
+ * claro - mesmo tratamento da tela de login.
  *
  * TABELA E ESTILO INLINE, sem <style> e sem flex: o Outlook ignora folha de
  * estilo em <head> e nao implementa flexbox. O que parece datado aqui e o que
@@ -350,10 +362,8 @@ function htmlConvite(
 
     <tr>
       <td align="center" style="background:#1A4731;border-radius:14px 14px 0 0;padding:26px 24px 22px">
-        <div style="background:#ffffff;border-radius:10px;padding:14px 26px;display:inline-block">
-          <div style="font-size:23px;font-weight:800;color:#F47920;letter-spacing:1px;line-height:1">APSIS</div>
-          <div style="font-size:11px;font-weight:700;color:#1A4731;letter-spacing:5px;line-height:1;margin-top:3px">CARBON</div>
-        </div>
+        <img src="cid:${LOGO_CARBON_CID}" width="176" alt="APSIS Carbon"
+             style="display:block;width:176px;max-width:70%;height:auto;border:0;outline:none;text-decoration:none" />
         <div style="color:#ffffff;font-size:17px;font-weight:700;margin-top:18px">Acesso ao Secure Share</div>
         <div style="color:#A8C4B4;font-size:12px;margin-top:5px">Documentos do seu projeto de carbono &middot; APSIS Consultoria</div>
       </td>
@@ -362,7 +372,7 @@ function htmlConvite(
     <tr>
       <td style="background:#ffffff;border-radius:0 0 14px 14px;padding:28px 26px 24px;color:#1A2B1F;font-size:14px;line-height:1.65">
 
-        <p style="margin:0 0 18px;font-weight:700">Hello, ${esc(cliente.nome)} / Ol&aacute;, ${esc(cliente.nome)},</p>
+        <p style="margin:0 0 18px;font-weight:700">Hello / Ol&aacute;, ${esc(cliente.nome)},</p>
 
         <p style="margin:0 0 14px">
           You now have access to the <strong>APSIS Secure Share</strong>, where the documents
@@ -479,9 +489,10 @@ async function enviarConvitePara(
     if (veredito.motivo === 'teto_diario_convite') {
       throw new ErroRota('teto_diario_convite', 429);
     }
-    // O numero de minutos vai no `detalhe`, que hoje so alcanca o log: o
-    // src/lib/api/base.js monta o ErroApi sem ele. A mensagem de tela e generica
-    // de proposito, para nao prometer um numero que a tela nao recebeu.
+    // Os minutos que faltam vao no `detalhe`, e a TELA os transforma em horario
+    // ("a partir das 16:42"). Nao mandamos o horario pronto de proposito: o
+    // relogio que vale e o de quem esta olhando, e o servidor esta em UTC.
+    // Numero cru atravessa fuso e formato de data sem estragar.
     throw new ErroRota('convite_recente', 429, String(veredito.espere_min ?? ''));
   }
 
@@ -497,6 +508,14 @@ async function enviarConvitePara(
         nome: ctx.registro.nome ?? ctx.usuario.nome,
         email: ctx.registro.email,
       }),
+      // A marca viaja com a mensagem. Ver _shared/marcaEmail.ts para o porque de
+      // nao ser <img src="http"> nem data: base64.
+      imagens: [{
+        contentId: LOGO_CARBON_CID,
+        nome: 'apsis-carbon.png',
+        tipo: 'image/png',
+        contentBytes: LOGO_CARBON_PNG_BASE64,
+      }],
     });
   } catch (e) {
     console.error('Falha ao enviar o convite do Secure Share:', e);
@@ -642,6 +661,11 @@ async function criarProjeto(ctx: Contexto): Promise<Response> {
   });
 
   const pasta = nomePasta({ ap_os: apOs, empresa });
+  if (!pasta) {
+    // Sem nome de pasta nao ha onde guardar o arquivo do cliente, e seguir
+    // criaria um projeto apontado para a pasta base.
+    throw new ErroRota('nome_de_pasta_vazio', 400, 'empresa');
+  }
 
   const { data: projeto, error } = await ctx.admin
     .from('carbon_secure_share_projetos')
@@ -823,6 +847,26 @@ async function atualizarProjeto(ctx: Contexto): Promise<Response> {
     empresa: (mudancas.empresa ?? projeto.empresa) as string,
   });
 
+  // O CAMINHO MAIS PERIGOSO DOS TRES, e o compilador NAO o aponta.
+  //
+  // caminhoNaBiblioteca aceita (string | null | undefined)[] e descarta as
+  // partes vazias com um filter. Isso e conveniente para caminho opcional e
+  // engole o null aqui em silencio: com nomeNovo nulo, renomearPasta receberia
+  // o caminho da PASTA BASE nos dois lados e tentaria renomear a biblioteca
+  // inteira - a pasta de todos os clientes de uma vez.
+  //
+  // Por isso a recusa e explicita, e nao confiada ao tipo. Foi o proprio
+  // typecheck passar sem reclamar que revelou a lacuna: o conserto tambem
+  // precisa de auditoria.
+  if (!nomeAntigo || !nomeNovo) {
+    console.error(
+      'Renomear recusado: nome de pasta vazio no projeto de Secure Share',
+      projeto.id,
+      { antigo: nomeAntigo, novo: nomeNovo },
+    );
+    throw new ErroRota('nome_de_pasta_vazio', 400, 'empresa');
+  }
+
   if (nomeNovo !== nomeAntigo) {
     try {
       const cfg = await lerConfig(ctx);
@@ -867,6 +911,12 @@ async function listarArquivos(ctx: Contexto): Promise<Response> {
   }
 
   const base = nomePasta(projeto);
+  if (!base) {
+    // Projeto antigo, gravado antes da recusa acima, pode ter nome vazio. Aqui a
+    // consequencia seria listar a biblioteca inteira para o cliente.
+    console.error('Projeto de Secure Share sem nome de pasta utilizavel:', projeto.id);
+    throw new ErroRota('nome_de_pasta_vazio', 409);
+  }
 
   try {
     const cfg = await lerConfig(ctx);

@@ -116,3 +116,21 @@ export function urlPdd(projetoId) {
     `/Projetos/${encodeURIComponent(String(projetoId ?? ''))}/PDD`
   );
 }
+
+/**
+ * URL dos indicadores de um projeto: '/Projetos/<id>/Indicadores'.
+ *
+ * Mesmo desenho do urlPdd, e pelo mesmo motivo de fallback.
+ *
+ * ELE FALTAVA. A tela foi registrada em 25/08/2026 e ficou uma auditoria inteira
+ * sem NENHUM ponto de entrada na interface: a rota existia, respondia e mostrava
+ * os 161 indicadores, e so se chegava nela digitando a URL na barra de enderecos.
+ * Registrar a pagina nao e o mesmo que torna-la alcancavel, e nada no build ou
+ * nos testes acusa a diferenca.
+ */
+export function urlIndicadores(projetoId) {
+  return (
+    montarUrl('ProjetoIndicadores', { id: projetoId }) ??
+    `/Projetos/${encodeURIComponent(String(projetoId ?? ''))}/Indicadores`
+  );
+}

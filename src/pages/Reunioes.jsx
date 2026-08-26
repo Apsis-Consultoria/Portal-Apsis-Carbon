@@ -28,7 +28,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Handshake, Plus, Pencil, Repeat, ArrowRight, ClipboardList, ShieldCheck,
-  FileText, ListChecks, CalendarDays, ChevronLeft, ChevronRight, Filter,
+  FileText, ListChecks, CalendarDays, ChevronLeft, ChevronRight, Filter, Video,
 } from 'lucide-react';
 import {
   listarReunioes,
@@ -45,6 +45,7 @@ import Tabela from '@/components/ui/Tabela';
 import Badge from '@/components/ui/Badge';
 import Campo from '@/components/ui/Campo';
 import PainelLateral from '@/components/ui/PainelLateral';
+import PainelTeams from '@/components/PainelTeams';
 import AvisoDiscreto from '@/components/ui/AvisoDiscreto';
 import BotaoPrimario from '@/components/ui/BotaoPrimario';
 import BotaoSecundario from '@/components/ui/BotaoSecundario';
@@ -752,6 +753,23 @@ export default function Reunioes() {
           opcoesProjeto={opcoesProjeto}
           avisoProjetos={avisoProjetos}
         />
+
+        {/* O Teams só aparece ao EDITAR, nunca ao criar: o evento precisa de uma
+            reunião com id e data já gravados, e a data do evento vem do registro.
+            Oferecer o painel numa reunião que ainda não existe daria um botão que
+            só pode falhar. */}
+        {painel?.modo === 'editar' && painel?.reuniao?.id && (
+          <div className="mt-6 pt-5 border-t border-[#DDE3DE]">
+            <div className="flex items-center gap-2 mb-3">
+              <Video size={15} className="text-[#5C7060]" />
+              <h3 className="text-sm font-semibold text-[#1A2B1F]">Microsoft Teams</h3>
+            </div>
+            <PainelTeams
+              reuniao={painel.reuniao}
+              aoMudar={() => reunioesQuery.refetch()}
+            />
+          </div>
+        )}
       </PainelLateral>
 
       {/* ===== Painel da série recorrente ===== */}

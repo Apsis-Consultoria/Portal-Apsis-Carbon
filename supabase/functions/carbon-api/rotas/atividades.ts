@@ -59,6 +59,7 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { respostaErro, respostaJson } from '../../_shared/cors.ts';
 import type { Contexto, RegistroUsuario, Rota } from './tipos.ts';
+import { lerProjetoVisivel } from './projetos.ts';
 import {
   ehObjeto,
   ErroRota,
@@ -304,8 +305,17 @@ function montarDadosAtividade(
 async function listar(ctx: Contexto): Promise<Response> {
   const { limite, deslocamento, pagina } = paginar(ctx.url);
 
+  // PORTAO NA LEITURA. Sem isto, qualquer colaborador ativo do dominio pedia
+  // ?projeto_id=<uuid de outro projeto> e recebia o conteudo dele - segunda
+  // porta para o dado que /projetos protege, e oraculo de ids para as rotas
+  // de escrita. Achado na auditoria de 26/08/2026.
+  const projetoFiltro = qsUuid(ctx.url, 'projeto_id');
+  if (projetoFiltro && !(await lerProjetoVisivel(ctx, projetoFiltro))) {
+    return respostaErro('nao_encontrado', 404);
+  }
+
   const { data, error } = await ctx.admin.rpc('carbon_atividades_listar', {
-    p_projeto_id: qsUuid(ctx.url, 'projeto_id'),
+    p_projeto_id: projetoFiltro,
     p_tipo: lerEnum(qs(ctx.url, 'tipo'), TIPOS, 'campo_invalido', 'tipo'),
     p_status: lerEnum(qs(ctx.url, 'status'), STATUS, 'status_invalido', 'status'),
     p_prioridade: lerEnum(qs(ctx.url, 'prioridade'), PRIORIDADES, 'campo_invalido', 'prioridade'),

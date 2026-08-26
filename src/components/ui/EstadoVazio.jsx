@@ -43,7 +43,7 @@ export default function EstadoVazio({
       <div
         className={`bg-[#F4F6F4] rounded-2xl flex items-center justify-center mx-auto ${compacto ? 'w-11 h-11 mb-3' : 'w-14 h-14 mb-4'}`}
       >
-        <Icone size={compacto ? 18 : 22} className="text-[#8A9990]" aria-hidden="true" />
+        <Icone size={compacto ? 18 : 22} className="text-[#5C7060]" aria-hidden="true" />
       </div>
       {titulo && <p className="text-sm font-semibold text-[#1A2B1F]">{titulo}</p>}
       {texto && (

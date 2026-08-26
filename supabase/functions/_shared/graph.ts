@@ -19,14 +19,14 @@
 // (papel em carbon_usuarios, vinculo em carbon_secure_share_equipe), e nao pelas
 // permissoes que a pessoa por acaso tem no SharePoint.
 //
-// SECRETS EXIGIDOS (no Supabase, nunca no repositorio), com prefixo AZURE_PORTAL_:
+// SECRETS EXIGIDOS (no Supabase, nunca no repositorio), com prefixo AZURE_:
 //   AZURE_PORTAL_TENANT_ID
 //   AZURE_PORTAL_CLIENT_ID
 //   AZURE_PORTAL_CLIENT_SECRET
 //
 // POR QUE O PREFIXO: este sistema e o Secure Share Carbon rodam no MESMO projeto
 // Supabase, e secret de Edge Function e por PROJETO. Com os dois lendo
-// `AZURE_CLIENT_ID`, so um registro de aplicativo caberia, e o sintoma seria um
+// `AZURE_PORTAL_CLIENT_ID`, so um registro de aplicativo caberia, e o sintoma seria um
 // dos sistemas usando a credencial do outro sem ninguem perceber. Sao dois
 // registros no Azure, com rotacao e log de entrada independentes.
 //
@@ -436,6 +436,18 @@ export async function enviarEmail(opcoes: {
   paraNome?: string;
   assunto: string;
   html: string;
+  /**
+   * Imagens que viajam JUNTO com a mensagem e sao referenciadas no HTML por
+   * `cid:<contentId>`.
+   *
+   * E o unico jeito de por a marca no e-mail: nao ha endereco publico para o PNG,
+   * e `data:` base64 e removido pelo Gmail e pelo Outlook web. O anexo embutido
+   * tambem sobrevive ao bloqueio de imagem remota, que a maioria dos clientes
+   * aplica por padrao - justamente na primeira leitura, que e quando importa.
+   *
+   * `contentBytes` e base64 SEM o prefixo data:. O Graph recusa com o prefixo.
+   */
+  imagens?: { contentId: string; nome: string; tipo: string; contentBytes: string }[];
 }): Promise<void> {
   const resposta = await chamarGraph(
     `/users/${encodeURIComponent(opcoes.remetente)}/sendMail`,
@@ -454,6 +466,20 @@ export async function enviarEmail(opcoes: {
               },
             },
           ],
+          ...(opcoes.imagens?.length
+            ? {
+              // isInline + contentId tiram a imagem da lista de anexos visivel:
+              // ela aparece dentro do corpo, e nao como arquivo para baixar.
+              attachments: opcoes.imagens.map((img) => ({
+                '@odata.type': '#microsoft.graph.fileAttachment',
+                name: img.nome,
+                contentType: img.tipo,
+                contentBytes: img.contentBytes,
+                contentId: img.contentId,
+                isInline: true,
+              })),
+            }
+            : {}),
         },
         saveToSentItems: false,
       }),

@@ -1068,17 +1068,17 @@ grant select on public.carbon_pipeline_por_segmento to service_role;
 -- revoke vem antes do grant. Assinatura completa em cada linha porque revoke e
 -- grant de funcao exigem os tipos dos parametros.
 revoke all on function public.carbon_pipeline_set_atualizado_em()
-  from anon, authenticated;
+  from public, anon, authenticated;
 revoke all on function public.carbon_pipeline_listar(text, text, uuid)
-  from anon, authenticated;
+  from public, anon, authenticated;
 revoke all on function public.carbon_candidato_detalhe(uuid)
-  from anon, authenticated;
+  from public, anon, authenticated;
 revoke all on function public.carbon_candidato_avaliacao(uuid)
-  from anon, authenticated;
+  from public, anon, authenticated;
 revoke all on function public.carbon_candidatos_comparar(uuid[])
-  from anon, authenticated;
+  from public, anon, authenticated;
 revoke all on function public.carbon_candidato_criar_projeto(uuid, uuid)
-  from anon, authenticated;
+  from public, anon, authenticated;
 
 grant execute on function public.carbon_pipeline_listar(text, text, uuid)
   to service_role;

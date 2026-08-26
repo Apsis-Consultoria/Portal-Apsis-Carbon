@@ -1329,12 +1329,20 @@ function EscolherProjeto() {
   }
 
   if (projetosQuery.isError) {
+    // Com um caminho de volta: sem ele, quem cai aqui (falha de rede, ou o
+    // portão de equipe negando o projeto) fica preso numa tela de aviso dentro
+    // do shell. Beco sem saída foi defeito sentido em uso, em 25/08/2026.
     return (
-      <AvisoDiscreto
-        tom="vermelho"
-        titulo="Não foi possível carregar os projetos."
-        texto="Se o aviso continuar, avise a equipe responsável pelo sistema."
-      />
+      <div className="space-y-4">
+        <AvisoDiscreto
+          tom="vermelho"
+          titulo="Não foi possível carregar os projetos."
+          texto="Se o aviso continuar, avise a equipe responsável pelo sistema."
+        />
+        <BotaoSecundario como="link" para={createPageUrl('Projetos')} icone={ArrowLeft}>
+          Voltar para Projetos
+        </BotaoSecundario>
+      </div>
     );
   }
 
@@ -1643,7 +1651,18 @@ function FindingsDoProjeto({ projetoId }) {
     return [];
   })();
 
-  const semRodadas = !carregando && rodadas.length === 0;
+  /*
+   * `!falhou` faz parte da condição de propósito.
+   *
+   * Sem isso, um timeout ou um 500 ao carregar os findings caía em rodadas = []
+   * e a tela dizia "Nenhuma rodada de auditoria registrada" - convidando a
+   * cadastrar uma rodada que JÁ EXISTE no banco. A pessoa clica, cria a segunda
+   * rodada 1, e os findings passam a se dividir entre duas rodadas que deveriam
+   * ser uma. Falha de rede não pode ser lida como ausência de dado quando a
+   * reação natural a "não tem nada aqui" é criar.
+   */
+  const falhou = projetoQuery.isError || findingsQuery.isError;
+  const semRodadas = !carregando && !falhou && rodadas.length === 0;
 
   return (
     <div className="max-w-7xl mx-auto space-y-5">

@@ -32,7 +32,7 @@ export default function Carregando({
   const t = TAMANHOS[tamanho] || TAMANHOS.md;
   if (linha) {
     return (
-      <span role="status" aria-live="polite" className={`inline-flex items-center gap-1.5 text-[11px] text-[#8A9990] ${className}`}>
+      <span role="status" aria-live="polite" className={`inline-flex items-center gap-1.5 text-[11px] text-[#5C7060] ${className}`}>
         <Loader2 size={12} className="animate-spin flex-shrink-0" aria-hidden="true" />
         {rotulo}
       </span>
@@ -42,7 +42,7 @@ export default function Carregando({
     <div
       role="status"
       aria-live="polite"
-      className={`flex items-center justify-center text-[#8A9990] ${t.classe} ${className}`}
+      className={`flex items-center justify-center text-[#5C7060] ${t.classe} ${className}`}
     >
       <Loader2 size={t.icone} className="animate-spin flex-shrink-0" aria-hidden="true" />
       <span>{rotulo}</span>

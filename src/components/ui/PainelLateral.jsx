@@ -188,7 +188,7 @@ export default function PainelLateral({
             aria-label="Fechar painel"
             className="w-8 h-8 rounded-lg hover:bg-[#F4F6F4] flex items-center justify-center flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1A4731]/30"
           >
-            <X size={15} className="text-[#8A9990]" aria-hidden="true" />
+            <X size={15} className="text-[#5C7060]" aria-hidden="true" />
           </button>
         </div>
 

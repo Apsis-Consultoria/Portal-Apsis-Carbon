@@ -38,6 +38,7 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { respostaErro, respostaJson } from '../../_shared/cors.ts';
 import type { Contexto, Rota } from './tipos.ts';
+import { exigirProjetoDoRegistro, lerProjetoVisivel } from './projetos.ts';
 import {
   ErroRota,
   type ErroBanco,
@@ -96,6 +97,16 @@ const COLUNAS_DOCUMENTO =
 
 const COLUNAS_VINCULO =
   'id, documento_id, tipo_alvo, alvo_id, observacao, criado_por, criado_em';
+
+// POR QUE OS CASTS DESTE ARQUIVO SAO `as unknown as`, e nao `as` direto:
+// varias consultas aqui montam a lista de colunas em RUNTIME (o conjunto
+// depende do papel de quem pergunta). O supabase-js so consegue inferir o
+// tipo do retorno quando a string do .select() e literal; com string
+// calculada ele devolve GenericStringError, que e `{ error: true } & String`
+// e nao tem index signature - o cast direto vira erro TS2352.
+//
+// NAO simplifique para `as` de novo: compila hoje porque o arquivo estava
+// fora do indice.ts e nunca era checado. Desde 25/08/2026 ele e checado.
 
 type LinhaDocumento = { id: string } & Record<string, unknown>;
 
@@ -321,7 +332,18 @@ function montarDadosDocumento(
 
   // projeto_id null e estado VALIDO: e o documento institucional (modelo de contrato,
   // SOP, procedimento interno) que nao pertence a projeto nenhum.
-  if (veioNoCorpo(corpo, 'projeto_id')) {
+  //
+  // SO NA CRIACAO, e isto foi apertado em 26/08/2026. No modo 'atualizar' a
+  // coluna era gravavel, e com ela um gestor MOVIA documento de um projeto para
+  // outro: o arquivo de B passava a constar em A e sumia da listagem de B. A
+  // unica defesa era parcial - a trigger de coerencia de familia so barra quando
+  // o documento faz parte de uma corrente de versoes, e documento de versao
+  // unica, que e o caso comum, passava.
+  //
+  // Mesma doutrina ja escrita aqui para `versao` e `substitui_id`: campo que
+  // define a que o registro PERTENCE nao se edita depois; para mudar de projeto,
+  // o caminho e criar no projeto certo.
+  if (modo === 'criar' && veioNoCorpo(corpo, 'projeto_id')) {
     dados.projeto_id = lerUuid(corpo.projeto_id, 'projeto_id');
   }
 
@@ -418,8 +440,19 @@ async function listar(ctx: Contexto): Promise<Response> {
   const alvoTipoBruto = query(url, 'alvo_tipo');
   const alvoTipo = alvoTipoBruto === null ? null : lerTipoAlvo(alvoTipoBruto);
 
+  // PORTAO NA LEITURA. Sem isto, qualquer colaborador ativo do dominio pedia
+  // ?projeto_id=<uuid de outro projeto> e recebia a lista de documentos dele,
+  // com url_externa, caminho_storage e os vinculos - que sao justamente os uuids
+  // de finding, item de evidencia e ata usados para escrever nas outras rotas.
+  // Era a segunda porta para o dado que /projetos protege, e ainda servia de
+  // oraculo de ids.
+  const projetoFiltro = queryUuid(url, 'projeto_id');
+  if (projetoFiltro && !(await lerProjetoVisivel(ctx, projetoFiltro))) {
+    return respostaErro('nao_encontrado', 404);
+  }
+
   const { data, error } = await ctx.admin.rpc('carbon_documentos_listar', {
-    p_projeto_id: queryUuid(url, 'projeto_id'),
+    p_projeto_id: projetoFiltro,
     p_somente_institucional: query(url, 'escopo') === 'institucional',
     p_tipo: tipo,
     p_origem: origem,
@@ -484,7 +517,7 @@ async function criar(ctx: Contexto): Promise<Response> {
 
   // Documento novo nunca tem sucessor: os derivados sao constantes, sem consulta extra.
   return respostaJson(
-    { documento: { ...(data as LinhaDocumento), substituido_por_id: null, substituido: false } },
+    { documento: { ...(data as unknown as LinhaDocumento), substituido_por_id: null, substituido: false } },
     201,
   );
 }
@@ -501,6 +534,11 @@ async function atualizar(ctx: Contexto): Promise<Response> {
 
   const atual = await lerDocumento(ctx.admin, id);
   if (!atual) return respostaErro('nao_encontrado', 404);
+
+  // PORTAO. Documento institucional (projeto_id nulo) e de todo o dominio e o
+  // helper devolve string vazia para ele; documento DE PROJETO exige que quem
+  // escreve enxergue o projeto.
+  await exigirProjetoDoRegistro(ctx, 'carbon_documentos', id);
 
   const dados = montarDadosDocumento(corpo, 'atualizar');
   if (Object.keys(dados).length === 0) return respostaErro('nada_para_atualizar', 400);
@@ -520,7 +558,7 @@ async function atualizar(ctx: Contexto): Promise<Response> {
   if (!data) return respostaErro('nao_encontrado', 404);
 
   const familia = await lerFamilia(ctx.admin, id);
-  return respostaJson({ documento: comDerivados(data as LinhaDocumento, familia) });
+  return respostaJson({ documento: comDerivados(data as unknown as LinhaDocumento, familia) });
 }
 
 /**
@@ -596,7 +634,7 @@ async function criarVersao(ctx: Contexto): Promise<Response> {
     lancarErroEscrita(erro, 'carbon_documentos (versao)', 'versao_invalida');
   }
 
-  const novo = data as LinhaDocumento;
+  const novo = data as unknown as LinhaDocumento;
   const familia = await lerFamilia(ctx.admin, novo.id);
   return respostaJson({ documento: comDerivados(novo, familia), familia }, 201);
 }
