@@ -16,6 +16,10 @@
  * fosse escolhida no formulário, o evento do Teams poderia cair num dia
  * diferente do registro que o originou, e ninguém perceberia até alguém não
  * aparecer.
+ *
+ * OS CAMPOS EM SI VIVEM EM `CamposTeams` desde 26/08/2026, porque agora também
+ * aparecem na criação da reunião. Este painel cuida do que só existe depois de
+ * gravado: o link de entrada, as ocorrências da série e o cancelamento.
  */
 
 import { useState } from 'react';
@@ -23,7 +27,7 @@ import { useMsal } from '@azure/msal-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  Video, Plus, Trash2, ExternalLink, Copy, Check, Loader2, TriangleAlert, CalendarClock,
+  Video, Plus, Trash2, ExternalLink, Copy, Check, Loader2, CalendarClock,
 } from 'lucide-react';
 import {
   cancelarReuniaoTeams,
@@ -31,41 +35,16 @@ import {
   diagnosticoTeams,
   ocorrenciasTeams,
 } from '@/lib/api/reunioesteams';
-import Campo from '@/components/ui/Campo';
+import CamposTeams, {
+  formTeamsVazio,
+  participantesInvalidos,
+  payloadTeams,
+} from '@/components/CamposTeams';
+import { useAuth } from '@/lib/AuthContext';
 import BotaoPrimario from '@/components/ui/BotaoPrimario';
 import BotaoSecundario from '@/components/ui/BotaoSecundario';
 import AvisoDiscreto from '@/components/ui/AvisoDiscreto';
 import Badge from '@/components/ui/Badge';
-
-const FREQUENCIAS = [
-  { valor: 'nenhuma', rotulo: 'Não se repete' },
-  { valor: 'semanal', rotulo: 'Toda semana' },
-  { valor: 'diaria', rotulo: 'Todo dia' },
-  { valor: 'mensal', rotulo: 'Todo mês' },
-];
-
-const FORM_VAZIO = {
-  hora_inicio: '10:00',
-  hora_fim: '11:00',
-  participantes: '',
-  descricao: '',
-  frequencia: 'nenhuma',
-  ate: '',
-};
-
-/**
- * Uma lista de e-mails colada de qualquer jeito vira array.
- *
- * Aceita vírgula, ponto e vírgula e quebra de linha porque é assim que a lista
- * chega na prática: copiada de um e-mail, de uma planilha ou digitada. Exigir um
- * separador único faria a pessoa perder a lista inteira por um caractere.
- */
-function separarEmails(texto) {
-  return String(texto || '')
-    .split(/[,;\n]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
 
 function LinhaOcorrencia({ oc }) {
   const quando = oc.inicio ? oc.inicio.replace('T', ' às ').slice(0, 16) : 'sem horário';
@@ -82,7 +61,12 @@ function LinhaOcorrencia({ oc }) {
 export default function PainelTeams({ reuniao, aoMudar }) {
   const msal = useMsal();
   const clienteQuery = useQueryClient();
-  const [form, setForm] = useState(FORM_VAZIO);
+  const { usuario } = useAuth();
+  const emailOrganizador = usuario?.email ?? '';
+  // `ativo: true` porque neste painel a pessoa ja decidiu criar no Teams:
+  // ela abriu a reuniao existente e clicou aqui. O botao de ligar seria
+  // um passo a mais para dizer o que o contexto ja diz.
+  const [form, setForm] = useState(() => ({ ...formTeamsVazio(emailOrganizador), ativo: true }));
   const [copiado, setCopiado] = useState(false);
   const [verOcorrencias, setVerOcorrencias] = useState(false);
 
@@ -109,20 +93,10 @@ export default function PainelTeams({ reuniao, aoMudar }) {
   };
 
   const criar = useMutation({
-    mutationFn: () =>
-      criarReuniaoTeams(msal, reuniao.id, {
-        hora_inicio: form.hora_inicio,
-        hora_fim: form.hora_fim,
-        participantes: separarEmails(form.participantes),
-        descricao: form.descricao || null,
-        recorrencia:
-          form.frequencia === 'nenhuma'
-            ? null
-            : { frequencia: form.frequencia, ate: form.ate || null },
-      }),
+    mutationFn: () => criarReuniaoTeams(msal, reuniao.id, payloadTeams(form)),
     onSuccess: () => {
       toast.success('Reunião criada no Teams. Os convites já foram enviados.');
-      setForm(FORM_VAZIO);
+      setForm({ ...formTeamsVazio(emailOrganizador), ativo: true });
       invalidar();
     },
     onError: (e) => toast.error(e?.message ?? 'Não foi possível criar a reunião no Teams.'),
@@ -247,65 +221,31 @@ export default function PainelTeams({ reuniao, aoMudar }) {
   /* ===== Ainda não tem: formulário ======================================= */
   return (
     <div className="space-y-3">
-      <p className="text-xs text-[#5C7060]">
-        A reunião será criada em {reuniao?.data ? reuniao.data.split('-').reverse().join('/') : 'a data do registro'},
-        no fuso de São Paulo. Os convidados recebem o convite por e-mail do próprio Outlook.
-      </p>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Campo
-          rotulo="Início"
-          tipo="time"
-          valor={form.hora_inicio}
-          onChange={(v) => setForm((a) => ({ ...a, hora_inicio: v }))}
-        />
-        <Campo
-          rotulo="Término"
-          tipo="time"
-          valor={form.hora_fim}
-          onChange={(v) => setForm((a) => ({ ...a, hora_fim: v }))}
-        />
-        <Campo
-          rotulo="Repetição"
-          tipo="select"
-          opcoes={FREQUENCIAS.map((f) => ({ valor: f.valor, rotulo: f.rotulo }))}
-          valor={form.frequencia}
-          onChange={(v) => setForm((a) => ({ ...a, frequencia: v }))}
-        />
-        <Campo
-          rotulo="Repetir até"
-          tipo="date"
-          valor={form.ate}
-          onChange={(v) => setForm((a) => ({ ...a, ate: v }))}
-          desabilitado={form.frequencia === 'nenhuma'}
-          dica={form.frequencia !== 'nenhuma' && !form.ate ? 'Sem data, a série não termina' : null}
-        />
-      </div>
-
-      <Campo
-        rotulo="Participantes"
-        tipo="textarea"
-        linhas={2}
-        valor={form.participantes}
-        onChange={(v) => setForm((a) => ({ ...a, participantes: v }))}
-        placeholder="Um e-mail por linha, ou separados por vírgula"
-        dica="Cada pessoa recebe o convite do Outlook e a reunião entra na agenda dela."
+      <CamposTeams
+        valor={form}
+        aoMudar={setForm}
+        emailOrganizador={emailOrganizador}
+        dataReuniao={reuniao?.data}
+        // Aqui não faz sentido oferecer "não criar no Teams": a pessoa abriu
+        // este painel justamente para criar. O botão só existe na tela de
+        // criação, onde o Teams é opcional.
+        permiteDesligar={false}
       />
 
       <BotaoPrimario
         icone={criar.isPending ? Loader2 : Plus}
-        disabled={criar.isPending || !form.hora_inicio || !form.hora_fim}
+        // Endereco sem arroba faz o servidor recusar a lista inteira com 400. O
+        // aviso na tela ja aponta qual e; travar o botao evita a ida perdida.
+        disabled={
+          criar.isPending
+          || !form.hora_inicio
+          || !form.hora_fim
+          || participantesInvalidos(form.participantes) > 0
+        }
         onClick={() => criar.mutate()}
       >
         {criar.isPending ? 'Criando...' : 'Criar reunião no Teams'}
       </BotaoPrimario>
-
-      {form.frequencia !== 'nenhuma' && !form.ate && (
-        <AvisoDiscreto tom="ambar" icone={TriangleAlert}>
-          Sem data de término, a série é criada sem fim e ocupa a agenda de todos os convidados
-          indefinidamente. Cancelar depois avisa todo mundo de novo.
-        </AvisoDiscreto>
-      )}
     </div>
   );
 }
