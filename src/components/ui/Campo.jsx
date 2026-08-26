@@ -248,7 +248,11 @@ export default function Campo({
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      {Rotulo}
+      {/* Sem `rotulo`, o <label> sairia vazio: ocuparia altura (desalinhando o
+          campo dos vizinhos numa linha) e ainda apontaria para o controle sem
+          dizer nada. Nesse caso quem chama é responsável pelo nome acessível,
+          via `extras['aria-label']` ou um cabeçalho que valha para a lista. */}
+      {rotulo ? Rotulo : null}
       {Controle}
       {Apoio}
       {acao}
