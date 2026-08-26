@@ -27,7 +27,7 @@ import { useMsal } from '@azure/msal-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  Video, Plus, Trash2, ExternalLink, Copy, Check, Loader2, CalendarClock,
+  Video, Plus, Trash2, ExternalLink, Copy, Check, CalendarClock,
 } from 'lucide-react';
 import {
   cancelarReuniaoTeams,
@@ -180,8 +180,12 @@ export default function PainelTeams({ reuniao, aoMudar }) {
           <BotaoSecundario
             variante="fantasma"
             tamanho="sm"
-            icone={cancelar.isPending ? Loader2 : Trash2}
-            disabled={cancelar.isPending}
+            icone={Trash2}
+            /* `carregando`, e nao `disabled`: BaseBotao desestrutura uma lista
+               fechada de props e nao tem rest, entao `disabled` era DESCARTADO
+               em silencio e o botao nunca travava. Ele ja troca o icone pelo
+               spinner e poe aria-busy sozinho. */
+            carregando={cancelar.isPending}
             onClick={() => {
               // Confirmação porque o cancelamento dispara aviso para todos os
               // convidados: é ação visível para fora, não só para quem clicou.
@@ -233,13 +237,19 @@ export default function PainelTeams({ reuniao, aoMudar }) {
       />
 
       <BotaoPrimario
-        icone={criar.isPending ? Loader2 : Plus}
-        // Endereco sem arroba faz o servidor recusar a lista inteira com 400. O
-        // aviso na tela ja aponta qual e; travar o botao evita a ida perdida.
-        disabled={
-          criar.isPending
-          || !form.hora_inicio
+        icone={Plus}
+        /* `carregando` e `desabilitado`, NUNCA `disabled`. BaseBotao desestrutura
+           uma lista fechada de props e nao repassa o que nao conhece, entao o
+           `disabled` que estava aqui era descartado calado: o botao continuava
+           clicavel durante a requisicao. Dois cliques seguidos criavam DOIS
+           eventos no Graph, o segundo update sobrescrevia o id do primeiro, e
+           sobrava um convite orfao na agenda de todos os convidados, sem nada
+           na tela que o alcançasse para cancelar. */
+        carregando={criar.isPending}
+        desabilitado={
+          !form.hora_inicio
           || !form.hora_fim
+          || form.hora_fim <= form.hora_inicio
           || participantesInvalidos(form.participantes) > 0
         }
         onClick={() => criar.mutate()}

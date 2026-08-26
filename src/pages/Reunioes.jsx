@@ -503,12 +503,26 @@ export default function Reunioes() {
     }
     const editando = painel?.modo === 'editar';
 
-    /* Endereço torto barra AQUI, e não no servidor. Lá a recusa chega depois de
-       a reunião já estar gravada, e o resultado é "reunião criada, mas o evento
-       no Teams não" - um estado meio pronto por causa de uma letra. */
-    if (!editando && formTeams.ativo && participantesInvalidos(formTeams.participantes) > 0) {
-      toast.error('Há e-mail de participante sem @. Corrija antes de salvar.');
-      return;
+    /* O Teams é validado AQUI, e não no servidor. Lá a recusa chega depois de a
+       reunião já estar gravada, e o resultado é "reunião criada, mas o evento no
+       Teams não" - um registro pela metade por causa de uma letra ou de uma hora
+       trocada. As três checagens espelham o que a Edge Function recusa com 400
+       (campo_obrigatorio, participante_invalido e fim_antes_do_inicio). */
+    if (!editando && formTeams.ativo) {
+      if (!formTeams.hora_inicio || !formTeams.hora_fim) {
+        toast.error('Preencha o horário de início e de término da reunião no Teams.');
+        return;
+      }
+      // Comparação de string funciona porque o input time entrega sempre HH:MM
+      // com dois dígitos, que é lexicograficamente ordenável.
+      if (formTeams.hora_fim <= formTeams.hora_inicio) {
+        toast.error('O término da reunião no Teams precisa ser depois do início.');
+        return;
+      }
+      if (participantesInvalidos(formTeams.participantes) > 0) {
+        toast.error('Há e-mail de participante sem @. Corrija antes de salvar.');
+        return;
+      }
     }
 
     /* Na criação, o Teams vai JUNTO: quem preencheu os campos espera que a

@@ -25,7 +25,6 @@ import { useState } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
 import { atualizarCandidato, criarCandidato } from '@/lib/api/pipeline';
 import Campo from '@/components/ui/Campo';
 import BotaoPrimario from '@/components/ui/BotaoPrimario';
@@ -261,8 +260,11 @@ export default function FormularioCandidato({ candidato, parceiros = [], aoConcl
         </BotaoSecundario>
         <BotaoPrimario
           onClick={enviar}
-          disabled={salvar.isPending}
-          icone={salvar.isPending ? Loader2 : undefined}
+          /* `carregando`, e nao `disabled`: BaseBotao nao tem rest props, entao
+             `disabled` nunca chegava ao <button> e o botao continuava clicavel
+             durante o salvamento, permitindo cadastrar o mesmo candidato duas
+             vezes. `carregando` ja troca o icone pelo spinner e poe aria-busy. */
+          carregando={salvar.isPending}
         >
           {salvar.isPending ? 'Salvando...' : editando ? 'Salvar alterações' : 'Cadastrar candidato'}
         </BotaoPrimario>
