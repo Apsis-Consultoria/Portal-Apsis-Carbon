@@ -107,14 +107,11 @@ export default function AuthGuard({ children }) {
   // navegacao entre telas e a F5, sem sobreviver ao fechamento da aba.
   const [demoAtivo, setDemoAtivo] = useState(lerDemoAtivo);
 
-  const entrarNoDemo = () => {
-    try {
-      sessionStorage.setItem(CHAVE_DEMO, "true");
-    } catch {
-      // Sem sessionStorage o estado nao persiste entre telas, mas a sessao atual funciona.
-    }
-    setDemoAtivo(true);
-  };
+  /* entrarNoDemo foi removida junto com o botao. O caminho de SAIDA (sairDoDemo e
+     a TarjaDemo) fica de proposito: quem clicou no botao antes de 24/08/2026 ainda
+     tem carbonModoDemoAtivo no sessionStorage daquela aba, e sem a tarja ficaria
+     preso em dados ficticios sem nenhuma forma de voltar. Some sozinho ao fechar
+     a aba, porque e sessionStorage e nao localStorage. */
 
   const sairDoDemo = () => {
     try {
@@ -255,29 +252,18 @@ export default function AuthGuard({ children }) {
           {rotuloBotao}
         </button>
 
-        {MODO_DEMO && (
-          <div className="w-full flex flex-col items-center gap-3">
-            {semConfigReal && (
-              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
-                A configuração não veio do backend. Suba o dev server com
-                SUPABASE_FUNCTIONS_URL definida para habilitar o login real.
-              </p>
-            )}
-            {/* Porta de entrada do modo demonstracao. Existe para as telas de negocio serem
-                revisaveis sem sujar dado real; nao da acesso a dado nenhum, porque com o modo
-                demonstracao ativo (MODO_DEMO_ATIVO()) os modulos de src/lib/api nao fazem rede.
-                Ver o cabecalho deste arquivo. */}
-            <button
-              type="button"
-              onClick={entrarNoDemo}
-              className="w-full flex items-center justify-center gap-2 border border-white/30 text-white/90 hover:bg-white/10 hover:border-white/50 font-semibold py-3 px-6 rounded-xl transition-colors"
-            >
-              Entrar em modo demonstração
-            </button>
-            <p className="text-[11px] text-white/45 text-center">
-              Abre as telas com dados fictícios, sem backend. Só existe em desenvolvimento.
-            </p>
-          </div>
+        {/* O AVISO fica; o BOTAO de demonstracao saiu em 24/08/2026, a pedido do dono,
+            depois de o login real com o Azure AD passar a funcionar em localhost.
+
+            O aviso continua porque ele diagnostica: sem SUPABASE_FUNCTIONS_URL na janela
+            que subiu o dev server, /api/app-config da 404, a config cai no default e o
+            botao da Microsoft fica desabilitado. Sem esta frase, o sintoma seria um botao
+            cinza sem explicacao nenhuma. */}
+        {semConfigReal && (
+          <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
+            A configuração não veio do backend. Suba o dev server com
+            SUPABASE_FUNCTIONS_URL definida para habilitar o login real.
+          </p>
         )}
 
         {erroLogin && (

@@ -33,13 +33,15 @@ import {
   LIMITE_TEXTO_LONGO,
   paraNumero,
   veioNoCorpo,
+  EMBED_RESPONSAVEL,
+  achatarResponsavel,
 } from './helpers.ts';
-import { lerProjetoVisivel } from './projetos.ts';
+import { exigirProjetoDoRegistro, lerProjetoVisivel } from './projetos.ts';
 
 const COLUNAS_ITEM =
   'id, projeto_id, codigo, secao, exigencia, ordem, status_resposta, ' +
   'estado_evidencia, responsavel_id, encaminhado_para, observacoes, ' +
-  'criado_em, atualizado_em';
+  'criado_em, atualizado_em' + ', ' + EMBED_RESPONSAVEL;
 
 /** Espelha o CHECK de carbon_evidencia_itens.status_resposta (eixo 1). */
 const STATUS_RESPOSTA = new Set([
@@ -99,6 +101,16 @@ const PROGRESSO_VAZIO = {
   na_com_evidencia_pendente: 0,
   por_secao: [] as unknown[],
 };
+
+// POR QUE OS CASTS DESTE ARQUIVO SAO `as unknown as`, e nao `as` direto:
+// varias consultas aqui montam a lista de colunas em RUNTIME (o conjunto
+// depende do papel de quem pergunta). O supabase-js so consegue inferir o
+// tipo do retorno quando a string do .select() e literal; com string
+// calculada ele devolve GenericStringError, que e `{ error: true } & String`
+// e nao tem index signature - o cast direto vira erro TS2352.
+//
+// NAO simplifique para `as` de novo: compila hoje porque o arquivo estava
+// fora do indice.ts e nunca era checado. Desde 25/08/2026 ele e checado.
 
 type LinhaItem = { id: string } & Record<string, unknown>;
 
@@ -180,7 +192,7 @@ async function lerChecklist(
     throw new ErroRota('erro_interno', 500);
   }
 
-  const linhas = (itens.data ?? []) as LinhaItem[];
+  const linhas = (itens.data ?? []) as unknown as LinhaItem[];
   const contagem = await contarVinculos(admin, linhas.map((l) => l.id));
   const disponivel = contagem !== null;
   // Mapa desempacotado em variavel propria em vez de confiar na narrowing do
@@ -189,7 +201,7 @@ async function lerChecklist(
 
   return {
     itens: linhas.map((linha) => ({
-      ...linha,
+      ...achatarResponsavel(linha as unknown as Record<string, unknown>),
       documentos_vinculados: disponivel ? (porItem[linha.id] ?? 0) : null,
     })),
     progresso: progresso.data ?? PROGRESSO_VAZIO,
@@ -282,6 +294,12 @@ async function atualizarItem(ctx: Contexto): Promise<Response> {
     return respostaErro('nada_para_atualizar', 400);
   }
 
+  // PORTAO. Sem isto, o uuid de um item bastava para editar o checklist de
+  // evidencias de projeto que a pessoa nem enxerga - e a resposta devolvia o
+  // item com responsavel_nome e responsavel_email. O item errado muda o
+  // progresso que a VVB confere.
+  await exigirProjetoDoRegistro(ctx, 'carbon_evidencia_itens', ctx.params.id);
+
   const { data, error } = await ctx.admin
     .from('carbon_evidencia_itens')
     .update(dados)
@@ -292,7 +310,7 @@ async function atualizarItem(ctx: Contexto): Promise<Response> {
   if (error) lancarErroEscrita(error as ErroBanco, 'carbon_evidencia_itens', 'status_invalido');
   if (!data) return respostaErro('nao_encontrado', 404);
 
-  return respostaJson({ item: data });
+  return respostaJson({ item: achatarResponsavel(data as unknown as Record<string, unknown>) });
 }
 
 export const rotas: Rota[] = [

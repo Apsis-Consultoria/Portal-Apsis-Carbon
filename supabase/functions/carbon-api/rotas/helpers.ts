@@ -316,3 +316,46 @@ export function lancarErroEscrita(
   console.error(`Falha de escrita em ${contexto}:`, erro.message);
   throw new ErroRota('erro_interno', 500);
 }
+
+// -----------------------------------------------------------------------------
+// Responsavel: do embed do PostgREST para campo plano
+// -----------------------------------------------------------------------------
+// O PROBLEMA QUE ISTO RESOLVE, achado numa auditoria em 25/08/2026: as telas de
+// PDD, Monitoring Report e Evidencias leem `responsavel_nome` e
+// `responsavel_email`, e as tres rotas devolviam apenas `responsavel_id`. A
+// coluna Responsavel nunca mostraria nome de pessoa - mostraria "Atribuido" e
+// pronto.
+//
+// Nao quebrava nada NO DIA da auditoria porque todo responsavel_id estava nulo,
+// e o texto saia certo por coincidencia. O defeito so apareceria quando alguem
+// atribuisse o primeiro responsavel, e o sintoma seria "o sistema nao mostra
+// quem e o responsavel", sem erro em lugar nenhum.
+//
+// EMBED SEM DICA DE CHAVE, de proposito: as tres tabelas tem UMA unica chave
+// estrangeira para carbon_usuarios (conferido no pg_constraint), entao nao ha a
+// ambiguidade PGRST201 que obrigou lerEquipe() em projetos.ts a fazer duas
+// consultas. Se um dia alguem acrescentar `criado_por` a uma delas, este embed
+// passa a exigir a dica `!nome_da_constraint` - e vai falhar alto, no primeiro
+// GET, e nao em silencio.
+
+/** Trecho de `.select()` que traz o responsavel junto. */
+export const EMBED_RESPONSAVEL = 'responsavel:carbon_usuarios(nome, email)';
+
+/**
+ * Transforma `{ responsavel: { nome, email } }` em `responsavel_nome` e
+ * `responsavel_email`, e remove o objeto aninhado.
+ *
+ * Achatar no SERVIDOR, e nao deixar o objeto aninhado para o frontend, mantem o
+ * contrato que as telas ja esperam - elas foram escritas antes deste embed
+ * existir. Mudar as telas seria mexer em tres arquivos grandes para ganhar
+ * nada.
+ */
+export function achatarResponsavel(linha: Record<string, unknown>): Record<string, unknown> {
+  const { responsavel, ...resto } = linha;
+  const pessoa = (responsavel ?? null) as { nome?: string; email?: string } | null;
+  return {
+    ...resto,
+    responsavel_nome: pessoa?.nome ?? null,
+    responsavel_email: pessoa?.email ?? null,
+  };
+}

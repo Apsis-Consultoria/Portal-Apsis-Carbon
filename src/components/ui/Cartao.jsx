@@ -17,7 +17,7 @@ export const CLASSE_CARTAO = 'bg-white border border-[#DDE3DE] rounded-2xl shado
 const TONS_ICONE = {
   verde: 'bg-[#1A4731]/10 text-[#1A4731]',
   laranja: 'bg-[#F47920]/10 text-[#F47920]',
-  neutro: 'bg-[#F4F6F4] text-[#8A9990]',
+  neutro: 'bg-[#F4F6F4] text-[#5C7060]',
 };
 
 /**

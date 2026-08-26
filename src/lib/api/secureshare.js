@@ -71,8 +71,27 @@ const MENSAGENS = {
      Nenhuma das duas cita minutos. O servidor manda o número no `detalhe`, e o
      src/lib/api/base.js monta o ErroApi só com `codigo` e `status`: prometer aqui
      "aguarde N minutos" seria inventar um número que a tela não recebeu. */
-  convite_recente:
-    "Um convite para esta pessoa saiu há poucos minutos. Espere um pouco antes de reenviar: o e-mail ainda pode estar a caminho.",
+  /**
+   * Recebe o `detalhe` do backend, que aqui e a quantidade de MINUTOS que ainda
+   * faltam (veredito.espere_min, em rotas/secureshare.ts).
+   *
+   * Vira HORARIO em vez de "espere um pouco", e a diferenca nao e cosmetica:
+   * "espere um pouco" faz a pessoa clicar de novo a cada trinta segundos, e cada
+   * clique recusado parece defeito. Com a hora na tela ela sabe quando voltar.
+   *
+   * Arredonda o minuto para CIMA: dizer 16:42 quando o freio solta as 16:42:40
+   * produziria mais uma recusa, que e exatamente o que a frase existe para evitar.
+   */
+  convite_recente: (minutos) => {
+    const espera = Number(minutos);
+    if (!Number.isFinite(espera) || espera <= 0) {
+      // Sem o numero, degrada para a frase antiga em vez de mostrar "Invalid Date".
+      return "Um convite para esta pessoa saiu há poucos minutos. Espere um pouco antes de reenviar: o e-mail ainda pode estar a caminho.";
+    }
+    const quando = new Date(Date.now() + Math.ceil(espera) * 60_000);
+    const hora = quando.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    return `Um convite para esta pessoa saiu há poucos minutos e o e-mail ainda pode estar a caminho. Você poderá reenviar a partir das ${hora}.`;
+  },
   teto_diario_convite:
     "Já saíram convites demais para esta pessoa hoje. Tente amanhã, ou confirme por outro canal se o e-mail está chegando.",
 
@@ -104,9 +123,16 @@ const MENSAGENS = {
    como "Convite não enviado". Não reintroduza o código nem a ordem antiga. */
 
 function traduzir(erro) {
-  const mensagem = MENSAGENS[erro?.codigo];
-  if (!mensagem) return erro;
-  return new ErroApi(mensagem, { codigo: erro.codigo, status: erro.status });
+  const entrada = MENSAGENS[erro?.codigo];
+  if (!entrada) return erro;
+  // Entrada pode ser texto fixo ou funcao do `detalhe`, para os codigos em que a
+  // frase util depende de um numero que so o servidor conhece.
+  const mensagem = typeof entrada === "function" ? entrada(erro.detalhe) : entrada;
+  return new ErroApi(mensagem, {
+    codigo: erro.codigo,
+    status: erro.status,
+    detalhe: erro.detalhe,
+  });
 }
 
 async function chamar(caminho, msal, opcoes) {

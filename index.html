@@ -21,10 +21,70 @@
       content="Apsis Carbon - projetos de crédito de carbono, contratos de emissão, inventário de GEE e relatórios de sustentabilidade da APSIS Consultoria."
     />
     <meta name="theme-color" content="#1A4731" />
+
+    <!--
+      CONTENT SECURITY POLICY.
+
+      Vale mais do que cacar caso de XSS um a um: `script-src 'self'` SEM
+      'unsafe-inline' derruba a classe inteira de XSS refletido, porque script
+      injetado em atributo ou em bloco simplesmente nao executa.
+
+      Cada diretiva abaixo foi MEDIDA contra o build de 26/08/2026, nao chutada.
+      CSP que quebra o login e pior do que nenhuma.
+
+        script-src 'self'
+          O build emite UM <script type="module" src="/assets/...">, e ZERO
+          script inline (conferido no dist/index.html). Por isso da para ficar
+          sem 'unsafe-inline' aqui, que e o que importa.
+
+        style-src ... 'unsafe-inline'
+          Necessario, e o motivo esta em src/Layout.jsx: ele injeta um <style>
+          com as variaveis da marca e a animacao da logo. Trocar por nonce
+          exigiria gerar o nonce no servidor, e a hospedagem serve arquivo
+          estatico. Estilo inline nao executa script; a perda e pequena.
+
+        connect-src
+          'self' cobre /api/<*>, que e mesma origem pelo rewrite. O MSAL fala
+          com login.microsoftonline.com para trocar o codigo pelo token.
+
+        frame-src
+          O MSAL usa iframe oculto para renovar token em silencio, entao
+          login.microsoftonline.com precisa estar em frame-src.
+
+        frame-ancestors NAO ESTA AQUI, e a ausencia e deliberada.
+          A especificacao manda IGNORAR frame-ancestors quando a politica chega
+          por <meta>: ela so vale como cabecalho HTTP. Escrever a diretiva aqui
+          daria a impressao de proteger contra clickjacking sem proteger nada -
+          pior do que nao ter, porque ninguem volta a olhar. A defesa de verdade
+          esta em amplify.yml, como X-Frame-Options e como cabecalho CSP.
+
+        object-src 'none' e base-uri 'self'
+          Fecham dois desvios classicos: plugin legado e sequestro de URL base
+          para reapontar todo caminho relativo.
+
+      SE ALGO PARAR DE FUNCIONAR depois de mexer aqui, o console do navegador diz
+      exatamente qual diretiva bloqueou o que. Nao remova a politica inteira para
+      "testar": acrescente a origem que faltou.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src 'self';
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com data:;
+        img-src 'self' data: blob:;
+        connect-src 'self' https://login.microsoftonline.com https://*.supabase.co;
+        frame-src https://login.microsoftonline.com;
+        base-uri 'self';
+        form-action 'self';
+        object-src 'none'
+      "
+    />
     <!-- Assets self-hostados em /public de proposito: nada de URL do Storage de
          outro projeto Supabase (CSP-safe e sem acoplar o Carbon ao portal). -->
-    <link rel="icon" type="image/png" href="/logo-apsis.png" />
-    <link rel="apple-touch-icon" href="/logo-apsis.png" />
+    <link rel="icon" type="image/png" href="/favicon-carbon.png" />
+    <link rel="apple-touch-icon" href="/favicon-carbon.png" />
     <link rel="manifest" href="/manifest.json" />
     <title>Apsis Carbon</title>
   </head>

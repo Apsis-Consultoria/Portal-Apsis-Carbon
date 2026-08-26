@@ -25,7 +25,8 @@ import {
   // ícones disponíveis para os módulos (ver mapa ICONES)
   Home, Leaf, TreePine, FileText, FileCheck2, BarChart3, Factory, Globe2,
   ClipboardList, Users, Settings, Sparkles, Cloud, Recycle, Handshake, Award,
-  ShieldCheck, Calculator, Layers, Megaphone, FolderTree,
+  ShieldCheck, Calculator, Layers, Megaphone, FolderTree, Target, Goal, Briefcase,
+  Coins,
 } from 'lucide-react';
 
 /**
@@ -38,13 +39,21 @@ import {
 const LOGO_SRC = '/login/logo-apsis-carbon.png';
 
 /**
- * Só o símbolo, para a sidebar recolhida.
+ * A marca para a sidebar recolhida.
  *
- * A arte do login é horizontal (350x100): dentro dos 72px da sidebar recolhida a
- * palavra CARBON teria cerca de 4px de altura e viraria um borrão. Marca reduzida a
- * símbolo é o comportamento normal de uma identidade, não uma exceção.
+ * Até 25/08/2026 aqui estava o símbolo da APSIS "normal" (logo-apsis-transp.png),
+ * o pássaro do Portal Apsis - identidade errada para este sistema, apontada pelo
+ * dono em revisão visual. Não existia um símbolo quadrado do Carbon; este PNG foi
+ * composto a partir da própria arte do login: o lockup APSIS laranja + CARBON
+ * branco, recortado pelo conteúdo e centrado num quadrado TRANSPARENTE.
+ *
+ * Transparente de propósito: a sidebar já é o verde da marca (--apsis-green,
+ * #1A4731), então o fundo vem dela e a palavra CARBON, que é branca, aparece.
+ * Se um dia a cor da sidebar mudar para um tom claro, este PNG precisa mudar
+ * junto - a palavra some sobre fundo claro, e o favicon (favicon-carbon.png,
+ * mesmo lockup sobre tile verde) é a versão que não depende do fundo.
  */
-const LOGO_SIMBOLO_SRC = '/login/logo-apsis-transp.png';
+const LOGO_SIMBOLO_SRC = '/login/logo-carbon-simbolo.png';
 
 /**
  * Mapa explícito nome-do-ícone -> componente do lucide-react.
@@ -77,6 +86,10 @@ const ICONES = {
   Layers,
   Megaphone,
   FolderTree,
+  Target,
+  Goal,
+  Briefcase,
+  Coins,
 };
 
 const resolverIcone = (nome) => ICONES[nome] || Leaf;
@@ -150,10 +163,30 @@ export default function Layout({ children, currentPageName }) {
 
   // Telas do Carbon (registro de páginas) + módulos do banco ordenados por `ordem`
   // (linhas sem ordem vão para o fim).
+  //
+  // DEDUPLICADO POR ROTA, e a razão é histórica e concreta: os dois conjuntos
+  // conviveram meses sem conflito porque carbon_modulos estava VAZIA. Em
+  // 25/08/2026 a tabela foi semeada com os 9 módulos (para os cards da tela de
+  // Boas-Vindas) e o menu passou a listar cada tela DUAS vezes - uma do registro
+  // de páginas, outra do banco. A soma cega estava certa apenas por acidente.
+  //
+  // O registro do frontend VENCE o empate, de propósito: é ele que carrega o
+  // `menuPai` (que mantém "Projetos" aceso nas telas filhas) e o rótulo revisado.
+  // O módulo do banco continua aparecendo quando aponta para rota que o registro
+  // não tem - que é exatamente o caso para o qual ele existe: publicar um módulo
+  // novo sem deploy do frontend.
   const itensNav = useMemo(() => {
-    const doBanco = [...modulos].sort(
-      (a, b) => (a?.ordem ?? Number.MAX_SAFE_INTEGER) - (b?.ordem ?? Number.MAX_SAFE_INTEGER),
-    );
+    const normalizada = (rota) => String(rota ?? '').trim().toLowerCase().replace(/\/+$/, '');
+    const rotasFixas = new Set(ITENS_MENU_FIXOS.map((item) => normalizada(item.rota)));
+
+    const doBanco = modulos
+      .filter((m) => {
+        const rota = normalizada(m?.rota);
+        // Sem rota interna (url_externa, por exemplo) não há o que colidir.
+        return rota === '' || !rotasFixas.has(rota);
+      })
+      .sort((a, b) => (a?.ordem ?? Number.MAX_SAFE_INTEGER) - (b?.ordem ?? Number.MAX_SAFE_INTEGER));
+
     return [...ITENS_MENU_FIXOS, ...doBanco];
   }, [modulos]);
 

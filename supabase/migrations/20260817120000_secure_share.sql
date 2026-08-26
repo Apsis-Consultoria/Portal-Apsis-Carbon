@@ -1,3 +1,28 @@
+-- #############################################################################
+-- ATENCAO: NAO REAPLIQUE ESTE ARQUIVO SOZINHO.
+-- #############################################################################
+-- Ele e idempotente para as TABELAS, mas contem `create or replace function
+-- carbon_secure_share_autenticar` e `drop view ... create view` das duas
+-- listagens. A migration 20260823090000_secure_share_sem_senha redefine esses
+-- TRES objetos para o modelo sem senha.
+--
+-- Reaplicar este arquivo depois dela reverte os tres para a forma de senha, e o
+-- efeito e silencioso: as tabelas continuam certas, os dados continuam la, e o
+-- login do cliente passa a reprovar todo mundo, porque a versao antiga de
+-- autenticar exige `senha_hash is not null` e nao ha mais senha. A view perde a
+-- coluna convite_enviado_em e a tela do Portal volta a decidir o portao pelo
+-- campo errado.
+--
+-- Aconteceu em 24/08/2026. Se precisar reaplicar este arquivo por algum motivo,
+-- rode 20260823090000_secure_share_sem_senha LOGO DEPOIS, na mesma sessao.
+--
+-- Conferencia rapida de que o estado esta correto:
+--   select column_name from information_schema.columns
+--    where table_name = 'carbon_secure_share_clientes_listagem'
+--      and column_name = 'convite_enviado_em';
+--   (tem que devolver uma linha)
+-- #############################################################################
+
 -- =============================================================================
 -- Apsis Carbon - Secure Share
 -- Arquivo: 20260817120000_secure_share.sql

@@ -26,7 +26,7 @@ import { useId } from 'react';
 /* O tamanho da fonte também fica fora, pelo mesmo motivo: 'text-[11px]' do modo
    monoespaçado não pode depender de vencer o 'text-sm' da base. */
 const CLASSE_CAMPO_BASE =
-  'w-full px-3 py-2 bg-white border rounded-xl text-[#1A2B1F] placeholder:text-[#A8B4AC] focus:outline-none focus:ring-2 disabled:bg-[#F4F6F4] disabled:text-[#8A9990] disabled:cursor-not-allowed transition-colors';
+  'w-full px-3 py-2 bg-white border rounded-xl text-[#1A2B1F] placeholder:text-[#A8B4AC] focus:outline-none focus:ring-2 disabled:bg-[#F4F6F4] disabled:text-[#5C7060] disabled:cursor-not-allowed transition-colors';
 
 const BORDA_NORMAL = 'border-[#DDE3DE] focus:border-[#1A4731] focus:ring-[#1A4731]/10';
 const BORDA_ERRO = 'border-[#C0392B] focus:border-[#C0392B] focus:ring-[#C0392B]/10';
@@ -132,7 +132,7 @@ export default function Campo({
   const Apoio = (
     <>
       {dica && (
-        <span id={idDica} className="text-[11px] text-[#8A9990] leading-relaxed">
+        <span id={idDica} className="text-[11px] text-[#5C7060] leading-relaxed">
           {dica}
         </span>
       )}

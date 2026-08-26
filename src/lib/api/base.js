@@ -26,11 +26,21 @@ const TIMEOUT_MS = 10000;
 
 /** Erro tipado de API. `codigo` carrega o campo `erro` do corpo quando existir. */
 export class ErroApi extends Error {
-  constructor(mensagem, { codigo = null, status = null } = {}) {
+  /**
+   * `detalhe` e o campo opcional que o backend manda junto do codigo, e ele e
+   * SEMPRE generico por contrato (ver respostaErro em _shared/cors.ts): nunca
+   * carrega mensagem de banco nem dado de outra pessoa. Serve para o caso em que
+   * a tela precisa de um numero para montar a frase - por exemplo, quantos
+   * minutos faltam para poder reenviar um convite.
+   *
+   * Antes ele era descartado aqui, e a tela so conseguia dizer "espere um pouco".
+   */
+  constructor(mensagem, { codigo = null, status = null, detalhe = null } = {}) {
     super(mensagem);
     this.name = "ErroApi";
     this.codigo = codigo;
     this.status = status;
+    this.detalhe = detalhe;
   }
 }
 
@@ -144,6 +154,7 @@ export async function chamarApi(caminho, msal, opcoes = {}) {
     throw new ErroApi(mensagemDeErro(codigo, resposta.status, rota), {
       codigo,
       status: resposta.status,
+      detalhe: dados?.detalhe ?? null,
     });
   }
 

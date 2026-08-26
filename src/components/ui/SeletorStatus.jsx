@@ -56,7 +56,7 @@ export default function SeletorStatus({
   return (
     <span className="inline-flex items-center gap-1.5">
       {carregando && (
-        <Loader2 size={12} className="animate-spin text-[#8A9990] flex-shrink-0" aria-hidden="true" />
+        <Loader2 size={12} className="animate-spin text-[#5C7060] flex-shrink-0" aria-hidden="true" />
       )}
       <select
         value={atual}
@@ -75,7 +75,7 @@ export default function SeletorStatus({
         {!atual && (
           // Placeholder desabilitado: o registro sem status não pode parecer que já
           // está na primeira opção da lista.
-          <option value="" disabled className="bg-white text-[#8A9990]">
+          <option value="" disabled className="bg-white text-[#5C7060]">
             Selecione
           </option>
         )}

@@ -274,7 +274,11 @@ export async function lerProjetoVisivel(
     console.error('Falha ao ler carbon_projetos:', error.message);
     throw new ErroRota('erro_interno', 500);
   }
-  return data ? semJuncao(data as Record<string, unknown>) : null;
+  // `as unknown as`, pelo mesmo motivo documentado em documentos.ts: o
+  // .select() de comVisibilidade e montado em RUNTIME (o conjunto de colunas
+  // depende do papel de quem pergunta), e com string calculada o supabase-js
+  // devolve GenericStringError, que nao tem index signature.
+  return data ? semJuncao(data as unknown as Record<string, unknown>) : null;
 }
 
 /**
@@ -729,6 +733,60 @@ async function atualizarEquipe(ctx: Contexto): Promise<Response> {
     // demais que foram incluidos.
     nao_encontrados: naoEncontrados,
   });
+}
+
+/**
+ * Portao para rota que escreve por id de um REGISTRO FILHO de projeto.
+ *
+ * POR QUE ISTO EXISTE, e nao mais uma copia do bloco. Uma auditoria em
+ * 26/08/2026 encontrou o mesmo furo em dez rotas de quatro modulos: elas
+ * gravavam com `.eq('id', ctx.params.id)` sem resolver de qual projeto o
+ * registro era. O portao grande (GET projetos/:id/<dominio>) estava fechado e o
+ * caminho pequeno, aberto - bastava o uuid do registro para escrever em projeto
+ * que a pessoa nem enxerga, e a resposta ainda devolvia o registro inteiro.
+ *
+ * O bloco correto existia em pdd.ts desde o inicio, com o comentario explicando
+ * o motivo. Ele nao foi copiado para os irmaos, e nada no build acusa a falta.
+ * Um helper unico resolve isso de vez: quem escrever rota nova chama uma funcao,
+ * e nao precisa lembrar de um bloco de quinze linhas.
+ *
+ * OS DOIS FRACASSOS RESPONDEM O MESMO 404, de proposito: registro inexistente e
+ * projeto invisivel sao indistinguiveis de fora, senao a rota vira oraculo de
+ * existencia de registro de outro cliente.
+ *
+ * @param tabela  tabela do registro filho; precisa ter a coluna projeto_id
+ * @param id      id do registro, normalmente ctx.params.id
+ * @returns o projeto_id resolvido, quando o chamador enxerga o projeto
+ * @throws ErroRota 404 quando o registro nao existe ou o projeto nao e visivel
+ */
+export async function exigirProjetoDoRegistro(
+  ctx: Contexto,
+  tabela: string,
+  id: string,
+): Promise<string> {
+  const { data, error } = await ctx.admin
+    .from(tabela)
+    .select('projeto_id')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`Falha ao resolver o projeto de ${tabela}:`, error.message);
+    throw new ErroRota('erro_interno', 500);
+  }
+  if (!data) throw new ErroRota('nao_encontrado', 404);
+
+  const projetoId = (data as { projeto_id: string | null }).projeto_id;
+
+  // projeto_id nulo significa registro INSTITUCIONAL (documento da empresa,
+  // reuniao de backoffice). Nao ha projeto para conferir, e barrar aqui
+  // esconderia dado que e de todo mundo. Quem chama decide se aceita esse caso.
+  if (projetoId === null || projetoId === undefined) return '';
+
+  if (!(await lerProjetoVisivel(ctx, String(projetoId)))) {
+    throw new ErroRota('nao_encontrado', 404);
+  }
+  return String(projetoId);
 }
 
 export const rotas: Rota[] = [

@@ -22,12 +22,14 @@ import {
   LIMITE_TEXTO_LONGO,
   paraNumero,
   veioNoCorpo,
+  EMBED_RESPONSAVEL,
+  achatarResponsavel,
 } from './helpers.ts';
 import { lerProjetoVisivel } from './projetos.ts';
 
 const COLUNAS_CAPITULO =
   'id, projeto_id, capitulo, nome, cap, nivel, opcional, ordem, status, ' +
-  'responsavel_id, observacoes, criado_em, atualizado_em';
+  'responsavel_id, observacoes, criado_em, atualizado_em' + ', ' + EMBED_RESPONSAVEL;
 
 const STATUS_CAPITULO = new Set([
   'nao_iniciado',
@@ -78,7 +80,8 @@ async function lerPdd(
   }
 
   return {
-    capitulos: (capitulos.data ?? []) as unknown[],
+    capitulos: ((capitulos.data ?? []) as unknown as Record<string, unknown>[])
+      .map(achatarResponsavel),
     progresso: progresso.data ?? PROGRESSO_VAZIO,
   };
 }
@@ -176,7 +179,7 @@ async function atualizarCapitulo(ctx: Contexto): Promise<Response> {
   if (error) lancarErroEscrita(error as ErroBanco, 'carbon_pdd_capitulos', 'status_invalido');
   if (!data) return respostaErro('nao_encontrado', 404);
 
-  return respostaJson({ capitulo: data });
+  return respostaJson({ capitulo: achatarResponsavel(data as unknown as Record<string, unknown>) });
 }
 
 export const rotas: Rota[] = [

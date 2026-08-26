@@ -13,7 +13,20 @@ export const CORS_HEADERS: Record<string, string> = {
   // apikey e x-client-info sao enviados pelo supabase-js; authorization carrega
   // o ID token do Azure AD no carbon-api.
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  //
+  // PATCH E DELETE ESTAVAM FALTANDO, e a lista contradizia o proprio motivo do
+  // '*' logo acima. Medido em 26/08/2026: das 136 rotas do carbon-api, 32 sao
+  // PATCH e 14 sao DELETE. Com a lista antiga (GET, POST, OPTIONS), o navegador
+  // BARRARIA as 46 no preflight.
+  //
+  // Nao quebrava hoje porque o caminho real e sempre MESMA ORIGEM: o
+  // server.proxy do Vite em desenvolvimento e a regra de rewrite /api/<*> em
+  // producao, e requisicao de mesma origem nao faz preflight. Ou seja, o defeito
+  // ficava invisivel exatamente ate o dia em que alguem chamasse a funcao de um
+  // dominio de preview ou direto pela URL do Supabase - que e o cenario que o
+  // comentario acima diz existir. O sintoma seria "editar nao funciona no
+  // preview" com um erro de CORS no console, que manda procurar no lugar errado.
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
   'Access-Control-Max-Age': '86400',
 };
 

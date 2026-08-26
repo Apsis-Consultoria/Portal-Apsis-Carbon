@@ -31,7 +31,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Plus, X, Loader2, WifiOff, FolderTree, TriangleAlert, MapPin, Ruler,
-  CalendarRange, Hash, Building2, ArrowRight, Pencil, Upload, ListTree, Users,
+  CalendarRange, Hash, Building2, ArrowRight, Pencil, Upload, ListTree, Users, BarChart3,
 } from 'lucide-react';
 import {
   listarProjetos, normalizarListaProjetos, criarProjeto, atualizarProjeto,
@@ -39,7 +39,7 @@ import {
 // Import direto do módulo do domínio, como pede o cabeçalho de src/lib/api/indice.js.
 import { obterProjeto, atualizarEquipe } from '@/lib/api/projetos';
 import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
-import { urlPdd } from '@/lib/pageRoutes';
+import { urlPdd, urlIndicadores } from '@/lib/pageRoutes';
 import PainelLateral from '@/components/ui/PainelLateral';
 
 /* ===== Domínio ============================================================
@@ -410,6 +410,13 @@ function CartaoProjeto({ projeto, onEditar, onEquipe }) {
             <Pencil size={13} />
             Editar
           </button>
+          <Link
+            to={urlIndicadores(projeto?.id)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#DDE3DE] text-xs font-semibold text-[#5C7060] hover:text-[#1A4731] hover:border-[#1A4731]/40 transition-colors"
+          >
+            <BarChart3 size={13} />
+            Indicadores
+          </Link>
           <Link
             to={urlPdd(projeto?.id)}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1A4731] text-xs font-semibold text-white hover:bg-[#245E40] transition-colors"
