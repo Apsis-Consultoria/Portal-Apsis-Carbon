@@ -400,12 +400,12 @@ select md5('ata:parakana:2f4ee8ba-950e-8042-8780-eb308240d7a5')::uuid, r.id, '##
 on conflict (reuniao_id) do update set conteudo = excluded.conteudo, atualizado_em = now();
 
 insert into public.carbon_atas (id, reuniao_id, conteudo)
-select md5('ata:parakana:38fee8ba-950e-8097-af75-dc2830ee46c3')::uuid, r.id, 'Reunião de [P40] [P41] e de Governança — Projeto Carbono Parakanã ‣
+select md5('ata:parakana:38fee8ba-950e-8097-af75-dc2830ee46c3')::uuid, r.id, 'Reunião de [P40] [P41] e de Governança - Projeto Carbono Parakanã ‣
     ### Itens de [P826]
     - [ ] [P609] comunicar aos caciques que a atividade de roça está adiada, sem definir nova data, e informar que haverá reunião de governança antes ‣
     - [ ] Equipe alinhar com [P467] sobre a reunião do dia 4 em [P82] e a participação do time no evento ‣
     - [ ] [P609] e [P347] participar da reunião do grupo de cima, registrar lista de presença e fotos como evidência ‣
-    - [ ] Remanejar parte do orçamento do adiantamento para cobrir a ajuda de custo dos advogados na reunião do dia 4 — [P251] passar orçamento ‣ ‣
+    - [ ] Remanejar parte do orçamento do adiantamento para cobrir a ajuda de custo dos advogados na reunião do dia 4 - [P251] passar orçamento ‣ ‣
     - [ ] Realizar atualização técnica rápida do projeto com [P609] e [P347] antes da reunião de governança ‣ ‣
     - [ ] [P167] com [P345] sobre o agrônomo sugerido por [P609] para a atividade de roça ‣
     - [ ] [P254] política/regimento interno de atividades de campo da Apsis Carbon (regras de adiantamento, telemetria de veículos, etc.) junto com [P609] e [P347] ‣ ‣
@@ -427,14 +427,14 @@ select md5('ata:parakana:38fee8ba-950e-8097-af75-dc2830ee46c3')::uuid, r.id, 'Re
     - Consenso de que o repasse do adiantamento deve ser feito, pois sem recurso fica difícil qualquer diálogo ‣ ‣
     - [P67]: não sinalizar publicamente os problemas com compradores para não afastar o interesse no projeto ‣ ‣
     - Após o repasse, aproveitar o momento favorável para aproximação presencial com as aldeias do grupo de baixo ‣ ‣
-    - Grupo de cima: contas abertas, documentação regularizada, considerado "em dia" — não deve ser penalizado pelo atraso do grupo de baixo ‣ ‣
+    - Grupo de cima: contas abertas, documentação regularizada, considerado "em dia" - não deve ser penalizado pelo atraso do grupo de baixo ‣ ‣
     Reunião emergencial (dia 4):
     - Reunião não prevista foi pautada para o dia 4 em [P82], com presença dos advogados das lideranças ‣
     - [P843] reunião se sobrepõe à atividade de roça e tem prioridade; atividade de roça foi adiada em consequência ‣
     - Equipe ([P609], [P347]) estará presente; ajuda de custo dos advogados é responsabilidade do projeto ‣
-    ### [P87] de Campo — Roça e [P42]
+    ### [P87] de Campo - Roça e [P42]
     - [P158] de levantamento da roça estava planejada para semana seguinte, mas foi adiada pela reunião do dia 4 e pela reunião do grupo de cima ‣ ‣
-    - Calendário agrícola: limpeza das áreas a partir de outubro, plantio após primeiras chuvas (normalmente outubro), mas com incerteza climática — inverno tem chegado cada vez mais tarde, por vezes só em dezembro ‣ ‣ ‣
+    - Calendário agrícola: limpeza das áreas a partir de outubro, plantio após primeiras chuvas (normalmente outubro), mas com incerteza climática - inverno tem chegado cada vez mais tarde, por vezes só em dezembro ‣ ‣ ‣
     - [P22] de julho não afeta plantio de 2026, pois julho-setembro é período de preparação ‣
     - Alerta de que o projeto não deve se limitar à roça: há outras culturas relevantes (açaí em safra atual, castanha, cacau, banana) que também precisam de assistência técnica e podem ser registradas no âmbito da bioeconomia ‣ ‣ ‣
     ### Incidente da [P700] de [P701] (Grupo de Cima)
@@ -442,7 +442,7 @@ select md5('ata:parakana:38fee8ba-950e-8097-af75-dc2830ee46c3')::uuid, r.id, 'Re
     - [P846] foi comunicado a compradores, que questionaram impacto no projeto (impacto apenas na segunda safra) ‣
     - [P251] incluirá cláusula no estatuto exigindo que qualquer projeto com área superior a um hectare passe pelo conselho gestor ‣
     - A omissão de órgãos públicos (FUNAI, ANAC) no controle dessas ações reforça a narrativa de adicionalidade do projeto de carbono ‣ ‣
-    ### [P178] [P403] — [P807] A
+    ### [P178] [P403] - [P807] A
     - Projeto recebeu nota A em avaliação externa (ainda não validada), considerada muito positiva para o projeto ‣
     - Avaliadores destacaram a adicionalidade em razão do desmatamento interno no território [P531] do [P532] como referência comparativa ‣ ‣
     - Um dos requisitos levantados na avaliação: controle do número de denúncias informais recebidas dos indígenas (ligações, mensagens), que ainda não é sistematizado ‣
@@ -456,7 +456,7 @@ select md5('ata:parakana:38fee8ba-950e-8097-af75-dc2830ee46c3')::uuid, r.id, 'Re
     - Reconhecido que a dependência dos parceiros ainda é de aproximadamente 30%; com dois profissionais adicionais na equipe própria, o projeto ficaria 100% autônomo ‣ ‣
     - [P345] pediu elaboração de política de campo com regras claras (uso de adiantamento, telemetria, etc.) para dar mais controle e respaldo formal à equipe ‣ ‣
     ### Próximos [P533] e [P534]
-    - Reunião com LP confirmada para segunda-feira às 11h — pauta a ser definida e repassada ‣ ‣
+    - Reunião com LP confirmada para segunda-feira às 11h - pauta a ser definida e repassada ‣ ‣
     - Série de reuniões temáticas a ser organizada durante a semana em que [P345] estiver de férias (política de campo, biodiversidade, indicadores do PD, bioeconomia) ‣ ‣ ‣
     - [P355] ronda de campo ainda sem data definida (possivelmente fora de julho) ‣ ‣
     - Reunião específica para apresentação completa de [P481] e Zé [P468] a ser marcada antes da próxima atividade de campo ‣
