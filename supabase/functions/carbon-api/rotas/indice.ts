@@ -36,6 +36,7 @@ import { rotas as rotasConsultoria } from './consultoria.ts';
 import { rotas as rotasCredito } from './credito.ts';
 import { rotas as rotasMetas } from './metas.ts';
 import { rotas as rotasPipeline } from './pipeline.ts';
+import { rotas as rotasQuestionarios } from './questionarios.ts';
 
 export const TODAS_AS_ROTAS: Rota[] = [
   ...rotasMe,
@@ -72,6 +73,11 @@ export const TODAS_AS_ROTAS: Rota[] = [
   ...rotasCredito,
   ...rotasMetas,
   ...rotasPipeline,
+  // Questionarios de campo, 27/08/2026. A ordem de casamento nao e problema
+  // aqui: o index.ts compila as rotas ordenadas por quantidade de parametros,
+  // entao 'questionarios/modelos' (zero) ganha de 'questionarios/:id' (um) sem
+  // depender da posicao nesta lista.
+  ...rotasQuestionarios,
 ];
 
 // Guarda de colisao. Duas rotas com o mesmo metodo e o mesmo padrao fariam a
