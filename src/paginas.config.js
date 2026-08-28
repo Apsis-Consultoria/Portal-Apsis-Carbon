@@ -55,6 +55,13 @@ function normalizar(entrada) {
           icone: typeof menu.icone === 'string' ? menu.icone : '',
           ordem: Number.isFinite(menu.ordem) ? menu.ordem : Number.MAX_SAFE_INTEGER,
           grupo: typeof menu.grupo === 'string' && menu.grupo ? menu.grupo : null,
+          /* Chave de um submenu carregado em tempo de execucao. O Layout tem um
+             mapa explicito de quem sabe carregar cada chave; valor desconhecido
+             simplesmente nao rende subitem, e o item continua um link comum.
+             Existe para o topico Questionarios, cuja lista de subitens vem do
+             banco e nao pode ser escrita aqui sem perder o ponto do desenho:
+             questionario novo e um seed, nao um deploy. */
+          submenu: typeof menu.submenu === 'string' && menu.submenu ? menu.submenu : null,
         }
       : null,
     temParametro,
@@ -124,6 +131,7 @@ export const ITENS_MENU_FIXOS = PAGINAS.filter((p) => p.menu && p.rota).map((p) 
   label: p.titulo,
   icone: p.menu.icone,
   grupo: p.menu.grupo,
+  submenu: p.menu.submenu,
   rota: p.rota,
   paginas: [p.nome, ...PAGINAS.filter((f) => f.menuPai === p.nome).map((f) => f.nome)],
 }));

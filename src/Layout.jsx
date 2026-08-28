@@ -16,12 +16,14 @@ import { useMsal } from '@azure/msal-react';
 import { useQuery } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { rotaInternaSegura, urlExternaSegura } from '@/utils/urlSegura';
+import { montarUrl } from '@/lib/pageRoutes';
 import { ITENS_MENU_FIXOS, paginaPorNome } from '@/paginas.config';
 import { obterModulos, obterNotificacoes } from '@/lib/carbonApi';
+import { listarModelosQuestionario } from '@/lib/api/questionarios';
 import { getConfig } from '@/lib/runtimeConfig';
 import {
   // ícones do próprio shell
-  ChevronLeft, ChevronRight, Bell, User, Menu, X, ExternalLink,
+  ChevronLeft, ChevronRight, ChevronDown, Bell, User, Menu, X, ExternalLink,
   // ícones disponíveis para os módulos (ver mapa ICONES)
   Home, Leaf, TreePine, FileText, FileCheck2, BarChart3, Factory, Globe2,
   ClipboardList, Users, Settings, Sparkles, Cloud, Recycle, Handshake, Award,
@@ -107,6 +109,12 @@ const resolverIcone = (nome) => ICONES[nome] || Leaf;
  * cabeçalho de seção nesta entrega. O campo existe no registro para que o agrupamento
  * visual, quando for pedido, não exija mudar a forma de toda entrada de PAGINAS.
  *
+ * `submenu` É RENDERIZADO, e é outra coisa: um item que abre em filhos, dentro do
+ * próprio item. Hoje só o tópico Questionários usa. A lista de filhos NÃO está
+ * escrita aqui nem no registro de páginas - ela vem do banco, porque o desenho do
+ * domínio é que questionário novo seja um seed e não um deploy. O acoplamento a
+ * este Layout é uma constante só, CARREGADORES_SUBMENU, logo abaixo.
+ *
  * Regra herdada do portal e mantida: nenhuma tela renderiza <h1> de título próprio; o
  * título e o subtítulo saem daqui, uma vez, na topbar.
  */
@@ -118,6 +126,10 @@ export default function Layout({ children, currentPageName }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  /* Topicos abertos na sidebar, por chave. Comeca vazio e o item ATIVO abre
+     sozinho no render (ver `aberto` em renderItensNav): assim quem entra por
+     link direto num questionario ja ve os irmaos, sem precisar clicar. */
+  const [topicosAbertos, setTopicosAbertos] = useState({});
   const userMenuRef = useRef(null);
 
   const usuario = accounts?.[0];
@@ -146,6 +158,27 @@ export default function Layout({ children, currentPageName }) {
     },
     enabled: autenticado && modulosLigados,
     staleTime: 5 * 60 * 1000,
+  });
+
+  /**
+   * Subitens do topico Questionarios.
+   *
+   * A lista de formularios vive no banco (carbon_questionario_modelos) porque
+   * acrescentar questionario tem de ser um seed, nao um deploy. Consequencia: o
+   * menu precisa perguntar ao servidor quais existem.
+   *
+   * staleTime de uma hora: definicao de formulario muda por seed, nao por uso.
+   * Falha de rede nao derruba nada - `data` fica undefined, o default [] deixa o
+   * item sem filhos e ele continua um link comum para a tela do topico.
+   *
+   * A mesma queryKey das telas de Questionarios, de proposito: abrir o menu ja
+   * aquece o cache que a tela vai usar, e a tela nao refaz a chamada.
+   */
+  const { data: modelosQuestionario } = useQuery({
+    queryKey: ['carbon', 'questionarios', 'modelos'],
+    queryFn: () => listarModelosQuestionario({ instance, accounts }),
+    enabled: autenticado,
+    staleTime: 60 * 60 * 1000,
   });
 
   // Mesma chave usada pela tela de Boas-Vindas: o contador do sino reaproveita o
@@ -187,8 +220,30 @@ export default function Layout({ children, currentPageName }) {
       })
       .sort((a, b) => (a?.ordem ?? Number.MAX_SAFE_INTEGER) - (b?.ordem ?? Number.MAX_SAFE_INTEGER));
 
-    return [...ITENS_MENU_FIXOS, ...doBanco];
-  }, [modulos]);
+    /* Mapa explicito de quem sabe carregar cada submenu. E uma constante, e nao
+       um registro plugavel, porque ha exatamente um: inventar a abstracao antes
+       do segundo caso produz mais codigo do que os dois casos juntos. Quando
+       aparecer o segundo, este e o lugar de generalizar. */
+    const CARREGADORES_SUBMENU = {
+      questionarios: () =>
+        (modelosQuestionario?.modelos ?? []).map((m) => ({
+          chave: `questionario-${m.chave}`,
+          label: m.nome,
+          rota: montarUrl('QuestionarioLista', { tipo: m.chave }),
+        })),
+    };
+
+    const comSubmenu = [...ITENS_MENU_FIXOS, ...doBanco].map((item) => {
+      const carregar = item.submenu ? CARREGADORES_SUBMENU[item.submenu] : null;
+      if (!carregar) return item;
+      const subitens = carregar().filter((s) => s.rota);
+      // Sem filhos (lista ainda carregando, ou falha de rede) o item volta a ser
+      // um link comum. Um pai que abre e mostra nada e pior que um link.
+      return subitens.length ? { ...item, subitens } : item;
+    });
+
+    return comSubmenu;
+  }, [modulos, modelosQuestionario]);
 
   // Fecha o menu do usuário ao clicar fora
   useEffect(() => {
@@ -272,6 +327,74 @@ export default function Layout({ children, currentPageName }) {
               </>
             )}
           </a>
+        );
+      }
+
+      /* Topico com filhos. So na sidebar expandida: colapsada, o item vira o
+         link comum do ramo abaixo e leva a tela do proprio topico, que lista os
+         mesmos formularios. Desenhar submenu num trilho de 18px de icone
+         produziria alvos de clique que ninguem acerta. */
+      if (rotaInterna && Array.isArray(item.subitens) && !compacto) {
+        // O topico aberto e o que o usuario abriu OU o que esta ativo. A segunda
+        // metade e o que faz o link direto para um questionario chegar com os
+        // irmaos a vista.
+        const aberto = topicosAbertos[chave] ?? ativo;
+
+        return (
+          <div key={chave}>
+            <div className={`${classes} pr-1`}>
+              <Link
+                to={rotaInterna}
+                onClick={aoClicarLink || undefined}
+                className="flex items-center gap-3 flex-1 min-w-0"
+              >
+                <Icone size={18} className={`${corIcone} flex-shrink-0`} />
+                <span className={`text-sm font-medium truncate ${corTexto}`}>{item.label}</span>
+              </Link>
+
+              {/* Botao SEPARADO do link, de proposito: clicar no nome do topico
+                  abre a tela dele, e clicar na seta so expande. Um unico alvo
+                  que fizesse as duas coisas obrigaria a escolher qual delas
+                  perder. */}
+              <button
+                type="button"
+                onClick={() => setTopicosAbertos((a) => ({ ...a, [chave]: !aberto }))}
+                aria-expanded={aberto}
+                aria-label={`${aberto ? 'Recolher' : 'Expandir'} ${item.label}`}
+                className="flex-shrink-0 p-1 rounded hover:bg-white/10 transition-colors"
+              >
+                <ChevronDown
+                  size={14}
+                  aria-hidden="true"
+                  className={`text-white/50 transition-transform ${aberto ? '' : '-rotate-90'}`}
+                />
+              </button>
+            </div>
+
+            {aberto && (
+              <div className="ml-[26px] border-l border-white/10 pl-2 py-0.5 space-y-0.5">
+                {item.subitens.map((sub) => {
+                  const subAtivo =
+                    location.pathname === sub.rota ||
+                    location.pathname.startsWith(sub.rota + '/');
+                  return (
+                    <Link
+                      key={sub.chave}
+                      to={sub.rota}
+                      onClick={aoClicarLink || undefined}
+                      className={`block px-3 py-1.5 rounded-lg text-[13px] transition-colors ${
+                        subAtivo
+                          ? 'text-white bg-white/10 font-medium'
+                          : 'text-white/55 hover:text-white/85 hover:bg-white/5'
+                      }`}
+                    >
+                      {sub.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         );
       }
 

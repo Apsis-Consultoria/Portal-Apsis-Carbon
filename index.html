@@ -47,9 +47,23 @@
           'self' cobre /api/<*>, que e mesma origem pelo rewrite. O MSAL fala
           com login.microsoftonline.com para trocar o codigo pelo token.
 
-        frame-src
+        frame-src 'self' https://login.microsoftonline.com
           O MSAL usa iframe oculto para renovar token em silencio, entao
           login.microsoftonline.com precisa estar em frame-src.
+
+          E 'self' PRECISA ESTAR JUNTO. Isso nao e zelo: o fluxo tem duas pernas
+          e a politica precisa cobrir as duas. O iframe vai ao
+          login.microsoftonline.com e a Microsoft RESPONDE COM UM REDIRECT de
+          volta para o redirectUri, que e a nossa propria origem. Sem 'self', a
+          volta e bloqueada, o iframe nunca entrega o codigo, o
+          acquireTokenSilent estoura e TODA chamada ao /api falha - a tela
+          aparece, mas nenhum dado carrega.
+
+          O sintoma engana: o console acusa
+          "Framing 'http://localhost:5175/#code=...' violates frame-src", e a
+          URL bloqueada e a do proprio site, o que faz parecer defeito da tela
+          que estava aberta na hora. Foi assim que apareceu, na tela de
+          Questionarios, em 28/08/2026.
 
         frame-ancestors NAO ESTA AQUI, e a ausencia e deliberada.
           A especificacao manda IGNORAR frame-ancestors quando a politica chega
@@ -75,7 +89,7 @@
         font-src 'self' https://fonts.gstatic.com data:;
         img-src 'self' data: blob:;
         connect-src 'self' https://login.microsoftonline.com https://*.supabase.co;
-        frame-src https://login.microsoftonline.com;
+        frame-src 'self' https://login.microsoftonline.com;
         base-uri 'self';
         form-action 'self';
         object-src 'none'

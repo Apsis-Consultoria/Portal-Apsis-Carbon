@@ -9,12 +9,18 @@ import QuestionarioForm from '@/pages/QuestionarioForm';
  * então publicar as telas não exigiu editar App.jsx nem paginas.config.js. A
  * forma de uma entrada está documentada em src/paginas/nucleo.paginas.js.
  *
- * TRÊS TELAS E UM ITEM DE MENU, e não quatro itens fixos. O pedido foi "um
- * tópico chamado Questionários e cada tipo dos quatro seria uma tela", e são
- * quatro hoje - com mais por vir. Quatro itens fixos no menu empurrariam o resto
- * para baixo e teriam de virar cinco, seis, no braço, a cada formulário novo.
- * Com o hub, o menu ganha UM item e a lista de formulários vem do banco:
- * questionário novo aparece sozinho, sem deploy do frontend.
+ * UM TÓPICO QUE ABRE EM SUBITENS, um por formulário. `menu.submenu` diz ao
+ * Layout que este item tem filhos e de onde carregá-los; a lista vem do banco,
+ * não daqui. Escrever os quatro como entradas fixas neste arquivo seria mais
+ * simples de ler e perderia o ponto do desenho: questionário novo é um seed, e
+ * com itens fixos passaria a exigir deploy do frontend também.
+ *
+ * A primeira versão desta tela (27/08/2026) tinha um hub com quatro cartões em
+ * vez de subitens no menu. Estava errado: o pedido era "cada tipo dos quatro
+ * seria uma tela" dentro de um tópico, e um cartão a mais para clicar antes de
+ * chegar ao formulário é exatamente o passo que a navegação lateral existe para
+ * eliminar. O hub continua existindo como a tela do próprio tópico, para quem
+ * clica no pai e para o estado colapsado da sidebar.
  *
  * `menuPai` mantém o item "Questionários" aceso enquanto a lista de um tipo ou o
  * formulário estão abertos - mesmo mecanismo que o PDD usa para manter
@@ -38,7 +44,7 @@ export const paginas = [
     componente: Questionarios,
     titulo: 'Questionários',
     subtitulo: 'Formulários aplicados em campo',
-    menu: { icone: 'ClipboardList', ordem: 8, grupo: null },
+    menu: { icone: 'ClipboardList', ordem: 8, grupo: null, submenu: 'questionarios' },
   },
   {
     nome: 'QuestionarioLista',
