@@ -53,6 +53,7 @@ import {
   exigir,
   lancarErroEscrita,
   lerData,
+  lerDecimalComSinal,
   lerEnum,
   lerNumero,
   lerTexto,
@@ -86,6 +87,26 @@ const STATUS = new Set(['rascunho', 'concluido']);
    banco e a garantia, e esta copia e o que transforma "500 erro_interno" numa
    mensagem que diz o que fazer. Se divergirem, quem manda e o banco. */
 const CHAVE_PESSOAL = /(^|_)(nome|contato|telefone|email|cpf|rg|assinatura)($|_)/;
+
+/* As MESMAS duas conferencias de VALOR que o gatilho faz, traduzidas para JS
+   (classe POSIX nao existe aqui, e o \m \M do Postgres vira ).
+
+   Sem elas, o caminho e este: alguem escreve "falar com a Emater pelo
+   emater@exemplo.gov.br" numa resposta de texto, a chave e legitima, a Edge
+   Function deixa passar, e o gatilho recusa com RAISE - que chega como SQLSTATE
+   P0001, para o qual lancarErroEscrita nao tem ramo. Vira 500 erro_interno, a
+   tela mostra "o servidor recusou a requisicao" e ninguem descobre que o
+   problema foi um e-mail digitado numa resposta.
+
+   Quem GARANTE continua sendo o banco. Isto aqui existe para a recusa chegar
+   como 400 com a chave da pergunta, que e o que faz a tela rolar ate o campo. */
+const VALOR_EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+const VALOR_CPF = /\d{3}\.\d{3}\.\d{3}-\d{2}/;
+
+/** O valor como o gatilho o ve: string crua para string, JSON para o resto. */
+function comoTexto(valor: unknown): string {
+  return typeof valor === 'string' ? valor : JSON.stringify(valor) ?? '';
+}
 
 type Pergunta = {
   chave: string;
@@ -168,6 +189,11 @@ export function validarRespostas(
 
     if (valor === null || valor === undefined || valor === '') continue;
 
+    const texto = comoTexto(valor);
+    if (VALOR_EMAIL.test(texto) || VALOR_CPF.test(texto)) {
+      throw new ErroRota('resposta_com_dado_pessoal', 400, chave);
+    }
+
     switch (pergunta.tipo) {
       case 'texto':
         saida[chave] = lerTexto(valor, chave);
@@ -208,7 +234,10 @@ export function validarRespostas(
           // Repetida nao e erro do usuario, e ruido de interface: some.
           if (v !== null && !lista.includes(v)) lista.push(v);
         }
-        saida[chave] = lista;
+        /* Lista vazia NAO entra. "Desmarquei tudo" e "nao respondi" sao a
+           mesma coisa para quem le, e gravar [] fazia a coluna Respondidas da
+           lista contar essa pergunta - o numero dizia 12 onde havia 11. */
+        if (lista.length) saida[chave] = lista;
         break;
       }
 
@@ -217,9 +246,10 @@ export function validarRespostas(
           throw new ErroRota('campo_invalido', 400, chave);
         }
         const c = valor as Record<string, unknown>;
+        // Mesmo motivo do cabecalho: coordenada e negativa no Brasil inteiro.
         saida[chave] = {
-          latitude: lerNumero(c.latitude, chave),
-          longitude: lerNumero(c.longitude, chave),
+          latitude: lerDecimalComSinal(c.latitude, { min: -90, max: 90 }, chave),
+          longitude: lerDecimalComSinal(c.longitude, { min: -180, max: 180 }, chave),
         };
         break;
       }
@@ -386,13 +416,61 @@ async function lerCabecalho(
       corpo.entrevistado_funcao, FUNCOES, 'funcao_invalida', 'entrevistado_funcao',
     );
   }
-  if (tocar('latitude')) campos.latitude = lerNumero(corpo.latitude, 'latitude');
-  if (tocar('longitude')) campos.longitude = lerNumero(corpo.longitude, 'longitude');
-  if (tocar('altitude_m')) campos.altitude_m = lerNumero(corpo.altitude_m, 'altitude_m');
+  /* Coordenada usa lerDecimalComSinal e NAO lerNumero: o Brasil inteiro tem
+     latitude e longitude negativas, e lerNumero recusa negativo de proposito
+     (ele nasceu para area e quantidade). A faixa declarada tambem barra o erro
+     classico de trocar os dois eixos de lugar. */
+  if (tocar('latitude')) {
+    campos.latitude = lerDecimalComSinal(corpo.latitude, { min: -90, max: 90 }, 'latitude');
+  }
+  if (tocar('longitude')) {
+    campos.longitude = lerDecimalComSinal(corpo.longitude, { min: -180, max: 180 }, 'longitude');
+  }
+  // Altitude negativa existe (depressao, nivel abaixo do mar). A faixa vem do
+  // ponto mais baixo e do mais alto do planeta, com folga.
+  if (tocar('altitude_m')) {
+    campos.altitude_m = lerDecimalComSinal(corpo.altitude_m, { min: -500, max: 9000 }, 'altitude_m');
+  }
+  // Precisao do GPS e uma distancia: negativa nao existe. lerNumero serve.
   if (tocar('precisao_m')) campos.precisao_m = lerNumero(corpo.precisao_m, 'precisao_m');
   if (tocar('observacoes')) campos.observacoes = lerTexto(corpo.observacoes, 'observacoes', LIMITE_TEXTO_LONGO);
 
+  /* O par de coordenada e conferido AQUI, e nao so pelo CHECK do banco.
+     O banco recusa com 23514, que lancarErroEscrita traduz para
+     campo_invalido SEM detalhe - e sem detalhe a tela mostra um toast generico
+     e nao consegue apontar qual dos dois campos faltou. Conferindo antes, o
+     erro sai com o nome do campo que esta em branco. */
+  const temLat = campos.latitude !== null && campos.latitude !== undefined;
+  const temLon = campos.longitude !== null && campos.longitude !== undefined;
+  if (temLat !== temLon) {
+    throw new ErroRota('coordenada_incompleta', 400, temLat ? 'longitude' : 'latitude');
+  }
+
   return campos;
+}
+
+/**
+ * Traduz a recusa do gatilho de dado pessoal antes de cair no tratador generico.
+ *
+ * RAISE de plpgsql sem errcode chega como P0001, e lancarErroEscrita nao tem
+ * ramo para ele: cairia em erro_interno 500. Este e o mesmo padrao que
+ * visitas.ts, fornecedores.ts, monitoramento.ts, pipeline.ts, projetos.ts e
+ * reunioes.ts ja usam - a traducao mora no modulo, e nao no helper
+ * compartilhado, porque em outros modulos P0001 significa outra coisa e virar
+ * 400 para todo mundo relabelaria falha de servidor como erro do cliente.
+ */
+function lancarErroDeQuestionario(erro: ErroBanco): never {
+  const mensagem = String(erro?.message ?? '');
+  if (
+    mensagem.includes('dado pessoal') ||
+    mensagem.includes('endereco de e-mail') ||
+    mensagem.includes('contem CPF')
+  ) {
+    throw new ErroRota('resposta_com_dado_pessoal', 400);
+  }
+  lancarErroEscrita(erro, 'questionario');
+  // lancarErroEscrita sempre lanca; o throw abaixo so existe para o tipo `never`.
+  throw new ErroRota('erro_interno', 500);
 }
 
 async function criar(ctx: Contexto): Promise<Response> {
@@ -426,13 +504,27 @@ async function criar(ctx: Contexto): Promise<Response> {
     .select(COLUNAS)
     .single();
 
-  if (error) lancarErroEscrita(error as ErroBanco, 'questionario');
+  if (error) lancarErroDeQuestionario(error as ErroBanco);
   return respostaJson({ questionario: data }, 201);
 }
 
 async function atualizar(ctx: Contexto): Promise<Response> {
   const atual = await lerQuestionarioVisivel(ctx, ctx.params.id);
   const corpo = ctx.corpo ?? {};
+
+  /* CONCLUIDO NAO SE ALTERA, e esta guarda faltava.
+     O DELETE ja recusava apagar concluido, com o argumento de que ele e
+     evidencia de campo - em projeto de carbono, registro de consulta a
+     comunidade e o documento que a validadora pede. Mas o PATCH nao conferia
+     nada: dava para reescrever todas as respostas de um questionario fechado,
+     ou devolve-lo a rascunho e so entao apaga-lo. A porta da frente estava
+     trancada e a de tras aberta, o que e pior que as duas abertas, porque
+     passa a impressao de que o registro esta protegido.
+     A tela ja desabilita os campos; isto e o que vale para quem chama a API. */
+  if (atual.status === 'concluido') {
+    throw new ErroRota('questionario_concluido', 409, 'status');
+  }
+
   const modelo = await lerModelo(ctx, String(atual.modelo_id));
 
   const campos = await lerCabecalho(ctx, corpo, true);
@@ -459,7 +551,7 @@ async function atualizar(ctx: Contexto): Promise<Response> {
     .select(COLUNAS)
     .single();
 
-  if (error) lancarErroEscrita(error as ErroBanco, 'questionario');
+  if (error) lancarErroDeQuestionario(error as ErroBanco);
   return respostaJson({ questionario: data });
 }
 

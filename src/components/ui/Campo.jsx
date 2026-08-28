@@ -211,7 +211,14 @@ export default function Campo({
     /* Número em pt-BR: type="text" com inputMode decimal, e NÃO type="number".
        O campo aceita vírgula (é o separador do teclado brasileiro) e a conversão fica
        com a tela, que sabe recusar ponto de milhar ambíguo - o mesmo cuidado do campo
-       de área em Projetos, onde ler "13.250" como 13,25 falsearia a checagem de 5%. */
+       de área em Projetos, onde ler "13.250" como 13,25 falsearia a checagem de 5%.
+
+       CAMPO QUE ACEITA NEGATIVO PRECISA PASSAR extras={{ inputMode: 'text' }}.
+       O teclado que o `decimal` abre no celular tem dígitos e separador decimal
+       e NÃO tem o sinal de menos: num campo de latitude, a coordenada brasileira
+       fica impossível de digitar no telefone, que é justamente onde ela é
+       preenchida, em campo. Aqui o default continua 'decimal' porque a maioria
+       dos usos é área e quantidade, onde negativo não existe. */
     Controle = (
       <input
         {...comuns}

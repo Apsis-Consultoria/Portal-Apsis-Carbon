@@ -17,7 +17,7 @@
 // util. Provar o gatilho exige Postgres, e nao ha Docker nesta maquina.
 
 import { assertEquals, assertThrows } from 'jsr:@std/assert@1';
-import { ErroRota } from '../rotas/helpers.ts';
+import { ErroRota, lerDecimalComSinal } from '../rotas/helpers.ts';
 import { validarRespostas } from '../rotas/questionarios.ts';
 
 const MODELO = {
@@ -160,4 +160,53 @@ Deno.test('respostas nao-objeto sao recusadas', () => {
   assertEquals(validarRespostas(null, MODELO, false), {});
   assertEquals(erroDe(() => validarRespostas([1, 2], MODELO, false)).codigo, 'campo_invalido');
   assertEquals(erroDe(() => validarRespostas('texto', MODELO, false)).codigo, 'campo_invalido');
+});
+
+/* ===== Coordenada ==========================================================
+   O Brasil inteiro tem latitude e longitude negativas. Estes testes existem
+   porque a primeira versao usava lerNumero, que recusa negativo de proposito, e
+   o formulario so falhava para quem de fato marcou o ponto em campo.          */
+
+Deno.test('coordenada do territorio Parakana e aceita', () => {
+  assertEquals(lerDecimalComSinal(-4.7312, { min: -90, max: 90 }, 'latitude'), -4.7312);
+  assertEquals(lerDecimalComSinal(-49.9418, { min: -180, max: 180 }, 'longitude'), -49.9418);
+});
+
+Deno.test('coordenada digitada com virgula, como em pt-BR', () => {
+  assertEquals(lerDecimalComSinal('-4,7312', { min: -90, max: 90 }, 'latitude'), -4.7312);
+});
+
+Deno.test('a faixa barra o eixo trocado de lugar', () => {
+  // Uma longitude posta no campo de latitude e o erro classico de coordenada.
+  // Sem a faixa, gravaria um ponto no meio do oceano sem ninguem notar.
+  const erro = erroDe(() => lerDecimalComSinal(-120, { min: -90, max: 90 }, 'latitude'));
+  assertEquals(erro.codigo, 'campo_invalido');
+  assertEquals(erro.detalhe, 'latitude');
+});
+
+Deno.test('coordenada vazia continua sendo ausencia, e nao zero', () => {
+  // Zero e uma coordenada valida (golfo da Guine). Confundir vazio com zero
+  // poria todo questionario sem GPS no meio do Atlantico.
+  assertEquals(lerDecimalComSinal('', { min: -90, max: 90 }), null);
+  assertEquals(lerDecimalComSinal(null, { min: -90, max: 90 }), null);
+  assertEquals(lerDecimalComSinal(0, { min: -90, max: 90 }), 0);
+});
+
+Deno.test('pergunta do tipo coordenada aceita valor negativo', () => {
+  const MODELO_COORD = {
+    ...MODELO,
+    definicao: {
+      secoes: [{
+        chave: 'unica',
+        titulo: 'Seção única',
+        perguntas: [{ chave: 'ponto', rotulo: 'Ponto', tipo: 'coordenada' }],
+      }],
+    },
+  };
+  const ok = validarRespostas(
+    { ponto: { latitude: -4.7312, longitude: -49.9418 } },
+    MODELO_COORD,
+    false,
+  );
+  assertEquals(ok.ponto, { latitude: -4.7312, longitude: -49.9418 });
 });

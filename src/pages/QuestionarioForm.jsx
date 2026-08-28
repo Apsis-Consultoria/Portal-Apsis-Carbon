@@ -23,7 +23,7 @@
  * vez de mostrar só um aviso genérico.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -68,13 +68,45 @@ function hojeIso() {
   return `${d.getFullYear()}-${mes}-${dia}`;
 }
 
-/** Número em pt-BR: vazio vira null, e não zero. */
+/**
+ * Número digitado em pt-BR. Vazio vira null, e não zero.
+ *
+ * A primeira versão fazia `Number(t.replace(',', '.'))` e tinha DOIS defeitos,
+ * os dois silenciosos:
+ *
+ * 1. ERRAVA A ESCALA EM MIL VEZES. "1.234" (mil duzentos e trinta e quatro,
+ *    com ponto de milhar) virava 1.234. Num campo de altitude ou de área isso
+ *    grava um número mil vezes menor sem nada acusar.
+ * 2. DESCARTAVA EM SILÊNCIO o que não soubesse converter: "-60.67.2", um erro
+ *    de digitação de coordenada, virava null. O campo ficava em branco, o par
+ *    de coordenada quebrava lá no servidor e a mensagem falava de outra coisa.
+ *
+ * Agora decide pela ESTRUTURA, com a mesma regra do servidor (ver lerNumero em
+ * helpers.ts): com vírgula, todo ponto é milhar; mais de um ponto, idem; um
+ * ponto só e sem vírgula é decimal. E o que não converte devolve NaN em vez de
+ * null, para quem chama poder recusar em vez de mandar um buraco.
+ */
 function numeroOuNulo(valor) {
   const t = String(valor ?? '').trim();
   if (!t) return null;
-  const n = Number(t.replace(',', '.'));
-  return Number.isFinite(n) ? n : null;
+
+  const pontos = (t.match(/\./g) ?? []).length;
+  let normalizado;
+  if (t.includes(',')) normalizado = t.replace(/\./g, '').replace(',', '.');
+  else if (pontos > 1) normalizado = t.replace(/\./g, '');
+  else normalizado = t;
+
+  const n = Number(normalizado);
+  return Number.isFinite(n) ? n : NaN;
 }
+
+/** Rótulo dos campos numéricos do cabeçalho, para a mensagem dizer qual é. */
+const ROTULO_NUMERICO = {
+  latitude: 'Latitude',
+  longitude: 'Longitude',
+  altitude_m: 'Altitude',
+  precisao_m: 'Precisão',
+};
 
 export default function QuestionarioForm() {
   const msal = useMsal();
@@ -110,9 +142,14 @@ export default function QuestionarioForm() {
     enabled: !criando && Boolean(id),
   });
 
+  /* normalizarListaProjetos DENTRO do queryFn, e nao depois: a chave
+     ['carbon', 'projetos'] e compartilhada com Reunioes, Atividades e Contratos,
+     e todas elas guardam o ENVELOPE { projetos, podeCriar } no cache. Normalizar
+     so aqui fora deixaria o cache com dois formatos diferentes conforme a tela
+     que carregasse primeiro. */
   const projetosQuery = useQuery({
     queryKey: ['carbon', 'projetos'],
-    queryFn: () => listarProjetos(msal),
+    queryFn: async () => normalizarListaProjetos(await listarProjetos(msal)),
   });
 
   /* Ao CRIAR, o modelo vem da chave da URL. Ao EDITAR, vem junto do detalhe, e
@@ -129,20 +166,33 @@ export default function QuestionarioForm() {
     : detalheQuery.data?.pode_escrever === true;
   const somenteLeitura = concluido || !podeEscrever;
 
-  const projetos = useMemo(
-    () => normalizarListaProjetos(projetosQuery.data),
-    [projetosQuery.data],
-  );
+  /* `.projetos` do envelope, e nao o envelope inteiro. Foi exatamente aqui que
+     a tela quebrava: normalizarListaProjetos devolve { projetos, podeCriar }, e
+     tratar isso como lista fazia `projetos.map` estourar no render - ou seja, a
+     tela de criar questionario morria ao ABRIR, antes de qualquer salvamento. */
+  const projetos = projetosQuery.data?.projetos ?? [];
 
   /* Carrega o que veio do servidor para o estado local UMA vez, quando o
      detalhe chega. Sem a guarda de `questionario?.id`, cada refetch em segundo
      plano apagaria o que a pessoa está digitando. */
+  const [idCarregado, setIdCarregado] = useState(null);
+
   useEffect(() => {
     if (!questionario?.id) return;
+    /* Carrega UMA vez por registro. Sem esta guarda, o refetch que acontece
+       logo depois de criar (a URL muda para a do registro e o detalhe é
+       buscado) sobrescrevia o que a pessoa continuou digitando enquanto o POST
+       viajava. Com ela, o servidor só popula a tela ao ABRIR um questionário. */
+    if (idCarregado === questionario.id) return;
+    setIdCarregado(questionario.id);
+
     setCabecalho({
       projeto_id: questionario.projeto_id ?? '',
       aldeia: questionario.aldeia ?? '',
-      data_referencia: questionario.data_referencia ?? hojeIso(),
+      // Vazio continua vazio: trocar por hoje faria um questionário salvo sem
+      // data ganhar a data em que alguém o reabriu, e isso é dado inventado
+      // num registro de campo que vira evidência de auditoria.
+      data_referencia: questionario.data_referencia ?? '',
       entrevistado_funcao: questionario.entrevistado_funcao ?? '',
       latitude: questionario.latitude ?? '',
       longitude: questionario.longitude ?? '',
@@ -151,7 +201,7 @@ export default function QuestionarioForm() {
       observacoes: questionario.observacoes ?? '',
     });
     setRespostas(questionario.respostas ?? {});
-  }, [questionario?.id]);
+  }, [questionario?.id, idCarregado]);
 
   const alterarCabecalho = (campo) => (valor) =>
     setCabecalho((a) => ({ ...a, [campo]: valor }));
@@ -161,16 +211,45 @@ export default function QuestionarioForm() {
     if (chaveComErro === chave) setChaveComErro(null);
   };
 
+  /**
+   * Monta o corpo, ou lança com a mensagem pronta para o toast.
+   *
+   * Recusa AQUI o que o servidor recusaria depois, por dois motivos: a mensagem
+   * daqui sabe o rótulo do campo ("Latitude"), e a do servidor volta como
+   * `campo_invalido` sem contexto; e uma coordenada pela metade só é detectada
+   * pelo CHECK do banco, que devolve um 400 genérico.
+   */
   function montarPayload(status) {
+    const numeros = {};
+    for (const campo of ['latitude', 'longitude', 'altitude_m', 'precisao_m']) {
+      const n = numeroOuNulo(cabecalho[campo]);
+      if (Number.isNaN(n)) {
+        throw new Error(`${ROTULO_NUMERICO[campo]}: o valor digitado não é um número válido.`);
+      }
+      numeros[campo] = n;
+    }
+
+    // O par de coordenada: meia coordenada não localiza nada, e o servidor a
+    // recusaria sem dizer qual metade falta.
+    const temLat = numeros.latitude !== null;
+    const temLon = numeros.longitude !== null;
+    if (temLat !== temLon) {
+      throw new Error(
+        temLat
+          ? 'Falta a longitude. A coordenada só vale com os dois valores.'
+          : 'Falta a latitude. A coordenada só vale com os dois valores.',
+      );
+    }
+
     return {
       projeto_id: cabecalho.projeto_id || null,
       aldeia: cabecalho.aldeia || null,
       data_referencia: cabecalho.data_referencia || null,
       entrevistado_funcao: cabecalho.entrevistado_funcao || null,
-      latitude: numeroOuNulo(cabecalho.latitude),
-      longitude: numeroOuNulo(cabecalho.longitude),
-      altitude_m: numeroOuNulo(cabecalho.altitude_m),
-      precisao_m: numeroOuNulo(cabecalho.precisao_m),
+      latitude: numeros.latitude,
+      longitude: numeros.longitude,
+      altitude_m: numeros.altitude_m,
+      precisao_m: numeros.precisao_m,
       observacoes: cabecalho.observacoes || null,
       respostas,
       status,
@@ -179,6 +258,8 @@ export default function QuestionarioForm() {
 
   const salvar = useMutation({
     mutationFn: ({ status }) => {
+      // montarPayload lança com a mensagem pronta quando o cabeçalho está
+      // inconsistente. Cai no onError abaixo, como qualquer recusa do servidor.
       const payload = montarPayload(status);
       if (criando) return criarQuestionario(msal, { ...payload, modelo_id: modelo.id });
       return atualizarQuestionario(msal, id, payload);
@@ -206,7 +287,14 @@ export default function QuestionarioForm() {
       const chave = erro?.detalhe;
       if (chave) {
         setChaveComErro(chave);
-        const alvo = document.getElementById(`pergunta-${chave}`);
+        /* Duas ancoras, porque o servidor recusa dois tipos de campo. Uma chave
+           de PERGUNTA vira `pergunta-<chave>`; um campo do CABECALHO (latitude,
+           aldeia, entrevistado_funcao) vira `cabecalho-<chave>`. Antes só a
+           primeira existia, então um 400 em latitude não destacava nada e a
+           pessoa via um toast sobre um campo que não sabia localizar. */
+        const alvo =
+          document.getElementById(`pergunta-${chave}`) ??
+          document.getElementById(`cabecalho-${chave}`);
         if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       toast.error(erro?.message ?? 'Não foi possível salvar o questionário.');
@@ -362,11 +450,38 @@ export default function QuestionarioForm() {
           />
         </div>
 
+        {/* Cada campo numérico ganha uma âncora `cabecalho-<campo>`: é por ela
+            que o onError rola até o campo que o servidor recusou. O anel
+            vermelho usa a mesma chave que o destaque das perguntas. */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Campo rotulo="Latitude" tipo="decimal" valor={cabecalho.latitude} onChange={alterarCabecalho('latitude')} desabilitado={somenteLeitura} placeholder="-4.7312" />
-          <Campo rotulo="Longitude" tipo="decimal" valor={cabecalho.longitude} onChange={alterarCabecalho('longitude')} desabilitado={somenteLeitura} placeholder="-49.9418" />
-          <Campo rotulo="Altitude (m)" tipo="decimal" valor={cabecalho.altitude_m} onChange={alterarCabecalho('altitude_m')} desabilitado={somenteLeitura} />
-          <Campo rotulo="Precisão (m)" tipo="decimal" valor={cabecalho.precisao_m} onChange={alterarCabecalho('precisao_m')} desabilitado={somenteLeitura} />
+          {[
+            /* `sinal: true` troca o teclado do celular para o completo. O
+               inputMode 'decimal' abre um teclado SEM tecla de menos, e a
+               coordenada brasileira é negativa: no telefone, que é onde o
+               formulário é preenchido em campo, ela ficava indigitável.
+               Precisão é distância e nunca é negativa, então fica no teclado
+               numérico, que é mais rápido. */
+            { campo: 'latitude', rotulo: 'Latitude', placeholder: '-4.7312', sinal: true },
+            { campo: 'longitude', rotulo: 'Longitude', placeholder: '-49.9418', sinal: true },
+            { campo: 'altitude_m', rotulo: 'Altitude (m)', sinal: true },
+            { campo: 'precisao_m', rotulo: 'Precisão (m)' },
+          ].map(({ campo, rotulo, placeholder, sinal }) => (
+            <div
+              key={campo}
+              id={`cabecalho-${campo}`}
+              className={chaveComErro === campo ? 'rounded-xl ring-2 ring-[#C0392B]/40 p-2 -m-2' : ''}
+            >
+              <Campo
+                rotulo={rotulo}
+                tipo="decimal"
+                valor={cabecalho[campo]}
+                onChange={alterarCabecalho(campo)}
+                desabilitado={somenteLeitura}
+                placeholder={placeholder}
+                extras={sinal ? { inputMode: 'text' } : undefined}
+              />
+            </div>
+          ))}
         </div>
       </Cartao>
 
@@ -395,9 +510,16 @@ export default function QuestionarioForm() {
 
       {!somenteLeitura && (
         <div className="flex flex-wrap items-center justify-end gap-2 pb-2">
+          {/* Os DOIS botões travam enquanto QUALQUER um salva, e não só o que
+              foi clicado. Com a trava por botão, clicar em "Salvar rascunho" e
+              logo em "Concluir" durante a criação disparava dois POST: o
+              primeiro ainda não tinha voltado, `criando` continuava true, e
+              nasciam DOIS questionários - um rascunho órfão e um concluído,
+              que nem dá para apagar pela tela. */}
           <BotaoSecundario
             icone={Save}
             carregando={salvar.isPending && salvar.variables?.status === 'rascunho'}
+            desabilitado={salvar.isPending}
             onClick={() => salvar.mutate({ status: 'rascunho' })}
           >
             Salvar rascunho
@@ -405,6 +527,7 @@ export default function QuestionarioForm() {
           <BotaoPrimario
             icone={Check}
             carregando={salvar.isPending && salvar.variables?.status === 'concluido'}
+            desabilitado={salvar.isPending}
             onClick={() => {
               if (window.confirm('Concluir o questionário? Depois disso ele não pode mais ser alterado nem apagado pela tela.')) {
                 salvar.mutate({ status: 'concluido' });

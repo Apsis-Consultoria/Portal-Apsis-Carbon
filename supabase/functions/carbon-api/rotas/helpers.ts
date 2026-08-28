@@ -197,6 +197,47 @@ export function lerNumero(valor: unknown, campo?: string): number | null {
   return n;
 }
 
+/**
+ * Numero decimal QUE PODE SER NEGATIVO, dentro de uma faixa declarada.
+ *
+ * POR QUE NAO DA PARA USAR lerNumero AQUI. Ele recusa negativo de proposito:
+ * nasceu para area em hectare e quantidade de credito, onde negativo nao
+ * significa nada e aceitar seria esconder um erro de digitacao. A premissa dele
+ * e boa, e simplesmente nao vale para coordenada geografica.
+ *
+ * O BRASIL INTEIRO TEM LATITUDE E LONGITUDE NEGATIVAS. O territorio onde estes
+ * formularios sao aplicados fica perto de -4,73 / -49,94. Usar lerNumero num
+ * campo de GPS faz toda coordenada real voltar 400 campo_invalido, e o
+ * formulario so falha para quem de fato marcou o ponto em campo - ou seja,
+ * exatamente para quem fez o trabalho direito.
+ *
+ * A FAIXA E OBRIGATORIA no chamador, e nao opcional com default generoso:
+ * latitude vai de -90 a 90 e longitude de -180 a 180, e trocar as duas de lugar
+ * e o erro classico de quem mexe com coordenada. Com a faixa declarada, uma
+ * longitude posta no campo de latitude e recusada aqui em vez de gravar um ponto
+ * no meio do oceano.
+ */
+export function lerDecimalComSinal(
+  valor: unknown,
+  { min, max }: { min: number; max: number },
+  campo?: string,
+): number | null {
+  if (valor === null || valor === undefined || valor === '') return null;
+
+  let bruto: unknown = valor;
+  if (typeof bruto === 'string') {
+    // Mesma regra de lerNumero: virgula decimal so quando nao ha ponto, porque
+    // coordenada digitada em pt-BR chega como "-4,7312".
+    if (!bruto.includes('.') && bruto.includes(',')) bruto = bruto.replace(',', '.');
+  }
+
+  const n = typeof bruto === 'number' ? bruto : Number(bruto);
+  if (!Number.isFinite(n) || n < min || n > max) {
+    throw new ErroRota('campo_invalido', 400, campo);
+  }
+  return n;
+}
+
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Data no formato YYYY-MM-DD, com conferencia de existencia (barra 2026-02-31). */
