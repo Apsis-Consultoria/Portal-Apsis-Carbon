@@ -9,7 +9,7 @@ dist-ssr
 # junto com src/lib/supabaseClient.js. Estas linhas ficam como rede de seguranca:
 # se alguem criar um .env por engano, ele nao entra no repositorio.
 #
-# A unica variavel do projeto, SUPABASE_FUNCTIONS_URL, e lida pelo vite.config.js
+# A unica variavel do projeto, SUPABASE_API_URL, e lida pelo vite.config.js
 # no Node e vive na sessao do terminal, nunca em arquivo.
 .env
 .env.local

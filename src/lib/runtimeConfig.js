@@ -286,7 +286,7 @@ async function buscarConfigRemota() {
   const tipo = resposta.headers.get("content-type") || "";
   if (!tipo.includes("application/json")) {
     throw new Error(
-      'A chamada de configuracao voltou como pagina, e nao como JSON. Falta o rewrite de /api/* na hospedagem: ele precisa encaminhar /api/<funcao> para as Edge Functions do Supabase. Em desenvolvimento, suba o servidor com SUPABASE_FUNCTIONS_URL definida (ver src/lib/endpoint.js).'
+      'A chamada de configuracao voltou como pagina, e nao como JSON. Falta o rewrite de /api/* na hospedagem: ele precisa encaminhar /api/<funcao> para as Edge Functions do Supabase. Em desenvolvimento, suba o servidor com SUPABASE_API_URL definida (ver src/lib/endpoint.js).'
     );
   }
 
@@ -363,7 +363,7 @@ export async function carregarConfig() {
       // morrer no ConfigErrorScreen. O motivo real vai para o console.
       console.warn(
         '[config] a configuracao remota falhou; caindo na demonstracao. ' +
-          'Para login real em dev, suba com SUPABASE_FUNCTIONS_URL definida.',
+          'Para login real em dev, suba com SUPABASE_API_URL definida.',
         erro,
       );
       configCache = { ...CONFIG_DEFAULT, demo: true };

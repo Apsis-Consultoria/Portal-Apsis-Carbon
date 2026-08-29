@@ -43,7 +43,7 @@ serão definidos depois, por isso a navegação e os cards de módulo vêm do Su
    caminho relativo `/api/<função>` (ver `src/lib/endpoint.js`) e quem sabe o
    endereço real é a hospedagem, por rewrite: em produção uma regra do Amplify,
    em desenvolvimento o `server.proxy` do `vite.config.js` alimentado por
-   `SUPABASE_FUNCTIONS_URL` (sem prefixo `VITE_`, justamente para o Vite se
+   `SUPABASE_API_URL` (sem prefixo `VITE_`, justamente para o Vite se
    recusar a expô-la ao navegador).
 
    O motivo: com a URL do projeto no bundle, qualquer pessoa que abrisse a tela

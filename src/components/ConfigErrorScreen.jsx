@@ -11,7 +11,7 @@ const INTER = "'Inter', 'Segoe UI', sans-serif"
 const VERIFICAR = [
   {
     titulo: 'Rewrite de /api na hospedagem',
-    detalhe: 'O frontend chama caminhos relativos /api/<função>. A hospedagem precisa reescrever /api/<*> para https://SEU-PROJETO.supabase.co/functions/v1/<*> com tipo 200 (proxy). Em desenvolvimento, quem faz isso é SUPABASE_FUNCTIONS_URL no vite.config.js.',
+    detalhe: 'O frontend chama caminhos relativos /api/<função>. A hospedagem precisa reescrever /api/<*> para https://SEU-PROJETO.supabase.co/functions/v1/<*> com tipo 200 (proxy). Em desenvolvimento, quem faz isso é SUPABASE_API_URL no vite.config.js.',
   },
   {
     titulo: 'Edge Function app-config publicada',

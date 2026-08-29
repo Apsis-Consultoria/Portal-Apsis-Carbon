@@ -72,7 +72,7 @@ Em **desenvolvimento**, o proxy do Vite (`server.proxy` no `vite.config.js`) faz
 mesmo papel. No PowerShell 5.1, as duas linhas no MESMO terminal, uma de cada vez:
 
 ```
-$env:SUPABASE_FUNCTIONS_URL = "https://<REF>.supabase.co/functions/v1"
+$env:SUPABASE_API_URL = "https://<REF>.supabase.co"
 ```
 
 ```
@@ -96,7 +96,7 @@ aviso ambar na tela de login. Isso e um 404 claro de proposito, e melhor do que 
 destino default errado que so falharia na hora do login.
 
 **Consequencia pratica, que mudou:** rodar `npm.cmd run dev` com
-`SUPABASE_FUNCTIONS_URL` definida da **login real em localhost**. Antes o modo
+`SUPABASE_API_URL` definida da **login real em localhost**. Antes o modo
 demonstracao era um beco sem saida em desenvolvimento; hoje ele e escolha por
 clique (ver passo 9), nao um modo em que o dev fica preso.
 
@@ -604,9 +604,18 @@ usar URL absoluta em vez de `caminhoFuncao()` de `src/lib/endpoint.js`. Procure 
 URL absoluta e remova.
 
 Se a funcao responde `200` no `curl.exe` mas falha no navegador, confira o destino
-do rewrite: em producao, a regra do Amplify; em dev, o valor de
-`SUPABASE_FUNCTIONS_URL`. Ele nao pode ter barra no final, precisa terminar em
-`/functions/v1` e precisa apontar para o projeto certo.
+do rewrite. Os dois lados usam formatos DIFERENTES de proposito:
+
+| Onde | Valor | Por que |
+|---|---|---|
+| Regra do Amplify (producao) | `https://<REF>.supabase.co/functions/v1/<*>` | e uma regra de console: nao ha codigo para acrescentar o caminho |
+| `SUPABASE_API_URL` (dev) | `https://<REF>.supabase.co` | o `/functions/v1` esta em `CAMINHO_FUNCOES`, no `vite.config.js` |
+
+A variavel carrega **so o endereco do projeto** desde 28/08/2026. Se voce tiver
+uma anotacao antiga terminando em `/functions/v1`, o `vite.config.js` corta o
+sufixo e AVISA no terminal - sem isso o caminho ficaria duplicado
+(`.../functions/v1/functions/v1/carbon-api`) e toda chamada de `/api` daria 404
+sem nada apontar para a variavel. Barra sobrando no fim tambem e removida.
 
 ### 6. `AADSTS50011: The redirect URI specified in the request does not match`
 
@@ -617,10 +626,10 @@ A URL de onde voce esta acessando nao esta cadastrada no Azure AD. Volte ao pass
 ### 7. Em dev, aviso ambar no login e `404` em `/api/app-config`
 
 Mensagem na tela: "A configuração não veio do backend. Suba o dev server com
-SUPABASE_FUNCTIONS_URL definida para habilitar o login real." No console aparece
+SUPABASE_API_URL definida para habilitar o login real." No console aparece
 `[config] a configuracao remota falhou; caindo na demonstracao`.
 
-O dev server subiu **sem** `SUPABASE_FUNCTIONS_URL`, entao o `vite.config.js` nem
+O dev server subiu **sem** `SUPABASE_API_URL`, entao o `vite.config.js` nem
 registrou o proxy de `/api` e a chamada bateu no proprio Vite, que devolveu 404.
 Nao ha o que consertar no banco nem no Azure. Causas, em ordem:
 
@@ -636,7 +645,7 @@ Nao ha o que consertar no banco nem no Azure. Causas, em ordem:
 Para conferir o que o processo esta vendo, no mesmo terminal:
 
 ```
-echo $env:SUPABASE_FUNCTIONS_URL
+echo $env:SUPABASE_API_URL
 ```
 
 Enquanto isso nao estiver resolvido, o botao de login da Microsoft fica
@@ -663,7 +672,7 @@ ficticios.
 
 | Informacao | Onde vive | Chega ao navegador? |
 | --- | --- | --- |
-| Endereco das Edge Functions | Rewrite de `/api` na hospedagem (e `SUPABASE_FUNCTIONS_URL` no `vite.config.js`, em dev) | Nao. O bundle so conhece `/api` |
+| Endereco das Edge Functions | Rewrite de `/api` na hospedagem (e `SUPABASE_API_URL` no `vite.config.js`, em dev) | Nao. O bundle so conhece `/api` |
 | clientId e tenantId do Azure, dominio, textos do login, flags | `carbon_app_config` com `publico = true` | Sim, via `app-config` |
 | Configuracao interna de backend | `carbon_app_config` com `publico = false` | Nao |
 | service_role key, chaves de integracao | Secrets das Edge Functions | Nunca |

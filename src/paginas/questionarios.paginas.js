@@ -69,6 +69,12 @@ export const paginas = [
     componente: QuestionarioForm,
     titulo: 'Questionário',
     subtitulo: 'Preenchimento do formulário de campo',
+    /* SEM O SHELL, e esta e a unica tela do sistema assim por escolha de uso e
+       nao por ser tela de erro. O preenchimento acontece no celular, em aldeia:
+       a barra lateral e a topbar comem um terco da altura util, e a pergunta
+       precisa dessa altura. A volta e o botao de fechar do proprio cabecalho do
+       wizard, como no EPO. */
+    shell: false,
     menuPai: 'Questionarios',
     menu: null,
   },

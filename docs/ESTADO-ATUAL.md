@@ -33,7 +33,7 @@ demonstração"** abre as telas com dados fictícios.
 vale só naquela janela):
 
 ```powershell
-$env:SUPABASE_FUNCTIONS_URL = "https://<REF>.supabase.co/functions/v1"
+$env:SUPABASE_API_URL = "https://<REF>.supabase.co"
 ```
 
 ```powershell
@@ -87,7 +87,7 @@ $env:EXPOR_REDE = "true"
 - Quem traduz `/api` para as Edge Functions é a **hospedagem**, por rewrite:
   - produção: regra no console do AWS Amplify, origem `/api/<*>`, destino
     `https://<REF>.supabase.co/functions/v1/<*>`, tipo 200 (rewrite / proxy);
-  - desenvolvimento: `server.proxy` do `vite.config.js`, alimentado por `SUPABASE_FUNCTIONS_URL`.
+  - desenvolvimento: `server.proxy` do `vite.config.js`, alimentado por `SUPABASE_API_URL`.
 - **Por quê:** com a URL do projeto no bundle, qualquer visitante da tela de login descobre o
   endereço e passa a bater direto nas Edge Functions, fora do nosso domínio, sem log, WAF nem
   limite de taxa. Com o proxy, a única porta pública é o nosso domínio.
@@ -111,7 +111,7 @@ O padrão no código é sempre `if (MODO_DEMO && MODO_DEMO_ATIVO())`, **com a co
 frente**: sem ela o Rollup não dobra a condição e os datasets fictícios vão para o bundle de
 produção. Isso aconteceu de verdade e foi medido (6 KB só em `demoProjetos.js`).
 
-Consequência prática: subir o dev server com `SUPABASE_FUNCTIONS_URL` definida dá **login real
+Consequência prática: subir o dev server com `SUPABASE_API_URL` definida dá **login real
 em localhost**. A demonstração virou escolha por clique, não mais um modo em que o dev fica
 preso. Conferência depois de um build, em PowerShell:
 `Select-String -Path dist\assets\*.js -SimpleMatch "-51.9"` tem que não achar nada (é uma

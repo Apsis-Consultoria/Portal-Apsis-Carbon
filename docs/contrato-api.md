@@ -30,7 +30,7 @@ apenas o caminho relativo `/api/<funcao>`. Ver secoes 3 e 4.
 
 | Item | Valor |
 | --- | --- |
-| Comando | `npm.cmd run dev`, com `SUPABASE_FUNCTIONS_URL` no mesmo terminal (ver abaixo) |
+| Comando | `npm.cmd run dev`, com `SUPABASE_API_URL` no mesmo terminal (ver abaixo) |
 | URL base | `http://localhost:5175` |
 | Porta | **5175, fixa** (`strictPort: true` no `vite.config.js`) |
 | Bind | loopback apenas. Verificado nesta maquina: escuta em `::1` (IPv6). Use `http://localhost:5175`; `http://127.0.0.1:5175` **nao** conecta |
@@ -49,7 +49,7 @@ bloqueado pela execution policy da maquina; e duas linhas em vez de uma porque o
 PowerShell 5.1 nao aceita `&&`:
 
 ```powershell
-$env:SUPABASE_FUNCTIONS_URL = "https://SEU-PROJETO.supabase.co/functions/v1"
+$env:SUPABASE_API_URL = "https://SEU-PROJETO.supabase.co"
 npm.cmd run dev
 ```
 
@@ -91,11 +91,11 @@ navegador:
 
 | Variavel | Lida por | Para que |
 | --- | --- | --- |
-| `SUPABASE_FUNCTIONS_URL` | `vite.config.js` | destino do `server.proxy` de `/api` em desenvolvimento |
+| `SUPABASE_API_URL` | `vite.config.js` | destino do `server.proxy` de `/api` em desenvolvimento |
 | `EXPOR_REDE` | `vite.config.js` | `host: true`, so para testar em celular |
 
 ```
-SUPABASE_FUNCTIONS_URL=https://SEU-PROJETO.supabase.co/functions/v1
+SUPABASE_API_URL=https://SEU-PROJETO.supabase.co
 ```
 
 Nenhuma das duas tem o prefixo `VITE_`, e isso e de proposito: sem o prefixo o Vite
@@ -103,7 +103,7 @@ se **recusa** a expor a variavel ao cliente, entao e impossivel ela entrar no bu
 mesmo por engano. `VITE_EXPOR_REDE` foi renomeada para `EXPOR_REDE` pelo mesmo
 motivo: o prefixo ensinava o padrao errado a quem lesse o arquivo.
 
-`SUPABASE_FUNCTIONS_URL` precisa estar no MESMO terminal que sobe o servidor
+`SUPABASE_API_URL` precisa estar no MESMO terminal que sobe o servidor
 (secao 2). Em producao ela nao existe: quem faz a traducao la e uma regra no
 console do AWS Amplify, fora do repositorio.
 
@@ -137,7 +137,7 @@ nao bastaria, e nao e teoria: com a condicao escrita ao contrario (ou com
 producao, medidos em 6 KB so no `demoProjetos.js`.
 
 O modo demonstracao **nao bloqueia o login real**. Subir o dev server com
-`SUPABASE_FUNCTIONS_URL` definida habilita o login de verdade em `localhost`: a
+`SUPABASE_API_URL` definida habilita o login de verdade em `localhost`: a
 config vem do banco, o botao da Microsoft fica habilitado e a demonstracao continua
 ali, a um clique, para quem quiser revisar tela sem sujar dado. Ate 21/08/2026 nao
 era assim: o desenvolvimento ficava preso na demonstracao, o `clientId` chegava

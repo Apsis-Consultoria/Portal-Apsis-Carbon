@@ -9,17 +9,36 @@
  * que é como a equipe procura ("o que foi feito na última ida a campo"). A
  * paginação é do servidor.
  *
+ * É AQUI QUE O RASCUNHO APARECE. O formulário cria o registro assim que é
+ * aberto, então todo questionário começado - inclusive o que foi abandonado no
+ * meio - está nesta lista marcado como rascunho, com o quanto já foi respondido.
+ * O preço dessa escolha é o rascunho vazio de quem abriu por engano, e é por
+ * isso que existe o botão de apagar nesta tela: quem abriu sem querer precisa
+ * conseguir limpar. Concluído não tem esse botão, e o servidor recusa mesmo que
+ * alguém chame a rota na mão - é evidência de campo.
+ *
+ * A COLUNA "NO APARELHO" lê a caixa de saída local (rascunhoOffline) e marca as
+ * linhas cujas últimas respostas ainda não chegaram ao servidor. Sem ela, o
+ * questionário preenchido offline apareceria com contagem antiga e a pessoa
+ * acharia que perdeu o trabalho. Ela some sozinha quando o reenvio passa.
+ *
  * LGPD: a lista mostra aldeia, data, situação e a FUNÇÃO de quem foi
  * entrevistado. Não existe coluna de nome porque não existe o dado - ver o
  * cabeçalho da migration 20260827090000_questionarios.sql.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMsal } from '@azure/msal-react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ClipboardList, Plus } from 'lucide-react';
-import { listarModelosQuestionario, listarQuestionarios } from '@/lib/api/questionarios';
+import { ArrowLeft, ClipboardList, CloudOff, Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  listarModelosQuestionario,
+  listarQuestionarios,
+  removerQuestionario,
+} from '@/lib/api/questionarios';
+import { descartar, listarPendentes } from '@/lib/rascunhoOffline';
 import { montarUrl } from '@/lib/pageRoutes';
 import Tabela from '@/components/ui/Tabela';
 import Campo from '@/components/ui/Campo';
@@ -57,13 +76,22 @@ function fmtData(valor) {
   return `${partes[3]}/${partes[2]}/${partes[1]}`;
 }
 
+/** Quantas perguntas o formulário tem ao todo, somando as seções. */
+function contarPerguntas(definicao) {
+  return (definicao?.secoes ?? []).reduce((s, sec) => s + (sec.perguntas?.length ?? 0), 0);
+}
+
 export default function QuestionarioLista() {
   const msal = useMsal();
   const navegar = useNavigate();
+  const cliente = useQueryClient();
   const { tipo } = useParams();
 
   const [situacao, setSituacao] = useState('');
   const [aldeia, setAldeia] = useState('');
+  /* Só existe para forçar a releitura do localStorage depois de apagar. A caixa
+     de saída não é reativa, e não vale um observador para uma tela só. */
+  const [versaoLocal, setVersaoLocal] = useState(0);
 
   const modelosQuery = useQuery({
     queryKey: ['carbon', 'questionarios', 'modelos'],
@@ -77,6 +105,27 @@ export default function QuestionarioLista() {
     queryKey: ['carbon', 'questionarios', 'lista', tipo, situacao, aldeia],
     queryFn: () => listarQuestionarios(msal, { modelo: tipo, status: situacao, aldeia }),
     enabled: Boolean(tipo),
+  });
+
+  /* Ids com resposta ainda no aparelho. Recalculado quando a lista muda porque é
+     depois de um reenvio bem-sucedido que a pendência some. */
+  const pendentes = useMemo(() => {
+    const ids = new Set();
+    for (const p of listarPendentes()) ids.add(p.id);
+    return ids;
+  }, [listaQuery.dataUpdatedAt, versaoLocal]);
+
+  const apagar = useMutation({
+    mutationFn: (linha) => removerQuestionario(msal, linha.id),
+    onSuccess: (_r, linha) => {
+      // A cópia local vai junto: senão a caixa de saída reenviaria o que
+      // acabou de ser apagado e a linha voltaria sozinha para a lista.
+      descartar(linha.id);
+      setVersaoLocal((v) => v + 1);
+      toast.success('Rascunho apagado.');
+      cliente.invalidateQueries({ queryKey: ['carbon', 'questionarios', 'lista'] });
+    },
+    onError: (e) => toast.error(e?.message ?? 'Não foi possível apagar o rascunho.'),
   });
 
   const voltar = (
@@ -116,6 +165,8 @@ export default function QuestionarioLista() {
 
   const linhas = listaQuery.data?.questionarios ?? [];
   const podeEscrever = listaQuery.data?.pode_escrever === true;
+  const totalPerguntas = contarPerguntas(modelo.definicao);
+  const comPendencia = linhas.filter((l) => pendentes.has(l.id)).length;
 
   const colunas = [
     {
@@ -127,13 +178,13 @@ export default function QuestionarioLista() {
     {
       chave: 'aldeia',
       titulo: 'Aldeia',
-      larguraMinima: 200,
+      larguraMinima: 190,
       render: (l) => l.aldeia || <span className="text-[#8A9990]">Sem aldeia informada</span>,
     },
     {
       chave: 'entrevistado_funcao',
       titulo: 'Entrevistado',
-      larguraMinima: 170,
+      larguraMinima: 160,
       render: (l) =>
         l.entrevistado_funcao
           ? FUNCOES[l.entrevistado_funcao] ?? l.entrevistado_funcao
@@ -142,21 +193,75 @@ export default function QuestionarioLista() {
     {
       chave: 'status',
       titulo: 'Situação',
-      larguraMinima: 120,
+      larguraMinima: 150,
       render: (l) => (
-        <Badge tom={l.status === 'concluido' ? 'verde' : 'ambar'} tamanho="sm">
-          {l.status === 'concluido' ? 'Concluído' : 'Rascunho'}
-        </Badge>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Badge tom={l.status === 'concluido' ? 'verde' : 'ambar'} tamanho="sm">
+            {l.status === 'concluido' ? 'Concluído' : 'Rascunho'}
+          </Badge>
+          {pendentes.has(l.id) && (
+            <span
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#8A6D3B]"
+              title="Há resposta guardada neste aparelho que ainda não chegou ao servidor. Abra o questionário com internet para enviar."
+            >
+              <CloudOff size={12} aria-hidden="true" />
+              no aparelho
+            </span>
+          )}
+        </div>
       ),
     },
     {
+      /* Quantas de quantas, e não só a contagem: "12" não diz se falta muito. */
       chave: 'respostas',
       titulo: 'Respondidas',
-      larguraMinima: 110,
+      larguraMinima: 120,
       numerica: true,
-      render: (l) => Object.keys(l.respostas ?? {}).length,
+      render: (l) => {
+        const feitas = Object.keys(l.respostas ?? {}).length;
+        return (
+          <span className="tabular-nums">
+            {feitas}
+            {totalPerguntas ? <span className="text-[#8A9990]"> de {totalPerguntas}</span> : null}
+          </span>
+        );
+      },
     },
   ];
+
+  /* Coluna de apagar só existe para quem pode escrever, e o botão só aparece na
+     linha de rascunho. A regra de verdade é do servidor (DELETE recusa
+     concluído com 409); aqui é para não oferecer o que vai ser negado. */
+  if (podeEscrever) {
+    colunas.push({
+      chave: 'acoes',
+      titulo: '',
+      larguraMinima: 52,
+      render: (l) =>
+        l.status === 'concluido' ? null : (
+          <button
+            type="button"
+            aria-label={`Apagar o rascunho de ${fmtData(l.data_referencia)}`}
+            disabled={apagar.isPending}
+            onClick={(e) => {
+              // A linha inteira abre o questionário; sem isto, apagar abriria a
+              // tela do que acabou de ser apagado.
+              e.stopPropagation();
+              const feitas = Object.keys(l.respostas ?? {}).length;
+              const aviso = feitas
+                ? `Apagar este rascunho? ${feitas} resposta(s) serão perdidas.`
+                : 'Apagar este rascunho vazio?';
+              if (window.confirm(aviso)) apagar.mutate(l);
+            }}
+            className="p-1.5 rounded-lg text-[#8A9990] hover:text-[#C0392B] hover:bg-[#C0392B]/[0.08]
+              transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-2
+              focus-visible:ring-[#C0392B]/30"
+          >
+            <Trash2 size={15} aria-hidden="true" />
+          </button>
+        ),
+    });
+  }
 
   return (
     <div className="p-6 space-y-4">
@@ -174,6 +279,19 @@ export default function QuestionarioLista() {
 
       {modelo.descricao && (
         <p className="text-sm text-[#5C7060] max-w-3xl">{modelo.descricao}</p>
+      )}
+
+      {comPendencia > 0 && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-[#E8D9B8] bg-[#FDF8EE] px-4 py-3">
+          <CloudOff size={16} className="text-[#8A6D3B] mt-0.5 flex-shrink-0" aria-hidden="true" />
+          <p className="text-[13px] leading-relaxed text-[#7A6231]">
+            <strong className="font-semibold">
+              {comPendencia} questionário(s) com resposta guardada só neste aparelho.
+            </strong>{' '}
+            Abra cada um com internet e o envio acontece sozinho. Não limpe os dados do navegador
+            antes disso.
+          </p>
+        </div>
       )}
 
       <Cartao>

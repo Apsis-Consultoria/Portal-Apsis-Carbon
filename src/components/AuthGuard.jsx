@@ -255,14 +255,14 @@ export default function AuthGuard({ children }) {
         {/* O AVISO fica; o BOTAO de demonstracao saiu em 24/08/2026, a pedido do dono,
             depois de o login real com o Azure AD passar a funcionar em localhost.
 
-            O aviso continua porque ele diagnostica: sem SUPABASE_FUNCTIONS_URL na janela
+            O aviso continua porque ele diagnostica: sem SUPABASE_API_URL na janela
             que subiu o dev server, /api/app-config da 404, a config cai no default e o
             botao da Microsoft fica desabilitado. Sem esta frase, o sintoma seria um botao
             cinza sem explicacao nenhuma. */}
         {semConfigReal && (
           <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
             A configuração não veio do backend. Suba o dev server com
-            SUPABASE_FUNCTIONS_URL definida para habilitar o login real.
+            SUPABASE_API_URL definida para habilitar o login real.
           </p>
         )}
 

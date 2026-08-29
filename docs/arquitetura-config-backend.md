@@ -219,8 +219,15 @@ HTML e o erro aparece como um `JSON.parse` misterioso.
 
 ### Desenvolvimento (server.proxy do Vite)
 
-O `vite.config.js` registra o proxy a partir de `SUPABASE_FUNCTIONS_URL`. Note a
-ausencia do prefixo `VITE_`: e de proposito. **Sem o prefixo, o Vite se recusa a
+O `vite.config.js` registra o proxy a partir de `SUPABASE_API_URL`, que carrega
+**so o endereco do projeto** (`https://<REF>.supabase.co`). O `/functions/v1` e
+convencao do Supabase, igual em todo projeto, e por isso vive no codigo, na
+constante `CAMINHO_FUNCOES`: a variavel guarda so o que muda de ambiente para
+ambiente, e quem a preenche nao precisa saber a convencao - logo, nao pode
+erra-la. Valor antigo terminando em `/functions/v1` continua funcionando, com
+aviso no terminal.
+
+Note tambem a ausencia do prefixo `VITE_`: e de proposito. **Sem o prefixo, o Vite se recusa a
 expor a variavel ao navegador** - ela e lida pelo processo do Node que roda o
 `vite.config.js`, entao e impossivel ela cair no bundle, nem por engano de quem
 mexer no codigo depois. Pelo mesmo motivo, `VITE_EXPOR_REDE` foi renomeada para
@@ -231,7 +238,7 @@ PowerShell 5.1 nao aceita `&&`, e e `npm.cmd` porque `npm.ps1` esbarra na
 execution policy):
 
 ```powershell
-$env:SUPABASE_FUNCTIONS_URL = "https://<REF>.supabase.co/functions/v1"
+$env:SUPABASE_API_URL = "https://<REF>.supabase.co"
 npm.cmd run dev
 ```
 
@@ -290,7 +297,7 @@ verdade e foi medido no tamanho do bundle - nao e teoria. Pelo mesmo motivo,
 nunca envolva `MODO_DEMO` em `Boolean()`.
 
 Consequencia pratica no dia a dia: rodar `npm.cmd run dev` com
-`SUPABASE_FUNCTIONS_URL` definida da **login real em localhost**. A demonstracao
+`SUPABASE_API_URL` definida da **login real em localhost**. A demonstracao
 deixou de ser um modo em que o desenvolvedor fica preso e virou uma escolha por
 clique, que se desfaz fechando a aba (a chave vive no `sessionStorage`, nao no
 `localStorage`, exatamente para isso).
@@ -476,7 +483,7 @@ valor novo chega ao navegador em no maximo 60 segundos (`max-age=60`).
 
 | Tipo | Onde | Visivel ao navegador |
 | --- | --- | --- |
-| Endereco das Edge Functions | rewrite do Amplify em producao; `SUPABASE_FUNCTIONS_URL` no terminal em desenvolvimento | Nao: o navegador so ve `/api` |
+| Endereco das Edge Functions | rewrite do Amplify em producao; `SUPABASE_API_URL` no terminal em desenvolvimento | Nao: o navegador so ve `/api` |
 | Config que o frontend precisa (Azure, textos, flags) | `carbon_app_config`, `publico = true` | Sim, via `app-config` |
 | Config que so o backend precisa | `carbon_app_config`, `publico = false` | Nao |
 | Segredo (chave de integracao, token de terceiro) | `npx.cmd supabase secrets set NOME=valor` | Nunca |

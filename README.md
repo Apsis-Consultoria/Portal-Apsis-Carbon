@@ -76,7 +76,7 @@ uma variável **do processo do Vite**, não do navegador. São duas linhas, no
 **mesmo terminal** (PowerShell 5.1, sem `&&`):
 
 ```powershell
-$env:SUPABASE_FUNCTIONS_URL = "https://SEU-PROJETO.supabase.co/functions/v1"
+$env:SUPABASE_API_URL = "https://SEU-PROJETO.supabase.co"
 npm.cmd run dev
 ```
 
@@ -167,7 +167,7 @@ Quem faz a tradução, dos dois lados:
 | Ambiente          | Onde mora a regra                                          |
 | ----------------- | ---------------------------------------------------------- |
 | Produção          | Regra no console do AWS Amplify: origem `/api/<*>`, destino `https://SEU-PROJETO.supabase.co/functions/v1/<*>`, tipo `200 (rewrite)` |
-| Desenvolvimento   | `server.proxy` do `vite.config.js`, alimentado por `SUPABASE_FUNCTIONS_URL` |
+| Desenvolvimento   | `server.proxy` do `vite.config.js`, alimentado por `SUPABASE_API_URL` |
 
 Também não existe cliente `supabase-js` neste bundle, de propósito: ele só
 criaria a tentação de consultar uma tabela direto e pular a checagem de permissão.

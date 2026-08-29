@@ -16,8 +16,21 @@ frontend:
         #
         # Nada que identifique o projeto entra no bundle. Conferir depois do
         # build, no PowerShell:
-        #   Select-String -Path dist\assets\*.js -Pattern "supabase.co" -SimpleMatch
+        #
+        #   Select-String -Path dist\assets\*.js -Pattern "[a-z]{20}\.supabase\.co"
+        #
         # Nao pode devolver nada.
+        #
+        # O PADRAO E ESSE, e nao "supabase.co" simples, porque a busca simples da
+        # FALSO POSITIVO: a mensagem de erro do ConfigErrorScreen ensina a montar
+        # o rewrite e cita "https://SEU-PROJETO.supabase.co/functions/v1/<*>" como
+        # exemplo. Esse texto esta no bundle de proposito - e ajuda, nao endereco.
+        # Medido em 28/08/2026: a busca antiga acusava exatamente essa linha.
+        #
+        # Checagem que acusa o que nao e problema e pior do que checagem nenhuma:
+        # quem confere aprende a ignorar, e ela deixa de servir no dia em que o
+        # ref de verdade vazar. Os 20 caracteres do padrao sao o formato do ref
+        # do Supabase, que o placeholder em maiusculas nao casa.
         - npm run build
   artifacts:
     baseDirectory: dist
@@ -47,7 +60,7 @@ frontend:
 # E ela precisa vir ANTES do catch-all abaixo, na lista do console.
 #
 # EQUIVALENTE EM DESENVOLVIMENTO: o server.proxy do vite.config.js, alimentado
-# por SUPABASE_FUNCTIONS_URL - sem prefixo VITE_, para o Vite se recusar a expor
+# por SUPABASE_API_URL - sem prefixo VITE_, para o Vite se recusar a expor
 # a variavel ao navegador.
 #
 # SE HOUVER CLOUDFLARE NA FRENTE: a regra continua sendo do Amplify, que e quem
@@ -115,10 +128,27 @@ customHeaders:
       # alguem abrir a partir daqui.
       - key: 'Referrer-Policy'
         value: 'strict-origin-when-cross-origin'
-      # Nenhuma tela do Portal usa camera, microfone ou geolocalizacao. Negar por
-      # padrao evita que um script injetado peca permissao em nome do dominio.
+      # Camera, microfone e pagamento continuam negados: nenhuma tela usa, e
+      # negar por padrao evita que um script injetado peca permissao em nome do
+      # dominio.
+      #
+      # GEOLOCALIZACAO E A EXCECAO, e (self) e diferente de (). A lista VAZIA
+      # bloqueia inclusive a propria origem: nem o nosso codigo consegue chamar
+      # navigator.geolocation, por mais que a pessoa autorize no navegador.
+      # (self) libera so este dominio e continua barrando qualquer iframe.
+      #
+      # Quem usa: a capa do questionario de campo, que le a posicao ao abrir
+      # para preencher latitude, longitude, altitude e precisao. O formulario da
+      # ronda registra ponto de alerta de desmatamento, e ali a PRECISAO decide
+      # se vale mandar equipe ao local.
+      #
+      # ISTO NAO APARECE EM DESENVOLVIMENTO. localhost nao passa pelo Amplify,
+      # entao o cabecalho nao existe la e o GPS funciona; com a lista vazia,
+      # falharia so em producao, no campo, sem ninguem por perto para depurar.
+      # Quando o upload de foto e video entrar, camera e microphone vao precisar
+      # do mesmo (self).
       - key: 'Permissions-Policy'
-        value: 'camera=(), microphone=(), geolocation=(), payment=()'
+        value: 'camera=(), microphone=(), geolocation=(self), payment=()'
 
   - pattern: '/api/<*>'
     headers:
