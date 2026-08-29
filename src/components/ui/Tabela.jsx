@@ -13,8 +13,13 @@
  *
  * ACESSIBILIDADE: `legenda` é obrigatória na prática (vira <caption> visualmente
  * escondida), é ela que diz a quem usa leitor de tela o que a tabela lista. Linha
- * clicável é <tr> com role="button", tabIndex e tratamento de Enter e Espaço - sem
- * isso a navegação por teclado simplesmente não alcança a ação da linha.
+ * clicável recebe `tabIndex`, `aria-label` e tratamento de Enter e Espaço - sem isso
+ * a navegação por teclado não alcança a ação da linha.
+ *
+ * E NÃO recebe `role="button"`, o que mudou em 26/08/2026: aquele papel SUBSTITUÍA o
+ * papel implícito de linha, e o leitor de tela deixava de anunciar a posição e de
+ * associar célula a cabeçalho. Numa tela onde a informação está no cruzamento, isso
+ * apagava a tabela inteira para quem depende do leitor, em troca de dizer "botão".
  */
 
 import { WifiOff } from 'lucide-react';
@@ -110,7 +115,7 @@ export default function Tabela({
       <div className={`${superficie} overflow-hidden ${className}`}>
         {/* role="alert" para a falha ser anunciada, e sem prometer que recarregar
             resolve: sessão expirada e acesso suspenso têm tela própria. */}
-        <div role="alert" className="flex items-start gap-2 px-5 py-8 text-xs text-[#8A9990]">
+        <div role="alert" className="flex items-start gap-2 px-5 py-8 text-xs text-[#5C7060]">
           <WifiOff size={14} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
           <span className="leading-relaxed">
             {typeof erro === 'string' ? erro : mensagemErro}
@@ -139,8 +144,8 @@ export default function Tabela({
 
   const aoTeclarNaLinha = (evento, linha, indice) => {
     if (!onLinhaClick) return;
-    // Espaço e Enter são o contrato de teclado de um controle com role="button".
-    // O preventDefault no Espaço evita a página rolar junto.
+    // Espaço e Enter são o contrato de teclado esperado de qualquer elemento que
+    // aja como controle. O preventDefault no Espaço evita a página rolar junto.
     if (evento.key === 'Enter' || evento.key === ' ') {
       evento.preventDefault();
       onLinhaClick(linha, indice);
@@ -170,7 +175,7 @@ export default function Tabela({
                     key={coluna.chave}
                     scope="col"
                     style={estiloColuna(coluna)}
-                    className={`px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-[#8A9990] whitespace-nowrap ${alinhamento}`}
+                    className={`px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-[#5C7060] whitespace-nowrap ${alinhamento}`}
                   >
                     {coluna.titulo}
                   </th>
@@ -186,7 +191,16 @@ export default function Tabela({
                   key={chaveLinha ? chaveLinha(linha, indice) : (linha?.id ?? `linha-${indice}`)}
                   onClick={clicavel ? () => onLinhaClick(linha, indice) : undefined}
                   onKeyDown={clicavel ? (evento) => aoTeclarNaLinha(evento, linha, indice) : undefined}
-                  role={clicavel ? 'button' : undefined}
+                  /* SEM role="button" aqui, e isso mudou em 26/08/2026.
+                     `role="button"` SUBSTITUI o papel implícito de linha: o leitor
+                     de tela deixa de anunciar "linha 3 de 20", perde a associação
+                     entre célula e cabeçalho e a pessoa não consegue mais navegar a
+                     tabela por coluna. Numa tela como Contratos, onde a informação
+                     está justamente no cruzamento, isso apaga a tabela inteira para
+                     quem depende do leitor - em troca de anunciar "botão".
+                     `tabIndex` e `onKeyDown` sozinhos já dão o acesso por teclado e
+                     preservam a semântica; o rótulo abaixo é que diz o que a tecla
+                     Enter faz. */
                   tabIndex={clicavel ? 0 : undefined}
                   aria-label={clicavel && rotuloLinha ? rotuloLinha(linha, indice) : undefined}
                   className={`transition-colors ${clicavel ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1A4731]/30' : ''} hover:bg-[#F4F6F4]/60 ${classeLinha ? classeLinha(linha, indice) : ''}`}

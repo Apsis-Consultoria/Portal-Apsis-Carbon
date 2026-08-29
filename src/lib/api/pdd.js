@@ -1,4 +1,4 @@
-import { MODO_DEMO } from "@/lib/runtimeConfig";
+import { MODO_DEMO, MODO_DEMO_ATIVO } from "@/lib/runtimeConfig";
 import { cam, chamarApi, chamarDemo } from "@/lib/api/base";
 import {
   demoObterPdd,
@@ -9,12 +9,12 @@ import {
 /**
  * api/pdd - rotas do Project Design Document (issue #2).
  *
- * Sobre o modo demonstracao e o motivo de o `if (MODO_DEMO)` nao ter Boolean() em
+ * Sobre o modo demonstracao e o motivo de o `if (MODO_DEMO && MODO_DEMO_ATIVO())` nao ter Boolean() em
  * volta, ver o cabecalho de src/lib/api/projetos.js.
  */
 
 export async function obterPdd(msal, projetoId) {
-  if (MODO_DEMO) return chamarDemo(`/projetos/${projetoId}/pdd`, () => demoObterPdd(projetoId));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo(`/projetos/${projetoId}/pdd`, () => demoObterPdd(projetoId));
   return chamarApi(`/projetos/${cam(projetoId)}/pdd`, msal);
 }
 
@@ -24,7 +24,7 @@ export async function obterPdd(msal, projetoId) {
  * vezes nao duplica capitulo, so devolve criados = 0.
  */
 export async function criarPddDoTemplate(msal, projetoId) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/projetos/${projetoId}/pdd`, () => demoCriarPddDoTemplate(projetoId));
   }
   // Sem corpo de proposito: o standard vem do proprio projeto, no servidor.
@@ -32,7 +32,7 @@ export async function criarPddDoTemplate(msal, projetoId) {
 }
 
 export async function atualizarCapituloPdd(msal, capituloId, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/pdd-capitulos/${capituloId}`, () =>
       demoAtualizarCapituloPdd(capituloId, dados)
     );

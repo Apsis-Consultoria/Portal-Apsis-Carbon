@@ -197,6 +197,47 @@ export function lerNumero(valor: unknown, campo?: string): number | null {
   return n;
 }
 
+/**
+ * Numero decimal QUE PODE SER NEGATIVO, dentro de uma faixa declarada.
+ *
+ * POR QUE NAO DA PARA USAR lerNumero AQUI. Ele recusa negativo de proposito:
+ * nasceu para area em hectare e quantidade de credito, onde negativo nao
+ * significa nada e aceitar seria esconder um erro de digitacao. A premissa dele
+ * e boa, e simplesmente nao vale para coordenada geografica.
+ *
+ * O BRASIL INTEIRO TEM LATITUDE E LONGITUDE NEGATIVAS. O territorio onde estes
+ * formularios sao aplicados fica perto de -4,73 / -49,94. Usar lerNumero num
+ * campo de GPS faz toda coordenada real voltar 400 campo_invalido, e o
+ * formulario so falha para quem de fato marcou o ponto em campo - ou seja,
+ * exatamente para quem fez o trabalho direito.
+ *
+ * A FAIXA E OBRIGATORIA no chamador, e nao opcional com default generoso:
+ * latitude vai de -90 a 90 e longitude de -180 a 180, e trocar as duas de lugar
+ * e o erro classico de quem mexe com coordenada. Com a faixa declarada, uma
+ * longitude posta no campo de latitude e recusada aqui em vez de gravar um ponto
+ * no meio do oceano.
+ */
+export function lerDecimalComSinal(
+  valor: unknown,
+  { min, max }: { min: number; max: number },
+  campo?: string,
+): number | null {
+  if (valor === null || valor === undefined || valor === '') return null;
+
+  let bruto: unknown = valor;
+  if (typeof bruto === 'string') {
+    // Mesma regra de lerNumero: virgula decimal so quando nao ha ponto, porque
+    // coordenada digitada em pt-BR chega como "-4,7312".
+    if (!bruto.includes('.') && bruto.includes(',')) bruto = bruto.replace(',', '.');
+  }
+
+  const n = typeof bruto === 'number' ? bruto : Number(bruto);
+  if (!Number.isFinite(n) || n < min || n > max) {
+    throw new ErroRota('campo_invalido', 400, campo);
+  }
+  return n;
+}
+
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Data no formato YYYY-MM-DD, com conferencia de existencia (barra 2026-02-31). */
@@ -315,4 +356,47 @@ export function lancarErroEscrita(
   }
   console.error(`Falha de escrita em ${contexto}:`, erro.message);
   throw new ErroRota('erro_interno', 500);
+}
+
+// -----------------------------------------------------------------------------
+// Responsavel: do embed do PostgREST para campo plano
+// -----------------------------------------------------------------------------
+// O PROBLEMA QUE ISTO RESOLVE, achado numa auditoria em 25/08/2026: as telas de
+// PDD, Monitoring Report e Evidencias leem `responsavel_nome` e
+// `responsavel_email`, e as tres rotas devolviam apenas `responsavel_id`. A
+// coluna Responsavel nunca mostraria nome de pessoa - mostraria "Atribuido" e
+// pronto.
+//
+// Nao quebrava nada NO DIA da auditoria porque todo responsavel_id estava nulo,
+// e o texto saia certo por coincidencia. O defeito so apareceria quando alguem
+// atribuisse o primeiro responsavel, e o sintoma seria "o sistema nao mostra
+// quem e o responsavel", sem erro em lugar nenhum.
+//
+// EMBED SEM DICA DE CHAVE, de proposito: as tres tabelas tem UMA unica chave
+// estrangeira para carbon_usuarios (conferido no pg_constraint), entao nao ha a
+// ambiguidade PGRST201 que obrigou lerEquipe() em projetos.ts a fazer duas
+// consultas. Se um dia alguem acrescentar `criado_por` a uma delas, este embed
+// passa a exigir a dica `!nome_da_constraint` - e vai falhar alto, no primeiro
+// GET, e nao em silencio.
+
+/** Trecho de `.select()` que traz o responsavel junto. */
+export const EMBED_RESPONSAVEL = 'responsavel:carbon_usuarios(nome, email)';
+
+/**
+ * Transforma `{ responsavel: { nome, email } }` em `responsavel_nome` e
+ * `responsavel_email`, e remove o objeto aninhado.
+ *
+ * Achatar no SERVIDOR, e nao deixar o objeto aninhado para o frontend, mantem o
+ * contrato que as telas ja esperam - elas foram escritas antes deste embed
+ * existir. Mudar as telas seria mexer em tres arquivos grandes para ganhar
+ * nada.
+ */
+export function achatarResponsavel(linha: Record<string, unknown>): Record<string, unknown> {
+  const { responsavel, ...resto } = linha;
+  const pessoa = (responsavel ?? null) as { nome?: string; email?: string } | null;
+  return {
+    ...resto,
+    responsavel_nome: pessoa?.nome ?? null,
+    responsavel_email: pessoa?.email ?? null,
+  };
 }

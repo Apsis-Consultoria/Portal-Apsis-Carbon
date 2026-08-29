@@ -58,28 +58,34 @@ import type { ConfigApp, ConfigAzure } from '../_shared/azureAuth.ts';
 import { TODAS_AS_ROTAS } from './rotas/indice.ts';
 import type { Contexto, MetodoRota, RegistroUsuario, Rota, Usuario } from './rotas/tipos.ts';
 import { ErroRota, lerCorpo, UUID_RE } from './rotas/helpers.ts';
+import { podeEscrever } from './rotas/acesso.ts';
 
 const NOME_FUNCAO = 'carbon-api';
 
 /**
- * Papeis que podem escrever. Regra INICIAL e deliberadamente grossa: qualquer
- * colaborador ativo do dominio le, so admin e gestor escrevem. O refinamento por
- * projeto (quem participa de qual projeto) entra quando existir a issue de
- * permissao por projeto; antes disso nao vale inventar um modelo intermediario.
+ * AUTORIZACAO, em duas metades que vivem em lugares diferentes.
  *
- * PENDENCIA CONHECIDA, VALE PARA A LEITURA (nao e "definitivo por decisao"):
- * garantirUsuario faz upsert a cada requisicao e carbon_usuarios nasce com papel
- * 'colaborador' e ativo = true, portanto QUALQUER conta do tenant que fizer o
- * primeiro login passa a ler /projetos e /projetos/:id/pdd - nome, proponente,
- * registro_id, areas, periodo de creditacao e a geometria em GeoJSON de todos os
- * projetos. Isso e mais frouxo do que /modulos, que exige linha em
- * carbon_usuario_modulos justamente para material sensivel nao vazar para o
- * dominio inteiro. Foi aceito para a entrega inicial (a base ainda esta vazia e
- * sem projeto real), mas precisa de portao antes de entrar dado de cliente:
- * liberacao explicita por modulo ou equipe por projeto. Registrado como pendencia
- * no contexto do projeto.
+ *   ESCRITA   por PAPEL, conferida aqui, uma vez, antes de qualquer handler
+ *             rodar. E uma pergunta sobre a PESSOA: admin e gestor escrevem.
+ *   LEITURA   por PARTICIPACAO em carbon_projeto_equipe, conferida DENTRO da
+ *             consulta que traz o dado (ver comVisibilidade em rotas/projetos.ts).
+ *             E uma pergunta sobre a pessoa E a linha, e por isso nao pode ser
+ *             resolvida aqui: separar "conferir" de "ler" abriria uma janela
+ *             entre as duas consultas.
+ *
+ * Admin enxerga todos os projetos; gestor NAO. Se gestor visse tudo, o portao
+ * valeria para menos da metade do time. Quem precisa de visao de carteira recebe
+ * papel admin nominalmente, e nao como efeito colateral de poder editar.
+ *
+ * As duas funcoes vivem em rotas/acesso.ts, que importa apenas tipos.ts, para os
+ * modulos de rota poderem usa-las sem criar ciclo de import com este arquivo.
+ *
+ * HISTORICO: ate 22/08/2026 a leitura passava com qualquer colaborador ativo do
+ * dominio, porque garantirUsuario cria a linha sozinha no primeiro login. Isso
+ * expunha nome, proponente, registro, areas, periodo de creditacao e geometria de
+ * TODOS os projetos a qualquer conta do tenant. Fechado pela migration
+ * 20260822090000_projeto_equipe, antes de entrar dado de cliente real.
  */
-const PAPEIS_ESCRITA = new Set(['admin', 'gestor']);
 
 // -----------------------------------------------------------------------------
 // Roteamento
@@ -308,11 +314,6 @@ async function garantirUsuario(usuario: Usuario): Promise<RegistroUsuario | null
   return data as RegistroUsuario;
 }
 
-/** Autorizacao de escrita. Ver comentario de PAPEIS_ESCRITA. */
-function podeEscrever(registro: RegistroUsuario): boolean {
-  return PAPEIS_ESCRITA.has(String(registro.papel ?? '').toLowerCase());
-}
-
 // -----------------------------------------------------------------------------
 // Handler
 // -----------------------------------------------------------------------------
@@ -361,9 +362,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return respostaErro('usuario_inativo', 403);
     }
 
-    // Escrita so para admin e gestor. A leitura hoje passa com qualquer
-    // colaborador ativo do dominio, o que e uma PENDENCIA e nao uma decisao final:
-    // ver o comentario de PAPEIS_ESCRITA antes de considerar isso resolvido.
+    // Escrita so para admin e gestor. A leitura NAO se decide aqui: ela e por
+    // participacao no projeto e e aplicada dentro da consulta. Ver o comentario
+    // de AUTORIZACAO no topo deste arquivo.
     if (casamento.rota.escrita && !podeEscrever(registro)) {
       return respostaErro('sem_permissao', 403);
     }
@@ -380,6 +381,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       params: casamento.params,
       corpo,
       url,
+      // Normalizado aqui, uma vez. Ver a nota do campo em rotas/tipos.ts.
+      dominio: String(cfg.app.dominioPermitido ?? '').trim().toLowerCase(),
     };
 
     return await casamento.rota.handler(ctx);

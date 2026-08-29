@@ -38,7 +38,7 @@ import {
   atualizarPendencia,
   removerPendencia,
 } from '@/lib/api/reunioes';
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { createPageUrl } from '@/utils';
 import Cartao from '@/components/ui/Cartao';
 import CabecalhoSecao from '@/components/ui/CabecalhoSecao';
@@ -170,7 +170,7 @@ export default function ReuniaoAta() {
   const { instance, accounts } = useMsal();
   const msal = useMemo(() => ({ instance, accounts }), [instance, accounts]);
   const autenticado = (accounts?.length ?? 0) > 0;
-  const habilitado = (MODO_DEMO || autenticado) && Boolean(reuniaoId);
+  const habilitado = ((MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado) && Boolean(reuniaoId);
   const queryClient = useQueryClient();
 
   const chaveQuery = ['carbon', 'reuniao', reuniaoId];

@@ -165,6 +165,16 @@ const NUMERICOS_PARCELA = ['valor'];
 // Utilitarios
 // -----------------------------------------------------------------------------
 
+// POR QUE OS CASTS DESTE ARQUIVO SAO `as unknown as`, e nao `as` direto:
+// varias consultas aqui montam a lista de colunas em RUNTIME (o conjunto
+// depende do papel de quem pergunta). O supabase-js so consegue inferir o
+// tipo do retorno quando a string do .select() e literal; com string
+// calculada ele devolve GenericStringError, que e `{ error: true } & String`
+// e nao tem index signature - o cast direto vira erro TS2352.
+//
+// NAO simplifique para `as` de novo: compila hoje porque o arquivo estava
+// fora do indice.ts e nunca era checado. Desde 25/08/2026 ele e checado.
+
 type Linha = Record<string, unknown>;
 
 /**
@@ -534,7 +544,7 @@ async function criarFornecedor(ctx: Contexto): Promise<Response> {
   if (error) lancarErroEscrita(error as ErroBanco, 'carbon_fornecedores', 'cnpj_invalido');
 
   return respostaJson(
-    { fornecedor: await responderFornecedor(ctx.admin, data as Linha, ctx.registro) },
+    { fornecedor: await responderFornecedor(ctx.admin, data as unknown as Linha, ctx.registro) },
     201,
   );
 }
@@ -567,8 +577,8 @@ async function obterFornecedor(ctx: Contexto): Promise<Response> {
   }
 
   return respostaJson({
-    fornecedor: await responderFornecedor(ctx.admin, fornecedor.data as Linha, ctx.registro),
-    contratos: normalizarLista((contratos.data ?? []) as Linha[], NUMERICOS_CONTRATO),
+    fornecedor: await responderFornecedor(ctx.admin, fornecedor.data as unknown as Linha, ctx.registro),
+    contratos: normalizarLista((contratos.data ?? []) as unknown as Linha[], NUMERICOS_CONTRATO),
   });
 }
 
@@ -587,7 +597,7 @@ async function atualizarFornecedor(ctx: Contexto): Promise<Response> {
   if (!data) return respostaErro('nao_encontrado', 404);
 
   return respostaJson({
-    fornecedor: await responderFornecedor(ctx.admin, data as Linha, ctx.registro),
+    fornecedor: await responderFornecedor(ctx.admin, data as unknown as Linha, ctx.registro),
   });
 }
 
@@ -732,7 +742,7 @@ async function lerContratoDetalhe(
     throw new ErroRota('erro_interno', 500);
   }
   if (!data) return null;
-  return normalizar(data as Linha, NUMERICOS_CONTRATO);
+  return normalizar(data as unknown as Linha, NUMERICOS_CONTRATO);
 }
 
 async function criarContrato(ctx: Contexto): Promise<Response> {
@@ -772,7 +782,7 @@ async function obterContrato(ctx: Contexto): Promise<Response> {
 
   return respostaJson({
     contrato,
-    parcelas: normalizarLista((parcelas.data ?? []) as Linha[], NUMERICOS_PARCELA),
+    parcelas: normalizarLista((parcelas.data ?? []) as unknown as Linha[], NUMERICOS_PARCELA),
     totais,
   });
 }
@@ -847,7 +857,7 @@ async function listarParcelas(ctx: Contexto): Promise<Response> {
   }
 
   return respostaJson({
-    parcelas: normalizarLista((lista.data ?? []) as Linha[], NUMERICOS_PARCELA),
+    parcelas: normalizarLista((lista.data ?? []) as unknown as Linha[], NUMERICOS_PARCELA),
     total: lista.count ?? (lista.data ?? []).length,
     pagina,
     limite,
@@ -869,7 +879,7 @@ async function lerParcelaDetalhe(admin: SupabaseClient, id: string): Promise<Lin
     throw new ErroRota('erro_interno', 500);
   }
   if (!data) return null;
-  return normalizar(data as Linha, NUMERICOS_PARCELA);
+  return normalizar(data as unknown as Linha, NUMERICOS_PARCELA);
 }
 
 /**
@@ -1048,7 +1058,7 @@ async function gerarParcelas(ctx: Contexto): Promise<Response> {
   return respostaJson({
     geracao,
     contrato,
-    parcelas: normalizarLista((parcelas.data ?? []) as Linha[], NUMERICOS_PARCELA),
+    parcelas: normalizarLista((parcelas.data ?? []) as unknown as Linha[], NUMERICOS_PARCELA),
     totais,
   }, 201);
 }

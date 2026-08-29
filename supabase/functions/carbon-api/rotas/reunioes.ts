@@ -39,6 +39,7 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { respostaErro, respostaJson } from '../../_shared/cors.ts';
 import type { Contexto, Rota } from './tipos.ts';
+import { lerProjetoVisivel } from './projetos.ts';
 import {
   ErroRota,
   type ErroBanco,
@@ -371,6 +372,14 @@ async function listar(ctx: Contexto): Promise<Response> {
   const parceiroBruto = (q.get('parceiro') ?? '').trim();
   if (parceiroBruto.length > LIMITE_TEXTO_CURTO) {
     throw new ErroRota('campo_invalido', 400, 'parceiro');
+  }
+
+  // PORTAO NA LEITURA. Sem isto, qualquer colaborador ativo do dominio pedia
+  // ?projeto_id=<uuid de outro projeto> e recebia o conteudo dele - segunda
+  // porta para o dado que /projetos protege, e oraculo de ids para as rotas
+  // de escrita. Achado na auditoria de 26/08/2026.
+  if (projetoId && !(await lerProjetoVisivel(ctx, projetoId))) {
+    return respostaErro('nao_encontrado', 404);
   }
 
   const { data, error } = await ctx.admin.rpc('carbon_reunioes_listar', {

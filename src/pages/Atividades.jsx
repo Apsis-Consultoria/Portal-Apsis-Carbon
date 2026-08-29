@@ -32,7 +32,7 @@ import {
   Trash2, ChevronDown, ChevronRight, FolderTree, User, CalendarDays, ArrowRight,
 } from 'lucide-react';
 
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { createPageUrl } from '@/utils';
 import {
   listarAtividades,
@@ -43,7 +43,7 @@ import {
   removerApontamento,
   obterResumoHoras,
 } from '@/lib/api/atividades';
-import { listarProjetos } from '@/lib/api/projetos';
+import { listarProjetos, normalizarListaProjetos } from '@/lib/api/projetos';
 
 import Cartao from '@/components/ui/Cartao';
 import CabecalhoSecao from '@/components/ui/CabecalhoSecao';
@@ -1007,7 +1007,7 @@ export default function Atividades() {
   const { instance, accounts } = useMsal();
   const msal = useMemo(() => ({ instance, accounts }), [instance, accounts]);
   const autenticado = (accounts?.length ?? 0) > 0;
-  const habilitado = MODO_DEMO || autenticado;
+  const habilitado = (MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado;
   const queryClient = useQueryClient();
 
   const [view, setView] = useState('andamento');
@@ -1039,8 +1039,9 @@ export default function Atividades() {
   const projetosQuery = useQuery({
     queryKey: ['carbon', 'projetos'],
     queryFn: async () => {
-      const resposta = await listarProjetos(msal);
-      return Array.isArray(resposta) ? resposta : (resposta?.projetos ?? []);
+      /* normalizarListaProjetos: a chave ['carbon', 'projetos'] é compartilhada; ler o
+         envelope aqui é o que impede outra tela de encontrar um formato diferente. */
+      return normalizarListaProjetos(await listarProjetos(msal));
     },
     enabled: habilitado,
   });
@@ -1067,7 +1068,7 @@ export default function Atividades() {
   });
 
   const atividades = atividadesQuery.data ?? [];
-  const projetos = projetosQuery.data ?? [];
+  const projetos = projetosQuery.data?.projetos ?? [];
 
   const invalidar = () => {
     queryClient.invalidateQueries({ queryKey: ['carbon', 'atividades'] });

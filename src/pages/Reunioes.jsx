@@ -28,7 +28,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Handshake, Plus, Pencil, Repeat, ArrowRight, ClipboardList, ShieldCheck,
-  FileText, ListChecks, CalendarDays, ChevronLeft, ChevronRight, Filter,
+  FileText, ListChecks, CalendarDays, ChevronLeft, ChevronRight, Filter, Video,
 } from 'lucide-react';
 import {
   listarReunioes,
@@ -36,8 +36,8 @@ import {
   atualizarReuniao,
   gerarSerieReunioes,
 } from '@/lib/api/reunioes';
-import { listarProjetos } from '@/lib/api/projetos';
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { listarProjetos, normalizarListaProjetos } from '@/lib/api/projetos';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { montarUrl } from '@/lib/pageRoutes';
 import Cartao from '@/components/ui/Cartao';
 import CabecalhoSecao from '@/components/ui/CabecalhoSecao';
@@ -45,6 +45,14 @@ import Tabela from '@/components/ui/Tabela';
 import Badge from '@/components/ui/Badge';
 import Campo from '@/components/ui/Campo';
 import PainelLateral from '@/components/ui/PainelLateral';
+import PainelTeams from '@/components/PainelTeams';
+import CamposTeams, {
+  formTeamsVazio,
+  participantesInvalidos,
+  payloadTeams,
+} from '@/components/CamposTeams';
+import { criarReuniaoTeams } from '@/lib/api/reunioesteams';
+import { useAuth } from '@/lib/AuthContext';
 import AvisoDiscreto from '@/components/ui/AvisoDiscreto';
 import BotaoPrimario from '@/components/ui/BotaoPrimario';
 import BotaoSecundario from '@/components/ui/BotaoSecundario';
@@ -297,10 +305,13 @@ function FormularioReuniao({ form, setForm, editando, opcoesProjeto, avisoProjet
 /* ===== Página ============================================================= */
 
 export default function Reunioes() {
+  const { usuario } = useAuth();
+  const emailOrganizador = usuario?.email ?? '';
+
   const { instance, accounts } = useMsal();
   const msal = useMemo(() => ({ instance, accounts }), [instance, accounts]);
   const autenticado = (accounts?.length ?? 0) > 0;
-  const habilitado = MODO_DEMO || autenticado;
+  const habilitado = (MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado;
   const queryClient = useQueryClient();
 
   const [filtros, setFiltros] = useState({ escopo: '', tipo: '', parceiro: '' });
@@ -342,8 +353,9 @@ export default function Reunioes() {
   const projetosQuery = useQuery({
     queryKey: ['carbon', 'projetos'],
     queryFn: async () => {
-      const resposta = await listarProjetos(msal);
-      return Array.isArray(resposta) ? resposta : (resposta?.projetos ?? []);
+      /* normalizarListaProjetos: a chave ['carbon', 'projetos'] é compartilhada; ler o
+         envelope aqui é o que impede outra tela de encontrar um formato diferente. */
+      return normalizarListaProjetos(await listarProjetos(msal));
     },
     enabled: habilitado,
   });
@@ -351,7 +363,7 @@ export default function Reunioes() {
   const reunioes = reunioesQuery.data?.reunioes ?? [];
   const total = reunioesQuery.data?.total ?? 0;
   const resumo = reunioesQuery.data?.resumo ?? null;
-  const projetos = projetosQuery.data ?? [];
+  const projetos = projetosQuery.data?.projetos ?? [];
 
   const opcoesProjeto = useMemo(
     () => [
@@ -384,6 +396,7 @@ export default function Reunioes() {
 
   const abrirNova = () => {
     setForm(FORM_VAZIO);
+    setFormTeams(formTeamsVazio(emailOrganizador));
     setPainel({ modo: 'criar', reuniao: null });
   };
 
@@ -393,14 +406,54 @@ export default function Reunioes() {
   };
 
   const salvar = useMutation({
-    mutationFn: async ({ id, payload }) =>
-      id ? atualizarReuniao(msal, id, payload) : criarReuniao(msal, payload),
-    onSuccess: (_resposta, variaveis) => {
+    /*
+     * DUAS CHAMADAS, uma transação de mentira, e a escolha é deliberada.
+     *
+     * Criar a reunião e criar o evento no Teams são dois sistemas diferentes
+     * (nosso banco e o Microsoft Graph) e não há transação que abranja os dois.
+     * A ordem é reunião primeiro: o evento precisa do id dela.
+     *
+     * SE O TEAMS FALHAR, a reunião FICA. Desfazer seria pior: a pessoa
+     * preencheu título, data, tipo e parceiro, e perder tudo porque o Graph
+     * estava fora do ar é castigo por um problema que não é dela. O aviso diz o
+     * que aconteceu e o que fazer - o painel de edição tem o botão para tentar
+     * de novo.
+     */
+    mutationFn: async ({ id, payload, teams }) => {
+      const reuniao = id
+        ? await atualizarReuniao(msal, id, payload)
+        : await criarReuniao(msal, payload);
+
+      if (!teams) return { reuniao, teams: null };
+
+      const idNovo = id ?? reuniao?.reuniao?.id ?? reuniao?.id;
+      if (!idNovo) return { reuniao, teams: null, avisoTeams: 'sem_id' };
+
+      try {
+        return { reuniao, teams: await criarReuniaoTeams(msal, idNovo, teams) };
+      } catch (e) {
+        return { reuniao, teams: null, avisoTeams: e?.message || 'falha' };
+      }
+    },
+    onSuccess: (resultado, variaveis) => {
       queryClient.invalidateQueries({ queryKey: ['carbon', 'reunioes'] });
       if (variaveis?.id) {
         queryClient.invalidateQueries({ queryKey: ['carbon', 'reuniao', variaveis.id] });
       }
-      toast.success(variaveis?.id ? 'Reunião atualizada.' : 'Reunião criada.');
+
+      if (resultado?.avisoTeams) {
+        // A reunião existe; só o evento não. Aviso e não erro, porque metade do
+        // trabalho deu certo e some da tela se o toast for vermelho.
+        toast.warning(
+          `Reunião criada, mas o evento no Teams não: ${resultado.avisoTeams} ` +
+            'Abra a reunião em Editar para tentar de novo.',
+          { duration: 9000 },
+        );
+      } else if (resultado?.teams) {
+        toast.success('Reunião criada no portal e no Teams. Os convites foram enviados.');
+      } else {
+        toast.success(variaveis?.id ? 'Reunião atualizada.' : 'Reunião criada.');
+      }
       fecharPainel();
     },
     onError: (erro) => toast.error(erro?.message || 'Não foi possível salvar a reunião.'),
@@ -434,6 +487,10 @@ export default function Reunioes() {
     onError: (erro) => toast.error(erro?.message || 'Não foi possível gerar a série.'),
   });
 
+  /* Estado dos campos do Teams durante a CRIAÇÃO. Na edição quem cuida é o
+     PainelTeams, que fala direto com a API porque a reunião já existe. */
+  const [formTeams, setFormTeams] = useState(() => formTeamsVazio(emailOrganizador));
+
   const enviar = () => {
     let payload;
     try {
@@ -444,7 +501,39 @@ export default function Reunioes() {
       toast.error(erro?.message || 'Revise os campos do formulário.');
       return;
     }
-    salvar.mutate({ id: painel?.modo === 'editar' ? painel.reuniao?.id : null, payload });
+    const editando = painel?.modo === 'editar';
+
+    /* O Teams é validado AQUI, e não no servidor. Lá a recusa chega depois de a
+       reunião já estar gravada, e o resultado é "reunião criada, mas o evento no
+       Teams não" - um registro pela metade por causa de uma letra ou de uma hora
+       trocada. As três checagens espelham o que a Edge Function recusa com 400
+       (campo_obrigatorio, participante_invalido e fim_antes_do_inicio). */
+    if (!editando && formTeams.ativo) {
+      if (!formTeams.hora_inicio || !formTeams.hora_fim) {
+        toast.error('Preencha o horário de início e de término da reunião no Teams.');
+        return;
+      }
+      // Comparação de string funciona porque o input time entrega sempre HH:MM
+      // com dois dígitos, que é lexicograficamente ordenável.
+      if (formTeams.hora_fim <= formTeams.hora_inicio) {
+        toast.error('O término da reunião no Teams precisa ser depois do início.');
+        return;
+      }
+      if (participantesInvalidos(formTeams.participantes) > 0) {
+        toast.error('Há e-mail de participante sem @. Corrija antes de salvar.');
+        return;
+      }
+    }
+
+    /* Na criação, o Teams vai JUNTO: quem preencheu os campos espera que a
+       reunião nasça com o evento e os convites, não que precise reabrir em
+       "editar" para completar. O encadeamento é feito no onSuccess do salvar
+       (ver `teamsDaCriacao`), porque só ali existe o id da reunião. */
+    salvar.mutate({
+      id: editando ? painel.reuniao?.id : null,
+      payload,
+      teams: editando ? null : payloadTeams(formTeams),
+    });
   };
 
   const enviarSerie = () => {
@@ -751,6 +840,40 @@ export default function Reunioes() {
           opcoesProjeto={opcoesProjeto}
           avisoProjetos={avisoProjetos}
         />
+
+        {/* O Teams só aparece ao EDITAR, nunca ao criar: o evento precisa de uma
+            reunião com id e data já gravados, e a data do evento vem do registro.
+            Oferecer o painel numa reunião que ainda não existe daria um botão que
+            só pode falhar. */}
+        <div className="mt-6 pt-5 border-t border-[#DDE3DE]">
+          <div className="flex items-center gap-2 mb-3">
+            <Video size={15} className="text-[#5C7060]" aria-hidden="true" />
+            <h3 className="text-sm font-semibold text-[#1A2B1F]">Microsoft Teams</h3>
+          </div>
+
+          {/* Os campos aparecem NOS DOIS momentos, e isso mudou em 26/08/2026.
+              Antes só existiam ao editar, então quem criava uma reunião salvava,
+              reabria e só ali descobria que faltava preencher o Teams: duas idas
+              para uma tarefa só.
+
+              Na CRIAÇÃO os campos são controlados por esta tela e enviados logo
+              depois de a reunião nascer (ver a mutation `salvar`), porque o
+              evento precisa do id. Na EDIÇÃO quem manda é o PainelTeams, que já
+              tem o id e fala direto com a API. */}
+          {painel?.modo === 'editar' && painel?.reuniao?.id ? (
+            <PainelTeams
+              reuniao={painel.reuniao}
+              aoMudar={() => reunioesQuery.refetch()}
+            />
+          ) : (
+            <CamposTeams
+              valor={formTeams}
+              aoMudar={setFormTeams}
+              emailOrganizador={emailOrganizador}
+              dataReuniao={form.data}
+            />
+          )}
+        </div>
       </PainelLateral>
 
       {/* ===== Painel da série recorrente ===== */}

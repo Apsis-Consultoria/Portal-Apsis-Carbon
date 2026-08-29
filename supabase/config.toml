@@ -19,3 +19,15 @@ verify_jwt = false
 # (supabase/functions/_shared/azureAuth.ts) contra o JWKS da Microsoft.
 [functions.carbon-api]
 verify_jwt = false
+
+# carbon-secure-share-upload recebe o MESMO ID token do Azure AD que a carbon-api
+# (src/lib/api/base.js, enviarFormData) e valida sozinha, com o mesmo
+# validarTokenAzure. Existe em funcao separada porque o roteador da carbon-api le
+# todo corpo nao-GET como JSON, e arquivo e binario.
+#
+# Sem este bloco a plataforma responde 401 ANTES do nosso codigo rodar, e como o
+# 401 do gateway nao traz `{ erro: ... }`, a tela mostra a mensagem generica
+# "O servidor retornou HTTP 401 em carbon-secure-share-upload" - que parece
+# problema de sessao e nao de configuracao de deploy.
+[functions.carbon-secure-share-upload]
+verify_jwt = false

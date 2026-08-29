@@ -1,0 +1,94 @@
+name: Deploy Supabase Edge Functions
+
+# POR QUE ESTE WORKFLOW EXISTE, e nao e so conveniencia: publicar pela CLI nesta
+# maquina virou uma fonte propria de erro. A credencial do `supabase login` nao
+# persiste (o CLI reclama de ...\.supabase\profile e o proximo comando ja da 401),
+# e cada janela do PowerShell acabava com uma credencial diferente - uma com
+# SUPABASE_ACCESS_TOKEN no ambiente, outra sem, produzindo 403 e 401 pelo MESMO
+# comando. Duas horas foram gastas nisso em 24/08/2026.
+#
+# Aqui a credencial vive num secret do repositorio, colada uma unica vez num
+# formulario do navegador, e vale para todo mundo que faz push.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+  # Permite publicar sem push, pela aba Actions, quando so o secret mudou ou
+  # quando um deploy anterior falhou por causa de rede.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      # Nao cancela as outras se uma falhar: cada funcao e independente, e
+      # abortar tudo por causa de uma deixaria o conjunto meio publicado.
+      fail-fast: false
+      # ATENCAO: esta lista e escrita a mao e NAO e derivada da pasta
+      # supabase/functions. Funcao nova sem linha aqui nunca e publicada, e o
+      # sintoma e um 404 do gateway - que nao traz {erro:...} e aparece na tela
+      # como falha generica, sem pista da causa.
+      matrix:
+        function:
+          - app-config
+          - carbon-api
+          - carbon-secure-share-upload
+    steps:
+      - uses: actions/checkout@v4
+
+      # Falha cedo e com mensagem util, em vez do 401 cru da Management API.
+      - name: Verifica os secrets do deploy
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          faltou=0
+          if [ -z "$TOKEN" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN nao configurado."
+            echo "Gere em https://supabase.com/dashboard/account/tokens e adicione em Settings > Secrets and variables > Actions."
+            faltou=1
+          fi
+          if [ -z "$PROJECT_REF" ]; then
+            echo "::error::SUPABASE_PROJECT_REF nao configurado (o ref do projeto Supabase do Apsis Carbon)."
+            faltou=1
+          fi
+          exit $faltou
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # O `functions deploy` NAO faz typecheck. Sem este passo, um import morto
+      # ou um tipo errado sobe e vira erro de link no boot do isolate: todas as
+      # rotas respondem 500, e o navegador ve isso como erro de CORS, porque a
+      # resposta sai sem cabecalho nenhum. Barato aqui, caro em producao.
+      - name: Typecheck
+        working-directory: supabase/functions
+        run: deno check app-config/index.ts carbon-api/index.ts
+
+      - name: Testes
+        working-directory: supabase/functions
+        run: deno test --allow-env carbon-api/testes/
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # --no-verify-jwt: quem autoriza NAO e o JWT do Supabase Auth, e sim o ID
+      # token do Azure AD, validado contra o JWKS da Microsoft dentro da propria
+      # funcao (_shared/azureAuth.ts). A verificacao nativa da plataforma
+      # recusaria toda requisicao legitima, antes de o nosso codigo rodar.
+      #
+      # O project ref vem de secret e nao fica escrito aqui: ele identifica o
+      # projeto Supabase da APSIS, e a arquitetura /api existe justamente para
+      # esse endereco nao circular (ver src/lib/endpoint.js).
+      - name: Publica ${{ matrix.function }}
+        run: supabase functions deploy ${{ matrix.function }} --project-ref "$PROJECT_REF" --no-verify-jwt
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}

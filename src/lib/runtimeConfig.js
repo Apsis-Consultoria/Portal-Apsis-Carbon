@@ -1,13 +1,17 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY, urlFuncao } from "@/lib/supabaseClient";
+import { caminhoFuncao } from "@/lib/endpoint";
 
 /**
  * runtimeConfig - configuracao de runtime do Apsis Carbon.
  *
- * DECISAO ARQUITETURAL: o frontend conhece apenas VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
- * (publicas por design). Todo o resto (clientId/tenantId do Azure AD, dominio permitido,
- * textos e imagens do login, feature flags) vem da tabela carbon_app_config via Edge Function
- * publica "app-config". Assim, trocar o tenant do Azure ou o texto do login e um UPDATE no
- * banco, sem rebuild nem redeploy do frontend.
+ * DECISAO ARQUITETURAL: o frontend NAO TEM VARIAVEL DE AMBIENTE NENHUMA. Nem URL de
+ * Supabase, nem anon key. TUDO (clientId/tenantId do Azure AD, dominio permitido, textos
+ * e imagens do login, feature flags) vem da tabela carbon_app_config pela Edge Function
+ * publica "app-config", alcancada pelo caminho relativo /api/app-config. Assim, trocar o
+ * tenant do Azure ou o texto do login e um UPDATE no banco, sem rebuild nem redeploy.
+ *
+ * Quem traduz /api para o Supabase e a HOSPEDAGEM, por rewrite. Ver src/lib/endpoint.js
+ * para o porque: com a URL do projeto no bundle, qualquer pessoa bate direto nas Edge
+ * Functions, fora do nosso dominio, sem log, WAF nem limite de taxa.
  *
  * Segredos de verdade (service_role key, chaves de integracao) existem SOMENTE como secrets
  * das Edge Functions e nunca chegam ao navegador.
@@ -67,61 +71,61 @@ export const CONFIG_DEFAULT = {
 };
 
 /**
- * MODO_DEMO - permite revisar o visual (login + boas-vindas) antes do Supabase existir.
- * So liga em dev E com a env explicita. Em build de producao e sempre false por forca:
- * import.meta.env.DEV e estatico, entao o bundler ate elimina o ramo do demo no build.
+ * MODO_DEMO - permite revisar as telas sem backend.
  *
- * SEM Boolean() DE PROPOSITO. Os dois lados sao booleanos (DEV e boolean e o outro lado
- * e uma comparacao), portanto o wrapper nao mudava o VALOR - mas mudava o BUILD: com
- * Boolean(...) o Rollup nao dobra a expressao para a constante false, os ramos
- * `if (MODO_DEMO)` sobrevivem ao tree-shaking e o modulo src/lib/demoProjetos.js ia
- * inteiro para o bundle de producao, projeto ficticio incluso. Sem o wrapper a expressao
- * vira `false && ...`, dobra para false, e as funcoes demo* saem do bundle (medido: 6 KB).
- * Ver a nota de bundle em demoProjetos.js sobre o resto que ainda sobra de proposito.
+ * SEM VARIAVEL DE AMBIENTE. O gatilho de BUILD e `import.meta.env.DEV`, que o
+ * proprio Vite substitui (true em `vite dev`, false em `vite build`). Antes isto
+ * dependia de VITE_CARBON_DEMO, e o dono pediu zero variavel no frontend.
+ *
+ * SEM Boolean() DE PROPOSITO. Com o wrapper o Rollup nao dobra a expressao para
+ * a constante false, os ramos `if (MODO_DEMO)` sobrevivem ao tree-shaking e os
+ * datasets ficticios inteiros vao para o bundle de producao. Medido: 6 KB so em
+ * demoProjetos.js.
  */
-export const MODO_DEMO = import.meta.env.DEV && import.meta.env.VITE_CARBON_DEMO === "true";
+export const MODO_DEMO = import.meta.env.DEV;
+
+/**
+ * Chave que o AuthGuard grava ao clicar em "Entrar em modo demonstracao".
+ * sessionStorage e nao localStorage: o estado morre ao fechar a aba.
+ */
+const CHAVE_DEMO = "carbonModoDemoAtivo";
+
+/**
+ * O modo demonstracao esta ATIVO nesta aba?
+ *
+ * DUAS condicoes, e as duas importam:
+ *
+ *   MODO_DEMO   constante de build. Em producao e false, o `&&` curto-circuita
+ *               e o Rollup remove a chamada junto com o modulo de dados;
+ *   a flag      ligada apenas pelo botao. Sem ela, `npm run dev` apontado para
+ *               um Supabase de verdade continua falando com a rede - que e
+ *               exatamente o que se quer ao testar de fato.
+ *
+ * E FUNCAO, e nao constante, porque a segunda condicao muda em tempo de
+ * execucao: a pessoa entra em demonstracao, sai, e entra com a conta real.
+ */
+export function MODO_DEMO_ATIVO() {
+  if (!MODO_DEMO) return false;
+  try {
+    return sessionStorage.getItem(CHAVE_DEMO) === "true";
+  } catch {
+    // Navegacao privada pode negar sessionStorage. Sem persistencia, sem demo.
+    return false;
+  }
+}
 
 const TIMEOUT_MS = 8000;
 
-// Placeholders do .env.example. Se chegarem aqui, ninguem preencheu o arquivo.
-const PLACEHOLDERS_URL = ["SEU-PROJETO", "SEU_PROJETO", "SEUPROJETO"];
-const PLACEHOLDERS_KEY = ["COLE_A_ANON_KEY_AQUI", "COLE-A-ANON-KEY-AQUI"];
-
 const DOC_SETUP = "docs/setup-supabase.md";
 
+/**
+ * Cache do boot. `configCache` guarda o resultado; `promessaEmVoo` garante que
+ * duas chamadas simultaneas a carregarConfig() nao facam duas requisicoes.
+ * Modulo, e nao contexto do React, porque o main.jsx precisa disso ANTES de
+ * montar a arvore (o MSAL e construido com o clientId que vem daqui).
+ */
 let configCache = null;
-// Promise em voo: chamadas concorrentes (React StrictMode monta duas vezes em dev)
-// reaproveitam a MESMA requisicao em vez de disparar duas.
 let promessaEmVoo = null;
-
-function contemPlaceholder(valor, lista) {
-  const alvo = String(valor || "").toUpperCase();
-  return lista.some((p) => alvo.includes(p.toUpperCase()));
-}
-
-/** Valida as duas unicas envs do frontend. Lanca Error legivel para a ConfigErrorScreen. */
-function validarEnv() {
-  if (!SUPABASE_URL) {
-    throw new Error(
-      `A variavel VITE_SUPABASE_URL nao esta definida. Crie o arquivo .env na raiz do projeto com VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY. Instrucoes em ${DOC_SETUP}.`
-    );
-  }
-  if (contemPlaceholder(SUPABASE_URL, PLACEHOLDERS_URL)) {
-    throw new Error(
-      `VITE_SUPABASE_URL ainda esta com o valor de exemplo ("${SUPABASE_URL}"). Substitua pela URL real do projeto Supabase. Instrucoes em ${DOC_SETUP}.`
-    );
-  }
-  if (!SUPABASE_ANON_KEY) {
-    throw new Error(
-      `A variavel VITE_SUPABASE_ANON_KEY nao esta definida. Preencha o arquivo .env com a anon key do projeto Supabase. Instrucoes em ${DOC_SETUP}.`
-    );
-  }
-  if (contemPlaceholder(SUPABASE_ANON_KEY, PLACEHOLDERS_KEY)) {
-    throw new Error(
-      `VITE_SUPABASE_ANON_KEY ainda esta com o valor de exemplo. Cole a anon key real do projeto Supabase (Settings > API). Instrucoes em ${DOC_SETUP}.`
-    );
-  }
-}
 
 /**
  * Merge por secao (raso dentro de cada secao). Nao e merge recursivo profundo de proposito:
@@ -139,6 +143,61 @@ function mesclarSecao(padrao, recebido) {
     saida[chave] = valor;
   }
   return saida;
+}
+
+/**
+ * O valor foi mesmo preenchido?
+ *
+ * Alem de vazio, recusa os placeholders do seed. A migration inicial grava a
+ * linha `azure` com "PREENCHER_CLIENT_ID_AZURE" e "PREENCHER_TENANT_ID_AZURE"
+ * justamente para a configuracao existir antes de alguem ter os valores. Sem
+ * este teste eles passavam como se fossem GUIDs de verdade: o MSAL montava
+ * authority https://login.microsoftonline.com/PREENCHER_TENANT_ID_AZURE e o
+ * login morria numa pagina de erro da Microsoft (AADSTS90002), longe daqui.
+ *
+ * Mesma regra de supabase/functions/_shared/azureAuth.ts, de proposito: se os
+ * dois lados discordarem sobre o que e "preenchido", um aceita o que o outro
+ * recusa e o erro aparece na camada errada.
+ */
+function preenchido(valor) {
+  if (typeof valor !== "string") return false;
+  const limpo = valor.trim();
+  if (limpo === "") return false;
+  if (limpo.startsWith("PREENCHER")) return false;
+  // Placeholder copiado de documentacao, no formato <NOME_DO_CAMPO>. Aconteceu de
+  // verdade, com o UPDATE da secao 8 do docs/setup-supabase.md rodado sem trocar
+  // os valores. Nao comeca com PREENCHER, entao o teste acima o deixava passar.
+  if (limpo.startsWith("<") || limpo.endsWith(">")) return false;
+  return true;
+}
+
+/**
+ * O valor tem cara de GUID do Azure (8-4-4-4-12 hexadecimal)?
+ *
+ * Usado SO em clientId e tenantId, e por dois motivos distintos:
+ *
+ *   placeholder  pega qualquer texto de exemplo que tenha escapado do teste
+ *                acima, em vez de deixar o MSAL montar uma authority invalida e
+ *                a pessoa receber AADSTS90002 numa pagina da Microsoft, longe
+ *                daqui e sem pista do que corrigir;
+ *
+ *   dominio      pega o erro mais caro dos dois. Gravar tenantId como
+ *                "apsis.com.br" em vez do GUID PARECE funcionar: a authority
+ *                resolve, o login no navegador completa e a tela abre. Mas o
+ *                backend monta o issuer esperado a partir do GUID e recebe um
+ *                iss diferente, entao TODA chamada ao carbon-api volta 401. O
+ *                sintoma (entro, vejo a tela, nenhum dado carrega) nao aponta
+ *                para a configuracao do tenant em lugar nenhum.
+ *
+ * Exigir GUID nao restringe nada que o sistema suporte: o backend e single
+ * tenant por decisao (`supabase/functions/_shared/azureAuth.ts` fixa o issuer no
+ * GUID e ainda confere o claim `tid`), entao "common" e "organizations" nunca
+ * foram valores validos aqui.
+ */
+const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function pareceGuid(valor) {
+  return preenchido(valor) && GUID.test(valor.trim());
 }
 
 /**
@@ -190,14 +249,11 @@ async function buscarConfigRemota() {
 
   let resposta;
   try {
-    resposta = await fetch(urlFuncao("app-config"), {
+    resposta = await fetch(caminhoFuncao("app-config"), {
       method: "GET",
-      // A funcao app-config e publica (verify_jwt = false): sem Authorization.
-      // O header apikey identifica o projeto no gateway do Supabase.
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Accept: "application/json",
-      },
+      // Publica (verify_jwt = false): sem Authorization e sem apikey. O caminho
+      // e relativo; quem sabe onde fica o Supabase e o rewrite da hospedagem.
+      headers: { Accept: "application/json" },
       signal: controller.signal,
     });
   } catch (e) {
@@ -207,7 +263,7 @@ async function buscarConfigRemota() {
       );
     }
     throw new Error(
-      `Nao foi possivel contatar a configuracao do aplicativo (${urlFuncao("app-config")}). Verifique a URL do Supabase e se a Edge Function "app-config" esta publicada.`
+      `Nao foi possivel contatar a configuracao do aplicativo (${caminhoFuncao("app-config")}). Falta o rewrite de /api/* na hospedagem, ou a Edge Function "app-config" nao esta publicada.`
     );
   } finally {
     clearTimeout(timer);
@@ -216,6 +272,21 @@ async function buscarConfigRemota() {
   if (!resposta.ok) {
     throw new Error(
       `A configuracao do aplicativo retornou HTTP ${resposta.status}. Confira se a Edge Function "app-config" esta publicada e se a tabela carbon_app_config tem linhas com publico = true.`
+    );
+  }
+
+  // Rewrite ausente na hospedagem: /api/app-config nao chega ao Supabase, cai no
+  // fallback da SPA e volta o index.html com 200. Sem este teste o `.json()`
+  // falharia e a mensagem culparia o codigo da Edge Function, que esta intacto.
+  //
+  // A mensagem NAO cita o endereco do projeto Supabase de proposito: ela vai
+  // para o bundle, e a regra 4 do CLAUDE.md existe para esse endereco nunca
+  // chegar ao navegador. O destino do rewrite vive na documentacao e no console
+  // da hospedagem.
+  const tipo = resposta.headers.get("content-type") || "";
+  if (!tipo.includes("application/json")) {
+    throw new Error(
+      'A chamada de configuracao voltou como pagina, e nao como JSON. Falta o rewrite de /api/* na hospedagem: ele precisa encaminhar /api/<funcao> para as Edge Functions do Supabase. Em desenvolvimento, suba o servidor com SUPABASE_API_URL definida (ver src/lib/endpoint.js).'
     );
   }
 
@@ -232,15 +303,24 @@ async function buscarConfigRemota() {
 
   // Sem clientId/tenantId nao existe login possivel: falhar aqui e melhor do que
   // deixar o MSAL estourar um erro cru depois.
-  if (!config.azure.clientId || !config.azure.tenantId) {
+  if (!pareceGuid(config.azure.clientId) || !pareceGuid(config.azure.tenantId)) {
+    const problema = (rotulo, valor) => {
+      if (!preenchido(valor)) return `${rotulo} nao foi preenchido`;
+      return `${rotulo} nao tem formato de GUID`;
+    };
     const faltando = [
-      !config.azure.clientId && "azure.clientId",
-      !config.azure.tenantId && "azure.tenantId",
+      !pareceGuid(config.azure.clientId) && problema("clientId", config.azure.clientId),
+      !pareceGuid(config.azure.tenantId) && problema("tenantId", config.azure.tenantId),
     ]
       .filter(Boolean)
-      .join(" e ");
+      .join("; ");
+    // A tabela tem UMA linha `chave = 'azure'` cujo `valor` e um jsonb com
+    // clientId, tenantId, redirectUri e scopes dentro. Nao existem linhas
+    // azure_client_id nem azure_tenant_id: a mensagem antiga mandava preencher
+    // chaves inexistentes, e quem seguisse a instrucao criaria linhas que o
+    // mesclarConfig ignora, sem nunca entender por que nao adiantou.
     throw new Error(
-      `A configuracao do Azure AD esta incompleta: falta ${faltando}. Preencha a tabela carbon_app_config (chaves azure_client_id e azure_tenant_id) com publico = true. Instrucoes em ${DOC_SETUP}.`
+      `A configuracao do Azure AD esta incompleta: ${faltando}. Os dois sao GUIDs no formato 8-4-4-4-12, copiados da aba Overview do registro de aplicativo no Azure. Na tabela carbon_app_config, a linha chave = 'azure' guarda os dois dentro do jsonb valor. Instrucoes em ${DOC_SETUP}.`
     );
   }
 
@@ -257,14 +337,38 @@ export async function carregarConfig() {
   if (promessaEmVoo) return promessaEmVoo;
 
   promessaEmVoo = (async () => {
-    if (MODO_DEMO) {
-      // Modo demonstracao: zero rede, config default. So existe em dev.
+    // A pessoa JA escolheu a demonstracao nesta aba (botao do AuthGuard). Nem
+    // tenta a rede: e o unico caminho que funciona sem backend nenhum.
+    if (MODO_DEMO && MODO_DEMO_ATIVO()) {
       configCache = { ...CONFIG_DEFAULT, demo: true };
       return configCache;
     }
-    validarEnv();
-    configCache = await buscarConfigRemota();
-    return configCache;
+
+    // Caminho normal, INCLUSIVE em desenvolvimento. Antes havia aqui um
+    // `if (MODO_DEMO) return default` puro, e ele era um beco sem saida: em
+    // `npm run dev` a config nunca vinha do banco, o clientId chegava vazio e o
+    // main.jsx caia no clientId placeholder. Ou seja, era IMPOSSIVEL fazer login
+    // real em localhost - exatamente o que se quer ao testar de verdade.
+    try {
+      configCache = await buscarConfigRemota();
+      return configCache;
+    } catch (erro) {
+      // Em producao, falha de config e tela de erro: nao ha demonstracao para
+      // onde degradar e esconder o problema seria pior.
+      if (!MODO_DEMO) throw erro;
+
+      // Em desenvolvimento, sem proxy ou sem backend no ar, degradamos para a
+      // config default marcada como demo. Assim o AuthGuard ainda desenha a tela
+      // de login com o botao "Entrar em modo demonstracao" em vez de o boot
+      // morrer no ConfigErrorScreen. O motivo real vai para o console.
+      console.warn(
+        '[config] a configuracao remota falhou; caindo na demonstracao. ' +
+          'Para login real em dev, suba com SUPABASE_API_URL definida.',
+        erro,
+      );
+      configCache = { ...CONFIG_DEFAULT, demo: true };
+      return configCache;
+    }
   })();
 
   try {

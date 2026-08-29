@@ -56,7 +56,7 @@ import {
   paraNumero,
   veioNoCorpo,
 } from './helpers.ts';
-import { lerProjeto } from './projetos.ts';
+import { lerProjetoVisivel } from './projetos.ts';
 
 // -----------------------------------------------------------------------------
 // Vocabulario, espelhando os CHECKs da migration
@@ -313,7 +313,7 @@ function montarDadosFinding(
  */
 async function obterFindings(ctx: Contexto): Promise<Response> {
   const projetoId = ctx.params.id;
-  const projeto = await lerProjeto(ctx.admin, projetoId);
+  const projeto = await lerProjetoVisivel(ctx, projetoId);
   if (!projeto) return respostaErro('nao_encontrado', 404);
 
   // ?origem= e filtro, nao obrigacao. Valor torto e recusado em vez de ignorado:
@@ -359,7 +359,7 @@ async function criarRodada(ctx: Contexto): Promise<Response> {
   const corpo = ctx.corpo ?? {};
   const projetoId = ctx.params.id;
 
-  const projeto = await lerProjeto(ctx.admin, projetoId);
+  const projeto = await lerProjetoVisivel(ctx, projetoId);
   if (!projeto) return respostaErro('nao_encontrado', 404);
 
   const origem = lerEnum(corpo.origem, ORIGENS, 'campo_invalido', 'origem');
@@ -385,7 +385,53 @@ async function criarRodada(ctx: Contexto): Promise<Response> {
  * IDENTIDADE da rodada e nao se editam - mover findings de processo ou renumerar
  * rodada quebraria toda a referencia externa ("resposta a rodada 2 da VVB").
  */
+/**
+ * PORTAO das rotas que escrevem por id de rodada, finding ou subitem.
+ *
+ * O DEFEITO QUE ELE FECHA, achado na auditoria de 26/08/2026: seis das oito
+ * rotas deste modulo gravavam com `.eq('id', ...)` sem resolver de qual projeto
+ * o registro era. O portao grande (GET projetos/:id/findings, linha 316) estava
+ * fechado e o caminho pequeno, aberto: com o uuid de um finding, um gestor de
+ * outro projeto editava e, pior, LIA o finding inteiro na resposta, porque
+ * respostaFinding devolve descricao, plano de resposta e subitens.
+ *
+ * O conteudo aqui e material de auditoria de projeto com comunidade indigena
+ * (territorio, CLPI, reparticao de beneficios), o que torna a leitura indevida
+ * tao grave quanto a escrita.
+ *
+ * A CADEIA e subitem -> finding -> rodada -> projeto. Cada elo e uma consulta,
+ * e por isso as funcoes abaixo devolvem tambem o registro lido: quem chama
+ * precisa dele em seguida, e reler seria uma ida a mais ao banco por requisicao.
+ *
+ * Os dois fracassos (registro inexistente e projeto invisivel) respondem o
+ * MESMO 404, senao a rota vira oraculo de existencia de finding de outro
+ * cliente.
+ */
+async function exigirRodadaVisivel(ctx: Contexto, rodadaId: string): Promise<LinhaRodada> {
+  const rodada = await exigirRodadaVisivel(ctx, rodadaId);
+  if (!rodada) throw new ErroRota('nao_encontrado', 404);
+  if (!(await lerProjetoVisivel(ctx, String(rodada.projeto_id)))) {
+    throw new ErroRota('nao_encontrado', 404);
+  }
+  return rodada;
+}
+
+async function exigirFindingVisivel(ctx: Contexto, findingId: string): Promise<LinhaFinding> {
+  const finding = await lerFindingCru(ctx.admin, findingId);
+  if (!finding) throw new ErroRota('nao_encontrado', 404);
+  await exigirRodadaVisivel(ctx, String(finding.rodada_id));
+  return finding;
+}
+
+async function exigirSubitemVisivel(ctx: Contexto, subitemId: string): Promise<LinhaSubitem> {
+  const subitem = await lerSubitem(ctx.admin, subitemId);
+  if (!subitem) throw new ErroRota('nao_encontrado', 404);
+  await exigirFindingVisivel(ctx, String(subitem.finding_id));
+  return subitem;
+}
+
 async function atualizarRodada(ctx: Contexto): Promise<Response> {
+  await exigirRodadaVisivel(ctx, ctx.params.id);
   const corpo = ctx.corpo ?? {};
   const dados: Record<string, unknown> = {};
 
@@ -455,7 +501,7 @@ async function atualizarFinding(ctx: Contexto): Promise<Response> {
 
   // Lido ANTES de validar: a regra do 'aguardando_terceiro' depende do valor que
   // ja esta gravado quando o PATCH manda so um dos dois campos.
-  const atual = await lerFindingCru(ctx.admin, findingId);
+  const atual = await exigirFindingVisivel(ctx, findingId);
   if (!atual) return respostaErro('nao_encontrado', 404);
 
   const dados = montarDadosFinding(corpo, 'atualizar');
@@ -498,8 +544,7 @@ async function criarSubitens(ctx: Contexto): Promise<Response> {
   const corpo = ctx.corpo ?? {};
   const findingId = ctx.params.id;
 
-  const finding = await lerFindingCru(ctx.admin, findingId);
-  if (!finding) return respostaErro('nao_encontrado', 404);
+  const finding = await exigirFindingVisivel(ctx, findingId);
 
   const descricoes = veioNoCorpo(corpo, 'descricoes')
     ? lerListaDeTexto(corpo.descricoes, 'descricoes')
@@ -556,8 +601,7 @@ async function criarSubitens(ctx: Contexto): Promise<Response> {
  */
 async function atualizarSubitem(ctx: Contexto): Promise<Response> {
   const corpo = ctx.corpo ?? {};
-  const subitem = await lerSubitem(ctx.admin, ctx.params.id);
-  if (!subitem) return respostaErro('nao_encontrado', 404);
+  const subitem = await exigirSubitemVisivel(ctx, ctx.params.id);
 
   const dados: Record<string, unknown> = {};
 
@@ -602,8 +646,7 @@ async function atualizarSubitem(ctx: Contexto): Promise<Response> {
  * material de auditoria e se aposentam com estado 'nao_aplicavel'.
  */
 async function removerSubitem(ctx: Contexto): Promise<Response> {
-  const subitem = await lerSubitem(ctx.admin, ctx.params.id);
-  if (!subitem) return respostaErro('nao_encontrado', 404);
+  const subitem = await exigirSubitemVisivel(ctx, ctx.params.id);
 
   const { error } = await ctx.admin
     .from('carbon_finding_subitens')

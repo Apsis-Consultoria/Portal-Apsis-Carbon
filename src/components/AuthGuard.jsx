@@ -21,19 +21,26 @@ import NaoAutorizado from "@/pages/NaoAutorizado";
  * clientId/tenantId, que vem do banco). Sem uma porta alternativa, as telas de negocio ficam
  * inalcancaveis e nao ha como revisar o produto. Este bloco e essa porta.
  *
- * Por que e seguro: em MODO_DEMO as funcoes de src/lib/carbonApi.js NAO fazem rede - operam
- * sobre o dataset ficticio de src/lib/demoProjetos.js. Entrar em modo demonstracao nao da
- * acesso a dado nenhum, porque nao existe backend do outro lado.
+ * Por que e seguro: com a demonstracao ativa as funcoes de src/lib/api/*.js NAO fazem rede -
+ * operam sobre os datasets ficticios de src/lib/demo/. Entrar em modo demonstracao nao da
+ * acesso a dado nenhum.
  *
  * Barreiras, nesta ordem:
  *   1. MODO_DEMO exige import.meta.env.DEV, que e estatico: em build de producao a expressao
- *      dobra para false e o Rollup elimina este ramo (ver a nota em runtimeConfig.js);
- *   2. exige tambem a env explicita VITE_CARBON_DEMO=true;
- *   3. NUNCA por deteccao de hostname - foi o erro que o portal-apsis registra como decisao
+ *      dobra para false e o Rollup elimina este ramo junto com os datasets (ver a nota em
+ *      runtimeConfig.js). NAO existe variavel de ambiente aqui: o dono do sistema proibiu
+ *      qualquer VITE_* no frontend, e a antiga VITE_CARBON_DEMO foi removida;
+ *   2. NUNCA por deteccao de hostname - foi o erro que o portal-apsis registra como decisao
  *      de seguranca, porque qualquer subdominio com "preview" no nome burlaria a autenticacao;
- *   4. a entrada e um clique deliberado, nao automatica, para a tela de login continuar
+ *   3. a entrada e um clique deliberado, nao automatica, para a tela de login continuar
  *      revisavel;
- *   5. enquanto ativo, uma tarja fixa avisa que os dados sao ficticios.
+ *   4. enquanto ativo, uma tarja fixa avisa que os dados sao ficticios.
+ *
+ * A DEMONSTRACAO NAO BLOQUEIA O LOGIN REAL. Ate 21/08/2026 o botao da Microsoft vinha
+ * `disabled={loading || MODO_DEMO}`, isto e, desligado em TODA sessao de desenvolvimento.
+ * Era um beco sem saida: com o Supabase ja no ar, nao havia como testar a autenticacao de
+ * verdade em localhost. Quem decide agora e `config.demo`, que so e true quando a
+ * carregarConfig realmente nao conseguiu a configuracao do banco.
  */
 
 /** Chave de sessao do modo demonstracao. sessionStorage, e nao localStorage, de proposito:
@@ -100,14 +107,11 @@ export default function AuthGuard({ children }) {
   // navegacao entre telas e a F5, sem sobreviver ao fechamento da aba.
   const [demoAtivo, setDemoAtivo] = useState(lerDemoAtivo);
 
-  const entrarNoDemo = () => {
-    try {
-      sessionStorage.setItem(CHAVE_DEMO, "true");
-    } catch {
-      // Sem sessionStorage o estado nao persiste entre telas, mas a sessao atual funciona.
-    }
-    setDemoAtivo(true);
-  };
+  /* entrarNoDemo foi removida junto com o botao. O caminho de SAIDA (sairDoDemo e
+     a TarjaDemo) fica de proposito: quem clicou no botao antes de 24/08/2026 ainda
+     tem carbonModoDemoAtivo no sessionStorage daquela aba, e sem a tarja ficaria
+     preso em dados ficticios sem nenhuma forma de voltar. Some sozinho ao fechar
+     a aba, porque e sessionStorage e nao localStorage. */
 
   const sairDoDemo = () => {
     try {
@@ -150,8 +154,20 @@ export default function AuthGuard({ children }) {
   const config = getConfig();
   const login = config?.login || {};
 
+  /**
+   * Sem configuracao real do Azure nao ha login possivel, e o botao precisa dizer
+   * isso em vez de redirecionar para um clientId placeholder.
+   *
+   * O gatilho e `config.demo` e NAO MODO_DEMO: um build de desenvolvimento com o
+   * backend no ar tem configuracao de verdade e deve permitir o login normalmente.
+   */
+  const semConfigReal = config?.demo === true || !config?.azure?.clientId;
+
   const aoEntrar = async () => {
-    if (MODO_DEMO) return;
+    // NAO reintroduza aqui um `if (MODO_DEMO) return`. Ele existiu ate 21/08/2026
+    // e desligava o login em toda sessao de desenvolvimento, em silencio: o botao
+    // parecia clicavel e o clique nao fazia nada. Quem barra e o `disabled` do
+    // botao, calculado por `semConfigReal` - uma fonte de verdade so.
     if (loading || inProgress !== InteractionStatus.None) return;
     setErroLogin("");
     setLoading(true);
@@ -229,32 +245,25 @@ export default function AuthGuard({ children }) {
 
         <button
           onClick={aoEntrar}
-          disabled={loading || MODO_DEMO}
-          className={`w-full mt-10 flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60 text-slate-700 font-semibold py-3.5 px-6 rounded-xl shadow-sm transition-colors ${MODO_DEMO ? "cursor-not-allowed" : "disabled:cursor-not-allowed"}`}
+          disabled={loading || semConfigReal}
+          className={`w-full mt-10 flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60 text-slate-700 font-semibold py-3.5 px-6 rounded-xl shadow-sm transition-colors ${semConfigReal ? "cursor-not-allowed" : "disabled:cursor-not-allowed"}`}
         >
           <MicrosoftIcon size={20} />
           {rotuloBotao}
         </button>
 
-        {MODO_DEMO && (
-          <div className="w-full flex flex-col items-center gap-3">
-            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
-              Modo demonstração - configure o Supabase para entrar
-            </p>
-            {/* Porta de entrada do modo demonstracao. Existe para as telas de negocio serem
-                revisaveis antes de o Supabase existir; nao da acesso a dado nenhum, porque em
-                MODO_DEMO o carbonApi nao faz rede. Ver o cabecalho deste arquivo. */}
-            <button
-              type="button"
-              onClick={entrarNoDemo}
-              className="w-full flex items-center justify-center gap-2 border border-white/30 text-white/90 hover:bg-white/10 hover:border-white/50 font-semibold py-3 px-6 rounded-xl transition-colors"
-            >
-              Entrar em modo demonstração
-            </button>
-            <p className="text-[11px] text-white/45 text-center">
-              Abre as telas com dados fictícios, sem backend. Só existe em desenvolvimento.
-            </p>
-          </div>
+        {/* O AVISO fica; o BOTAO de demonstracao saiu em 24/08/2026, a pedido do dono,
+            depois de o login real com o Azure AD passar a funcionar em localhost.
+
+            O aviso continua porque ele diagnostica: sem SUPABASE_API_URL na janela
+            que subiu o dev server, /api/app-config da 404, a config cai no default e o
+            botao da Microsoft fica desabilitado. Sem esta frase, o sintoma seria um botao
+            cinza sem explicacao nenhuma. */}
+        {semConfigReal && (
+          <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
+            A configuração não veio do backend. Suba o dev server com
+            SUPABASE_API_URL definida para habilitar o login real.
+          </p>
         )}
 
         {erroLogin && (

@@ -3,7 +3,7 @@
  *
  * POR QUE EXISTE: o projeto Supabase do Apsis Carbon ainda NAO foi provisionado, e a
  * tela precisa ser revisavel localmente antes disso. Em MODO_DEMO (ver
- * src/lib/runtimeConfig.js: exige dev E VITE_CARBON_DEMO=true) as funcoes de
+ * src/lib/runtimeConfig.js: exige dev E o clique no botao de demonstracao) as funcoes de
  * src/lib/api/findings.js nao fazem rede: operam sobre o estado em memoria deste
  * arquivo, e as mutacoes ALTERAM esse estado, para a tela ser de fato interativa.
  *

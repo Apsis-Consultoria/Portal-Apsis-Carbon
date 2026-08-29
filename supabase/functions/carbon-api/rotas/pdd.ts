@@ -22,12 +22,14 @@ import {
   LIMITE_TEXTO_LONGO,
   paraNumero,
   veioNoCorpo,
+  EMBED_RESPONSAVEL,
+  achatarResponsavel,
 } from './helpers.ts';
-import { lerProjeto } from './projetos.ts';
+import { lerProjetoVisivel } from './projetos.ts';
 
 const COLUNAS_CAPITULO =
   'id, projeto_id, capitulo, nome, cap, nivel, opcional, ordem, status, ' +
-  'responsavel_id, observacoes, criado_em, atualizado_em';
+  'responsavel_id, observacoes, criado_em, atualizado_em' + ', ' + EMBED_RESPONSAVEL;
 
 const STATUS_CAPITULO = new Set([
   'nao_iniciado',
@@ -78,14 +80,15 @@ async function lerPdd(
   }
 
   return {
-    capitulos: (capitulos.data ?? []) as unknown[],
+    capitulos: ((capitulos.data ?? []) as unknown as Record<string, unknown>[])
+      .map(achatarResponsavel),
     progresso: progresso.data ?? PROGRESSO_VAZIO,
   };
 }
 
 async function obter(ctx: Contexto): Promise<Response> {
   const projetoId = ctx.params.id;
-  const projeto = await lerProjeto(ctx.admin, projetoId);
+  const projeto = await lerProjetoVisivel(ctx, projetoId);
   if (!projeto) return respostaErro('nao_encontrado', 404);
 
   const { capitulos, progresso } = await lerPdd(ctx.admin, projetoId);
@@ -101,7 +104,7 @@ async function obter(ctx: Contexto): Promise<Response> {
  */
 async function criar(ctx: Contexto): Promise<Response> {
   const projetoId = ctx.params.id;
-  const projeto = await lerProjeto(ctx.admin, projetoId);
+  const projeto = await lerProjetoVisivel(ctx, projetoId);
   if (!projeto) return respostaErro('nao_encontrado', 404);
 
   const { data, error } = await ctx.admin.rpc('carbon_pdd_criar_do_template', {
@@ -145,6 +148,27 @@ async function atualizarCapitulo(ctx: Contexto): Promise<Response> {
     return respostaErro('nada_para_atualizar', 400);
   }
 
+  // PORTAO. O update abaixo filtra so por id do CAPITULO, entao sem isto qualquer
+  // colaborador com papel de escrita editaria capitulo de PDD de projeto que nem
+  // pode enxergar - so precisaria do uuid. Resolvemos o dono antes de escrever.
+  //
+  // Os dois fracassos possiveis (capitulo inexistente, projeto invisivel) respondem
+  // o MESMO 404, para a rota nao virar oraculo de existencia de capitulo.
+  const { data: dono, error: erroDono } = await ctx.admin
+    .from('carbon_pdd_capitulos')
+    .select('projeto_id')
+    .eq('id', ctx.params.id)
+    .maybeSingle();
+
+  if (erroDono) {
+    console.error('Falha ao resolver o projeto do capitulo:', erroDono.message);
+    throw new ErroRota('erro_interno', 500);
+  }
+  if (!dono) return respostaErro('nao_encontrado', 404);
+  if (!(await lerProjetoVisivel(ctx, String(dono.projeto_id)))) {
+    return respostaErro('nao_encontrado', 404);
+  }
+
   const { data, error } = await ctx.admin
     .from('carbon_pdd_capitulos')
     .update(dados)
@@ -155,7 +179,7 @@ async function atualizarCapitulo(ctx: Contexto): Promise<Response> {
   if (error) lancarErroEscrita(error as ErroBanco, 'carbon_pdd_capitulos', 'status_invalido');
   if (!data) return respostaErro('nao_encontrado', 404);
 
-  return respostaJson({ capitulo: data });
+  return respostaJson({ capitulo: achatarResponsavel(data as unknown as Record<string, unknown>) });
 }
 
 export const rotas: Rota[] = [

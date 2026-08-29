@@ -8,7 +8,7 @@ import App from '@/App.jsx'
 import AuthGuard from '@/components/AuthGuard'
 import ConfigErrorScreen from '@/components/ConfigErrorScreen'
 import ErrorBoundary from '@/components/ErrorBoundary'
-import { carregarConfig, MODO_DEMO } from '@/lib/runtimeConfig'
+import { carregarConfig } from '@/lib/runtimeConfig'
 import { montarMsalConfig } from '@/lib/msalConfig'
 import { limparEstadoTransitorioMsal } from '@/lib/msalCache'
 
@@ -160,8 +160,16 @@ async function recuperarDeRedirectFalho(instance) {
  */
 const CLIENT_ID_DEMO = '00000000-0000-0000-0000-000000000000'
 
+/**
+ * O gatilho e `config.demo`, e NAO MODO_DEMO.
+ *
+ * MODO_DEMO diz apenas "isto e um build de desenvolvimento". Usa-lo aqui fazia
+ * com que qualquer sessao de dev fosse tratada como demonstracao, mesmo com a
+ * config real ja carregada do banco. `config.demo` so e true quando a
+ * carregarConfig realmente caiu na demonstracao, que e a condicao que importa.
+ */
 function configParaMsal(config) {
-  if (!MODO_DEMO) return config
+  if (!config?.demo) return config
   return {
     ...config,
     azure: {
@@ -194,9 +202,9 @@ async function bootstrap() {
   //    lugares vira letra morta e a proxima mudanca nao surte efeito.
   let msalInstance
   try {
-    if (!config?.azure?.clientId && !MODO_DEMO) {
+    if (!config?.azure?.clientId && !config?.demo) {
       throw new Error(
-        'A configuracao chegou sem azure.clientId. Confira as linhas azure_client_id e azure_tenant_id em carbon_app_config (com publico = true).',
+        'A configuracao chegou sem azure.clientId. Na tabela carbon_app_config, a linha com chave "azure" guarda um objeto JSON com clientId e tenantId dentro. SQL pronto em docs/setup-supabase.md.',
       )
     }
     msalInstance = new PublicClientApplication(montarMsalConfig(configParaMsal(config)))

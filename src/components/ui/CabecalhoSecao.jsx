@@ -38,7 +38,7 @@ export default function CabecalhoSecao({
         </div>
         {descricao && (
           // pl-3 alinha a descrição com o texto do título, e não com a barrinha.
-          <p className="text-xs text-[#8A9990] mt-1 pl-3 leading-relaxed">{descricao}</p>
+          <p className="text-xs text-[#5C7060] mt-1 pl-3 leading-relaxed">{descricao}</p>
         )}
       </div>
       {acao && <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-auto">{acao}</div>}

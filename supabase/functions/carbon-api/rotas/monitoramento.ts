@@ -34,12 +34,14 @@ import {
   LIMITE_TEXTO_LONGO,
   paraNumero,
   veioNoCorpo,
+  EMBED_RESPONSAVEL,
+  achatarResponsavel,
 } from './helpers.ts';
-import { lerProjeto } from './projetos.ts';
+import { exigirProjetoDoRegistro, lerProjetoVisivel } from './projetos.ts';
 
 const COLUNAS_CAPITULO =
   'id, projeto_id, capitulo, nome, cap, nivel, ordem, estado, rodada, ' +
-  'responsavel_id, orientacao, observacoes, criado_em, atualizado_em';
+  'responsavel_id, orientacao, observacoes, criado_em, atualizado_em' + ', ' + EMBED_RESPONSAVEL;
 
 /** Espelha o CHECK de carbon_mr_capitulos.estado. */
 const ESTADOS_CAPITULO = new Set([
@@ -128,7 +130,8 @@ async function lerRelatorio(
   }
 
   return {
-    capitulos: (capitulos.data ?? []) as unknown[],
+    capitulos: ((capitulos.data ?? []) as unknown as Record<string, unknown>[])
+      .map(achatarResponsavel),
     progresso: progresso.data ?? PROGRESSO_VAZIO,
   };
 }
@@ -148,12 +151,12 @@ async function lerCapitulo(
     console.error('Falha ao ler carbon_mr_capitulos:', error.message);
     throw new ErroRota('erro_interno', 500);
   }
-  return (data as Record<string, unknown> | null) ?? null;
+  return data ? achatarResponsavel(data as unknown as Record<string, unknown>) : null;
 }
 
 async function obter(ctx: Contexto): Promise<Response> {
   const projetoId = ctx.params.id;
-  const projeto = await lerProjeto(ctx.admin, projetoId);
+  const projeto = await lerProjetoVisivel(ctx, projetoId);
   if (!projeto) return respostaErro('nao_encontrado', 404);
 
   const { capitulos, progresso } = await lerRelatorio(ctx.admin, projetoId);
@@ -169,7 +172,7 @@ async function obter(ctx: Contexto): Promise<Response> {
  */
 async function criar(ctx: Contexto): Promise<Response> {
   const projetoId = ctx.params.id;
-  const projeto = await lerProjeto(ctx.admin, projetoId);
+  const projeto = await lerProjetoVisivel(ctx, projetoId);
   if (!projeto) return respostaErro('nao_encontrado', 404);
 
   const { data, error } = await ctx.admin.rpc('carbon_mr_criar_do_template', {
@@ -224,6 +227,10 @@ async function atualizarCapitulo(ctx: Contexto): Promise<Response> {
     return respostaErro('nada_para_atualizar', 400);
   }
 
+  // PORTAO, igual ao de pdd.ts. O modulo gemeo fechava isto desde o inicio e
+  // este nao: assimetria entre irmaos e o cheiro que a auditoria seguiu.
+  await exigirProjetoDoRegistro(ctx, 'carbon_mr_capitulos', ctx.params.id);
+
   const { data, error } = await ctx.admin
     .from('carbon_mr_capitulos')
     .update(dados)
@@ -234,7 +241,7 @@ async function atualizarCapitulo(ctx: Contexto): Promise<Response> {
   if (error) lancarErroEscrita(error as ErroBanco, 'carbon_mr_capitulos', 'estado_invalido');
   if (!data) return respostaErro('nao_encontrado', 404);
 
-  return respostaJson({ capitulo: data });
+  return respostaJson({ capitulo: achatarResponsavel(data as unknown as Record<string, unknown>) });
 }
 
 /**
@@ -250,6 +257,12 @@ async function atualizarCapitulo(ctx: Contexto): Promise<Response> {
  */
 async function novaRodada(ctx: Contexto): Promise<Response> {
   const capituloId = ctx.params.id;
+
+  // PORTAO ANTES DA RPC. A funcao SQL e SECURITY DEFINER e recebe o id cru da
+  // URL: ela nao tem como saber quem chamou nem se o capitulo e de um projeto
+  // que a pessoa enxerga. Sem esta linha, abrir rodada de revisao no Monitoring
+  // Report de outro projeto custava so o uuid.
+  await exigirProjetoDoRegistro(ctx, 'carbon_mr_capitulos', capituloId);
 
   const { data, error } = await ctx.admin.rpc('carbon_mr_capitulo_nova_rodada', {
     p_capitulo_id: capituloId,

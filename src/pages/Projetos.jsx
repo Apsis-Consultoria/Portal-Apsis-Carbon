@@ -4,10 +4,24 @@
  * O projeto é a entidade da qual todo o resto depende (PDD, monitoramento, findings,
  * metas, documentos), então esta tela é deliberadamente simples: listar, criar e editar.
  *
- * AUTORIZAÇÃO: quem pode escrever é decidido no SERVIDOR (a Edge Function exige papel
- * admin ou gestor e responde 403 'sem_permissao'). A tela não esconde o formulário por
- * perfil de propósito: seria uma segunda fonte de verdade para a mesma regra, e ficaria
- * dessincronizada do backend na primeira mudança. Um 403 vira toast com texto claro.
+ * AUTORIZAÇÃO: são DUAS metades, e as duas são decididas no SERVIDOR.
+ *
+ * ESCRITA, por PAPEL: a Edge Function exige papel admin ou gestor para criar e editar, e
+ * responde 403 'sem_permissao' para os demais.
+ *
+ * LEITURA, por PARTICIPAÇÃO: GET /projetos devolve apenas os projetos em que a conta
+ * está na equipe (tabela carbon_projeto_equipe). Papel admin enxerga todos; gestor NÃO
+ * enxerga todos, ele só escreve no que já enxerga. Projeto de que a conta não participa
+ * responde 404 'nao_encontrado', o mesmo código de projeto inexistente: de propósito,
+ * para a tela não virar um oráculo de existência de projeto.
+ *
+ * A tela não esconde formulário nem botão por perfil de propósito: seria uma segunda
+ * fonte de verdade para a mesma regra, e ficaria dessincronizada do backend na primeira
+ * mudança. Um 403 vira toast com texto claro.
+ *
+ * Renderizar `pode_criar` e `pode_escrever` é outra coisa, e é permitido: são booleanos
+ * que o SERVIDOR mandou na resposta. Mostrar o que ele decidiu não é recalcular a
+ * decisão; ler o papel do /me e concluir sozinho o que mostrar, sim.
  */
 
 import { useMemo, useState } from 'react';
@@ -17,11 +31,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Plus, X, Loader2, WifiOff, FolderTree, TriangleAlert, MapPin, Ruler,
-  CalendarRange, Hash, Building2, ArrowRight, Pencil, Upload, ListTree,
+  CalendarRange, Hash, Building2, ArrowRight, Pencil, Upload, ListTree, Users, BarChart3,
 } from 'lucide-react';
-import { listarProjetos, criarProjeto, atualizarProjeto } from '@/lib/carbonApi';
-import { MODO_DEMO } from '@/lib/runtimeConfig';
-import { urlPdd } from '@/lib/pageRoutes';
+import {
+  listarProjetos, normalizarListaProjetos, criarProjeto, atualizarProjeto,
+} from '@/lib/carbonApi';
+// Import direto do módulo do domínio, como pede o cabeçalho de src/lib/api/indice.js.
+import { obterProjeto, atualizarEquipe } from '@/lib/api/projetos';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
+import { urlPdd, urlIndicadores } from '@/lib/pageRoutes';
+import PainelLateral from '@/components/ui/PainelLateral';
 
 /* ===== Domínio ============================================================
    Espelha o CHECK de carbon_projetos.status_registro. Valor fora deste mapa ainda
@@ -347,7 +366,7 @@ function AvisoArea({ projeto }) {
   );
 }
 
-function CartaoProjeto({ projeto, onEditar }) {
+function CartaoProjeto({ projeto, onEditar, onEquipe }) {
   const localizacao = [projeto?.municipio, projeto?.estado, projeto?.pais].filter(Boolean).join(', ');
   const anteriores = Array.isArray(projeto?.registros_anteriores) ? projeto.registros_anteriores : [];
 
@@ -371,7 +390,18 @@ function CartaoProjeto({ projeto, onEditar }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+          {/* "Equipe" fica ao lado de "Editar", e não escondido por perfil: quem não
+              pode escrever abre o painel e vê só a lista de quem participa. Quem decide
+              é o `pode_escrever` que vem na resposta de GET /projetos/:id. */}
+          <button
+            type="button"
+            onClick={() => onEquipe(projeto)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#DDE3DE] text-xs font-semibold text-[#5C7060] hover:text-[#1A4731] hover:border-[#1A4731]/40 transition-colors"
+          >
+            <Users size={13} />
+            Equipe
+          </button>
           <button
             type="button"
             onClick={() => onEditar(projeto)}
@@ -380,6 +410,13 @@ function CartaoProjeto({ projeto, onEditar }) {
             <Pencil size={13} />
             Editar
           </button>
+          <Link
+            to={urlIndicadores(projeto?.id)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#DDE3DE] text-xs font-semibold text-[#5C7060] hover:text-[#1A4731] hover:border-[#1A4731]/40 transition-colors"
+          >
+            <BarChart3 size={13} />
+            Indicadores
+          </Link>
           <Link
             to={urlPdd(projeto?.id)}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1A4731] text-xs font-semibold text-white hover:bg-[#245E40] transition-colors"
@@ -427,6 +464,174 @@ function CartaoProjeto({ projeto, onEditar }) {
 
       <AvisoArea projeto={projeto} />
     </div>
+  );
+}
+
+/* ===== Painel de equipe ===================================================
+   Sem este painel a leitura por participação vira um bloqueio sem saída: quem não está
+   em nenhum projeto abre a tela, vê a lista vazia e não existe, em lugar nenhum do
+   sistema, um botão capaz de incluir essa pessoa. Ele é a única porta.
+
+   O desenho e o vocabulário seguem o bloco "Equipe APSIS" de
+   src/pages/SecureShareProjeto.jsx: mesma lista de chips com o X para tirar, mesmo
+   campo de e-mail para acrescentar, mesmo aviso sobre quem ainda não tem cadastro. */
+
+function PainelEquipe({ aberto, projeto, msal, habilitado, onFechar }) {
+  const [novo, setNovo] = useState('');
+  const queryClient = useQueryClient();
+  const projetoId = projeto?.id ?? null;
+
+  /* Chave PRÓPRIA, e não ['carbon', 'projeto', id]: essa já pertence à tela do PDD, que
+     guarda no cache apenas o objeto `projeto` do envelope. Compartilhar a chave faria
+     uma das duas telas ler o formato guardado pela outra. */
+  const chave = ['carbon', 'projeto', projetoId, 'equipe'];
+
+  const equipeQuery = useQuery({
+    queryKey: chave,
+    queryFn: async () => {
+      const resposta = await obterProjeto(msal, projetoId);
+      return {
+        // Array garantido: um `.map()` sobre outra coisa derrubaria o render inteiro no
+        // ErrorBoundary, e o `?? []` não protege porque o valor errado não é nulo.
+        equipe: Array.isArray(resposta?.equipe) ? resposta.equipe : [],
+        podeEscrever: resposta?.pode_escrever === true,
+      };
+    },
+    // Só busca com o painel aberto: a lista pode ter dezenas de projetos, e uma
+    // requisição por cartão renderizado seria desperdício puro.
+    enabled: aberto && habilitado && Boolean(projetoId),
+  });
+
+  const equipe = equipeQuery.data?.equipe ?? [];
+  const podeEscrever = equipeQuery.data?.podeEscrever === true;
+
+  const mudar = useMutation({
+    mutationFn: async (dados) => atualizarEquipe(msal, projetoId, dados),
+    onSuccess: (resposta) => {
+      setNovo('');
+      queryClient.invalidateQueries({ queryKey: chave });
+      /* A leitura é por participação: tirar alguém da equipe muda a lista de projetos
+         que a conta enxerga - inclusive a sua própria, se você se tirou. */
+      queryClient.invalidateQueries({ queryKey: ['carbon', 'projetos'] });
+      if (resposta?.nao_encontrados?.length) {
+        // Não é falha: a linha em carbon_usuarios nasce no primeiro login. Dizer isso
+        // evita a pessoa achar que digitou o e-mail errado.
+        toast.warning('Alguns e-mails ainda não têm cadastro no Apsis Carbon.', {
+          description: `${resposta.nao_encontrados.join(', ')}. Peça para entrarem uma vez no sistema e tente de novo.`,
+          duration: 12000,
+        });
+      }
+    },
+    onError: (erro) => toast.error(erro?.message || 'Não foi possível alterar a equipe.'),
+  });
+
+  const acrescentar = (evento) => {
+    evento.preventDefault();
+    const email = novo.trim();
+    if (!email) return;
+    mudar.mutate({ adicionar: [email] });
+  };
+
+  /* 404 aqui significa as duas coisas ao mesmo tempo, e a tela não escolhe uma: o
+     projeto pode ter sumido, ou a sua participação nele pode ter sido retirada
+     enquanto a lista já estava carregada. */
+  const semAcesso = equipeQuery.error?.codigo === 'nao_encontrado';
+
+  return (
+    <PainelLateral
+      aberto={aberto}
+      onFechar={onFechar}
+      titulo="Equipe do projeto"
+      subtitulo={projeto?.nome || 'Projeto sem nome'}
+      icone={Users}
+      largura="md"
+    >
+      {equipeQuery.isLoading ? (
+        <div className="flex items-center justify-center gap-2 py-10 text-[#8A9990]">
+          <Loader2 size={16} className="animate-spin" />
+          <span className="text-xs">Carregando a equipe</span>
+        </div>
+      ) : equipeQuery.isError ? (
+        <div className="flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 leading-relaxed">
+          <TriangleAlert size={15} className="text-amber-600 mt-0.5 flex-shrink-0" />
+          <span>
+            {semAcesso
+              ? 'Este projeto não está disponível para a sua conta. Ele pode não existir, ou você ainda não faz parte da equipe dele.'
+              : equipeQuery.error?.message || 'Não foi possível carregar a equipe agora.'}
+          </span>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          <p className="text-xs text-[#5C7060] leading-relaxed">
+            Quem está nesta lista enxerga o projeto em <strong>Projetos</strong> e nas telas que
+            dependem dele. Administradores enxergam todos os projetos, estejam aqui ou não.
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {equipe.map((pessoa, i) => (
+              <span
+                key={pessoa?.id || `pessoa-${i}`}
+                className="inline-flex items-center gap-1.5 text-xs font-medium bg-[#F4F6F4] text-[#5C7060] border border-[#DDE3DE] rounded-full pl-3 pr-1 py-1"
+              >
+                <span className="break-all">{pessoa?.email || 'Sem e-mail'}</span>
+                {podeEscrever && pessoa?.email && (
+                  <button
+                    type="button"
+                    onClick={() => mudar.mutate({ remover: [pessoa.email] })}
+                    disabled={mudar.isPending}
+                    aria-label={`Tirar ${pessoa.email} da equipe`}
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-[#8A9990] hover:text-[#C0392B] hover:bg-white disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <X size={12} aria-hidden="true" />
+                  </button>
+                )}
+              </span>
+            ))}
+            {equipe.length === 0 && (
+              <p className="text-xs text-[#8A9990]">
+                Ninguém além dos administradores participa deste projeto.
+              </p>
+            )}
+          </div>
+
+          {podeEscrever ? (
+            <form onSubmit={acrescentar} className="space-y-3 pt-4 border-t border-[#F4F6F4]">
+              <Campo
+                rotulo="Acrescentar colaborador"
+                dica="Só e-mails @apsis.com.br. Para alguém de fora da APSIS, o caminho é o Secure Share."
+              >
+                <input
+                  type="email"
+                  value={novo}
+                  onChange={(evento) => setNovo(evento.target.value)}
+                  maxLength={320}
+                  placeholder="colega@apsis.com.br"
+                  className={CLASSE_CAMPO}
+                />
+              </Campo>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={!novo.trim() || mudar.isPending}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F47920] text-xs font-bold text-white hover:bg-[#e06810] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  {mudar.isPending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                  Adicionar
+                </button>
+              </div>
+            </form>
+          ) : (
+            /* Não é o perfil que esconde os controles: é a resposta do servidor. Sem
+               pode_escrever a pessoa continua vendo quem participa, que é justamente a
+               informação de quem ela precisa pedir a inclusão de alguém. */
+            <p className="text-xs text-[#8A9990] leading-relaxed pt-4 border-t border-[#F4F6F4]">
+              Você vê quem participa deste projeto, mas não pode alterar a equipe dele. Peça a
+              alguém da lista acima, ou à equipe responsável pelo sistema.
+            </p>
+          )}
+        </div>
+      )}
+    </PainelLateral>
   );
 }
 
@@ -680,16 +885,29 @@ function FormularioProjeto({ form, setForm, editando, salvando, onSubmit, onCanc
   );
 }
 
-function ListaVazia({ onNovo }) {
+/**
+ * Estado vazio.
+ *
+ * O cabeçalho diz "disponível", e não "cadastrado", porque com a leitura por
+ * participação a lista vazia não significa mais base vazia: significa que a conta não
+ * participa de nenhum projeto. Afirmar que não há projeto cadastrado passaria a ser
+ * mentira, e mandaria a pessoa cadastrar de novo algo que talvez já exista.
+ *
+ * O texto muda conforme `podeCriar`, que veio do SERVIDOR no envelope de GET /projetos.
+ * O botão de cadastrar continua aparecendo nos dois casos: quem decide é o servidor, e
+ * um 403 vira toast (ver o cabeçalho do arquivo).
+ */
+function ListaVazia({ podeCriar, onNovo }) {
   return (
     <div className="bg-white border border-[#DDE3DE] rounded-2xl shadow-sm px-5 py-14 text-center">
       <div className="w-14 h-14 bg-[#F4F6F4] rounded-2xl flex items-center justify-center mx-auto mb-4">
         <FolderTree size={22} className="text-[#8A9990]" />
       </div>
-      <p className="text-sm font-semibold text-[#1A2B1F]">Nenhum projeto cadastrado</p>
+      <p className="text-sm font-semibold text-[#1A2B1F]">Nenhum projeto disponível</p>
       <p className="text-xs text-[#5C7060] mt-1 max-w-md mx-auto leading-relaxed">
-        O projeto é a base de tudo: PDD, monitoramento, findings, metas e documentos ficam pendurados
-        nele. Cadastre o primeiro para começar.
+        {podeCriar
+          ? 'Você vê aqui os projetos em que participa. Todo projeto que criar já nasce com você na equipe.'
+          : 'O acesso a projeto é nominal: alguém da equipe do projeto precisa incluir você.'}
       </p>
       <button
         type="button"
@@ -714,20 +932,29 @@ export default function Projetos() {
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState(null);
   const [form, setForm] = useState(FORM_VAZIO);
+  // Projeto cujo painel de equipe está aberto. Guarda o objeto, e não só o id, porque o
+  // cabeçalho do painel mostra o nome antes de a requisição da equipe responder.
+  const [equipeDe, setEquipeDe] = useState(null);
 
   const projetosQuery = useQuery({
     queryKey: ['carbon', 'projetos'],
     queryFn: async () => {
-      const resposta = await listarProjetos(msal);
-      return Array.isArray(resposta) ? resposta : (resposta?.projetos ?? []);
+      /* normalizarListaProjetos: a chave ['carbon', 'projetos'] é compartilhada com
+         Atividades, Contratos, Documentos, Reuniões e ProjetoFindings. O envelope
+         { projetos, podeCriar } é o formato único guardado no cache; quem chegar
+         depois encontra sempre a mesma forma, venha de qual tela vier. */
+      return normalizarListaProjetos(await listarProjetos(msal));
     },
     /* Em modo demonstração não existe conta no MSAL (o login fica desabilitado) e as
        funções do carbonApi não usam token: exigir `autenticado` deixaria a tela
        permanentemente vazia justamente no modo que existe para revisá-la. */
-    enabled: MODO_DEMO || autenticado,
+    enabled: (MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado,
   });
 
-  const projetos = projetosQuery.data ?? [];
+  const projetos = projetosQuery.data?.projetos ?? [];
+  // Booleano do SERVIDOR, só renderizado. Ele escolhe o texto do estado vazio; o botão
+  // de criar continua sempre visível (ver o cabeçalho do arquivo).
+  const podeCriar = projetosQuery.data?.podeCriar === true;
   const comAlerta = projetos.filter((p) => p?.area_alerta).length;
 
   const fechar = () => {
@@ -789,7 +1016,7 @@ export default function Projetos() {
               : projetosQuery.isError
                 ? 'Não foi possível carregar a lista agora'
                 : projetos.length === 0
-                  ? 'Nenhum projeto cadastrado'
+                  ? 'Nenhum projeto disponível'
                   : `${projetos.length} ${projetos.length === 1 ? 'projeto' : 'projetos'}`}
           </p>
           {comAlerta > 0 && (
@@ -841,13 +1068,30 @@ export default function Projetos() {
           </span>
         </div>
       ) : projetos.length === 0 ? (
-        <ListaVazia onNovo={abrirNovo} />
+        <ListaVazia podeCriar={podeCriar} onNovo={abrirNovo} />
       ) : (
         <div className="space-y-4">
           {projetos.map((projeto, i) => (
-            <CartaoProjeto key={projeto?.id || `projeto-${i}`} projeto={projeto} onEditar={abrirEdicao} />
+            <CartaoProjeto
+              key={projeto?.id || `projeto-${i}`}
+              projeto={projeto}
+              onEditar={abrirEdicao}
+              onEquipe={setEquipeDe}
+            />
           ))}
         </div>
+      )}
+
+      {/* Fica fora do .map(): um painel por cartão significaria uma requisição de
+          equipe por cartão renderizado. Montado só quando alguém clica em "Equipe". */}
+      {equipeDe && (
+        <PainelEquipe
+          aberto={Boolean(equipeDe)}
+          projeto={equipeDe}
+          msal={msal}
+          habilitado={(MODO_DEMO && MODO_DEMO_ATIVO()) || autenticado}
+          onFechar={() => setEquipeDe(null)}
+        />
       )}
 
       {/* Rodapé explicativo: a listagem não traz a geometria bruta (payload pesado),

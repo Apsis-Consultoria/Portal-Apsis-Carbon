@@ -1,4 +1,4 @@
-import { MODO_DEMO } from "@/lib/runtimeConfig";
+import { MODO_DEMO, MODO_DEMO_ATIVO } from "@/lib/runtimeConfig";
 import { cam, chamarApi, chamarDemo } from "@/lib/api/base";
 import {
   demoListarAtividades,
@@ -23,7 +23,7 @@ import {
  * apontamentos, aderencia com uma casa, semana comecando na segunda, exclusao da
  * atividade cancelada do consolidado).
  *
- * O `if (MODO_DEMO)` fica SEM Boolean() em volta de proposito: com o wrapper o Rollup
+ * O `if (MODO_DEMO && MODO_DEMO_ATIVO())` fica SEM Boolean() em volta de proposito: com o wrapper o Rollup
  * nao dobra a expressao para a constante false, os ramos sobrevivem ao tree-shaking e o
  * dataset ficticio inteiro vai para o bundle de producao. Ver o cabecalho de
  * src/lib/api/projetos.js.
@@ -59,22 +59,22 @@ function query(filtros) {
  *        de, ate, busca, limite, pagina. Todos opcionais.
  */
 export async function listarAtividades(msal, filtros = {}) {
-  if (MODO_DEMO) return chamarDemo("/atividades", () => demoListarAtividades(filtros));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo("/atividades", () => demoListarAtividades(filtros));
   return chamarApi(`/atividades${query(filtros)}`, msal);
 }
 
 export async function obterAtividade(msal, id) {
-  if (MODO_DEMO) return chamarDemo(`/atividades/${id}`, () => demoObterAtividade(id));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo(`/atividades/${id}`, () => demoObterAtividade(id));
   return chamarApi(`/atividades/${cam(id)}`, msal);
 }
 
 export async function criarAtividade(msal, dados) {
-  if (MODO_DEMO) return chamarDemo("/atividades", () => demoCriarAtividade(dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo("/atividades", () => demoCriarAtividade(dados));
   return chamarApi("/atividades", msal, { metodo: "POST", corpo: dados });
 }
 
 export async function atualizarAtividade(msal, id, dados) {
-  if (MODO_DEMO) return chamarDemo(`/atividades/${id}`, () => demoAtualizarAtividade(id, dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo(`/atividades/${id}`, () => demoAtualizarAtividade(id, dados));
   return chamarApi(`/atividades/${cam(id)}`, msal, { metodo: "PATCH", corpo: dados });
 }
 
@@ -90,7 +90,7 @@ export async function atualizarAtividade(msal, id, dados) {
  *        rebaixa outras na mesma passada.
  */
 export async function repriorizarAtividades(msal, itens) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo("/atividades/repriorizar", () => demoRepriorizarAtividades(itens));
   }
   return chamarApi("/atividades/repriorizar", msal, { metodo: "POST", corpo: { itens } });
@@ -106,7 +106,7 @@ export async function repriorizarAtividades(msal, itens) {
  * SERVIDOR; a tela apenas explica o que esta mostrando.
  */
 export async function listarApontamentos(msal, atividadeId) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/atividades/${atividadeId}/apontamentos`, () =>
       demoListarApontamentos(atividadeId)
     );
@@ -128,19 +128,19 @@ export async function listarApontamentos(msal, atividadeId) {
  * @param {{atividade_id: string, data: string, horas?: number|string, observacao?: string}} dados
  */
 export async function registrarApontamento(msal, dados) {
-  if (MODO_DEMO) return chamarDemo("/apontamentos", () => demoRegistrarApontamento(dados));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo("/apontamentos", () => demoRegistrarApontamento(dados));
   return chamarApi("/apontamentos", msal, { metodo: "POST", corpo: dados });
 }
 
 export async function atualizarApontamento(msal, id, dados) {
-  if (MODO_DEMO) {
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarDemo(`/apontamentos/${id}`, () => demoAtualizarApontamento(id, dados));
   }
   return chamarApi(`/apontamentos/${cam(id)}`, msal, { metodo: "PATCH", corpo: dados });
 }
 
 export async function removerApontamento(msal, id) {
-  if (MODO_DEMO) return chamarDemo(`/apontamentos/${id}`, () => demoRemoverApontamento(id));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo(`/apontamentos/${id}`, () => demoRemoverApontamento(id));
   return chamarApi(`/apontamentos/${cam(id)}`, msal, { metodo: "DELETE" });
 }
 
@@ -151,7 +151,7 @@ export async function removerApontamento(msal, id) {
  *        normaliza para a segunda-feira (padrao ISO). Ausente = semana corrente.
  */
 export async function obterMinhasHoras(msal, semana) {
-  if (MODO_DEMO) return chamarDemo("/minhas-horas", () => demoMinhasHoras(semana));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo("/minhas-horas", () => demoMinhasHoras(semana));
   return chamarApi(`/minhas-horas${query({ semana })}`, msal);
 }
 
@@ -165,6 +165,6 @@ export async function obterMinhasHoras(msal, semana) {
  * @param {object} filtros de, ate, projeto_id, tipo.
  */
 export async function obterResumoHoras(msal, filtros = {}) {
-  if (MODO_DEMO) return chamarDemo("/horas-resumo", () => demoResumoHoras(filtros));
+  if (MODO_DEMO && MODO_DEMO_ATIVO()) return chamarDemo("/horas-resumo", () => demoResumoHoras(filtros));
   return chamarApi(`/horas-resumo${query(filtros)}`, msal);
 }

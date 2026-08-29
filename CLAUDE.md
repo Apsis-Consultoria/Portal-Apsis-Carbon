@@ -31,17 +31,36 @@ serão definidos depois, por isso a navegação e os cards de módulo vêm do Su
    nada de estado persistido só no frontend.
 2. **NUNCA a service_role key no frontend.** O portal tem essa chave hardcoded em
    `src/lib/supabaseClient.js` e exporta um cliente admin para o bundle: é uma
-   vulnerabilidade conhecida que **não deve ser replicada**. No Carbon existe
-   apenas o cliente anon, lendo `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`,
-   sem fallback hardcoded. Tudo que precisa de privilégio roda em Edge Function.
+   vulnerabilidade conhecida que **não deve ser replicada**. No Carbon não existe
+   cliente supabase-js nenhum, nem anon: ele só criaria a tentação de consultar
+   uma tabela direto e pular a checagem de permissão. Tudo passa por Edge
+   Function.
 3. **Proibido o caractere travessão (em dash).** Em código, comentários, textos,
    markdown, SQL, commits, dados no banco. Use hífen. Se encontrar um travessão
    em arquivo existente, substitua.
-4. **Configuração no backend.** O frontend só conhece as duas variáveis
-   `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`. Azure clientId/tenantId,
-   domínio permitido, e-mail de suporte, textos e imagens do login e feature
-   flags vivem na tabela `carbon_app_config` e chegam pela Edge Function pública
-   `app-config`. Não crie novas variáveis `VITE_` para configuração.
+4. **O frontend NÃO TEM VARIÁVEL DE AMBIENTE. NENHUMA.** Não existe `.env`, não
+   existe URL de Supabase nem anon key no bundle. Todas as chamadas vão para o
+   caminho relativo `/api/<função>` (ver `src/lib/endpoint.js`) e quem sabe o
+   endereço real é a hospedagem, por rewrite: em produção uma regra do Amplify,
+   em desenvolvimento o `server.proxy` do `vite.config.js` alimentado por
+   `SUPABASE_API_URL` (sem prefixo `VITE_`, justamente para o Vite se
+   recusar a expô-la ao navegador).
+
+   O motivo: com a URL do projeto no bundle, qualquer pessoa que abrisse a tela
+   de login descobriria o endereço e passaria a bater direto nas Edge Functions,
+   fora do nosso domínio, sem log, WAF nem limite de taxa.
+
+   Azure clientId/tenantId, domínio permitido, e-mail de suporte, textos e
+   imagens do login e feature flags vivem na tabela `carbon_app_config` e chegam
+   pela Edge Function pública `app-config`. Não reintroduza variáveis `VITE_`.
+
+   O **modo demonstração** segue a mesma regra: não é variável, é escolha de
+   tempo de execução. `MODO_DEMO` (constante de build, `import.meta.env.DEV`)
+   permite o recurso existir; `MODO_DEMO_ATIVO()` só devolve true se o botão
+   "Entrar em modo demonstração" tiver gravado `carbonModoDemoAtivo` no
+   `sessionStorage`. Em produção o Rollup dobra a constante para `false` e
+   remove os datasets fictícios do bundle. Nunca envolva `MODO_DEMO` em
+   `Boolean()`: isso derrota o tree-shaking e os dados fictícios vão junto.
 5. **Interface e documentação em português do Brasil**, com acentuação correta.
 6. **Estilo do código igual ao portal:** JSX com Tailwind direto, comentários
    explicativos em português onde a decisão não é óbvia.

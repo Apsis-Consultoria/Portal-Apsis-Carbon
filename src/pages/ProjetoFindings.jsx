@@ -63,7 +63,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
-import { listarProjetos, obterProjeto } from '@/lib/api/projetos';
+import { listarProjetos, normalizarListaProjetos, obterProjeto } from '@/lib/api/projetos';
 import {
   atualizarFinding,
   atualizarSubitemFinding,
@@ -73,7 +73,7 @@ import {
   obterFindings,
   removerSubitemFinding,
 } from '@/lib/api/findings';
-import { MODO_DEMO } from '@/lib/runtimeConfig';
+import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
 import { createPageUrl } from '@/utils';
 import { montarUrl } from '@/lib/pageRoutes';
 
@@ -1300,19 +1300,20 @@ function EscolherProjeto() {
   const { instance, accounts } = useMsal();
   const msal = useMemo(() => ({ instance, accounts }), [instance, accounts]);
   const navigate = useNavigate();
-  const habilitado = MODO_DEMO || (accounts?.length ?? 0) > 0;
+  const habilitado = (MODO_DEMO && MODO_DEMO_ATIVO()) || (accounts?.length ?? 0) > 0;
 
   const projetosQuery = useQuery({
     queryKey: ['carbon', 'projetos'],
     queryFn: async () => {
-      const resposta = await listarProjetos(msal);
-      return Array.isArray(resposta?.projetos) ? resposta.projetos : [];
+      /* normalizarListaProjetos: a chave ['carbon', 'projetos'] é compartilhada; ler o
+         envelope aqui é o que impede outra tela de encontrar um formato diferente. */
+      return normalizarListaProjetos(await listarProjetos(msal));
     },
     enabled: habilitado,
   });
 
   const projetos = useMemo(
-    () => (projetosQuery.data ?? []).filter((p) => p?.ativo !== false),
+    () => (projetosQuery.data?.projetos ?? []).filter((p) => p?.ativo !== false),
     [projetosQuery.data],
   );
 
@@ -1328,12 +1329,20 @@ function EscolherProjeto() {
   }
 
   if (projetosQuery.isError) {
+    // Com um caminho de volta: sem ele, quem cai aqui (falha de rede, ou o
+    // portão de equipe negando o projeto) fica preso numa tela de aviso dentro
+    // do shell. Beco sem saída foi defeito sentido em uso, em 25/08/2026.
     return (
-      <AvisoDiscreto
-        tom="vermelho"
-        titulo="Não foi possível carregar os projetos."
-        texto="Se o aviso continuar, avise a equipe responsável pelo sistema."
-      />
+      <div className="space-y-4">
+        <AvisoDiscreto
+          tom="vermelho"
+          titulo="Não foi possível carregar os projetos."
+          texto="Se o aviso continuar, avise a equipe responsável pelo sistema."
+        />
+        <BotaoSecundario como="link" para={createPageUrl('Projetos')} icone={ArrowLeft}>
+          Voltar para Projetos
+        </BotaoSecundario>
+      </div>
     );
   }
 
@@ -1397,7 +1406,7 @@ function FindingsDoProjeto({ projetoId }) {
   /* Em modo demonstração não existe conta no MSAL (o login fica desabilitado) e as
      funções da API não usam token, então `autenticado` não pode ser exigido: a tela
      ficaria vazia no único modo em que ela é revisável sem Supabase. */
-  const habilitado = (MODO_DEMO || (accounts?.length ?? 0) > 0) && Boolean(projetoId);
+  const habilitado = ((MODO_DEMO && MODO_DEMO_ATIVO()) || (accounts?.length ?? 0) > 0) && Boolean(projetoId);
 
   const projetoQuery = useQuery({
     queryKey: ['carbon', 'projeto', projetoId],
@@ -1642,7 +1651,18 @@ function FindingsDoProjeto({ projetoId }) {
     return [];
   })();
 
-  const semRodadas = !carregando && rodadas.length === 0;
+  /*
+   * `!falhou` faz parte da condição de propósito.
+   *
+   * Sem isso, um timeout ou um 500 ao carregar os findings caía em rodadas = []
+   * e a tela dizia "Nenhuma rodada de auditoria registrada" - convidando a
+   * cadastrar uma rodada que JÁ EXISTE no banco. A pessoa clica, cria a segunda
+   * rodada 1, e os findings passam a se dividir entre duas rodadas que deveriam
+   * ser uma. Falha de rede não pode ser lida como ausência de dado quando a
+   * reação natural a "não tem nada aqui" é criar.
+   */
+  const falhou = projetoQuery.isError || findingsQuery.isError;
+  const semRodadas = !carregando && !falhou && rodadas.length === 0;
 
   return (
     <div className="max-w-7xl mx-auto space-y-5">

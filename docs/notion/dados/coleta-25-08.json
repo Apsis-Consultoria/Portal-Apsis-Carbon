@@ -1,0 +1,1411 @@
+{
+  "_leia_me": "Registros REAIS lidos ao vivo no Notion em 2026-08-25, pelo navegador do dono. Os arquivos 01 a 19 de docs/notion/ descrevem a ESTRUTURA das paginas e foram extraidos ja anonimizados em 11/08; nao tinham os registros. Este arquivo tem os registros, e e a fonte dos seeds em supabase/seeds/.",
+  "_lgpd": "Nome de pessoa fisica, telefone e e-mail pessoal NAO entram aqui nem no banco. Onde a coluna de origem tinha esse dado, o campo esta como null e o motivo esta em `_omitido`. Onde um nome aparecia dentro de texto corrido, foi trocado por referencia de papel.",
+  "fornecedores": {
+    "_origem": "app.notion.com/p/Fornecedores-19fee8ba950e81f1b764ea1bc2fe2d96",
+    "_nota": "CNPJ, Dados Bancarios e Contratante estao VAZIOS em todos os seis no Notion. Nao e omissao nossa.",
+    "registros": [
+      {
+        "nome": "Canto Bueno",
+        "status_contratacao": "Concluído"
+      },
+      {
+        "nome": "Zabotto Ambiental",
+        "status_contratacao": "Concluído"
+      },
+      {
+        "nome": "Ipes",
+        "status_contratacao": "Em andamento"
+      },
+      {
+        "nome": "Indeva",
+        "status_contratacao": "Em andamento"
+      },
+      {
+        "nome": "PWPB",
+        "status_contratacao": null
+      },
+      {
+        "nome": "Nova Terra",
+        "status_contratacao": null
+      }
+    ]
+  },
+  "parcelas": {
+    "_origem": "mesma pagina, base `cadastro de parcelas`",
+    "_nota": "R$10,000 lido como 10000: a soma exibida pelo Notion e R$60,000 para as seis linhas, o que confirma a virgula como separador de milhar. Data em DD/MM/YYYY, confirmado porque a linha de vencimento 07/01/2025 tem pagamento 'January 7, 2025'.",
+    "registros": [
+      {
+        "id_origem": 4,
+        "fornecedor": "PWPB",
+        "tipo_servico": "Apoio Jurídico",
+        "valor": 10000,
+        "centro_custo": "Jurídico",
+        "vencimento": "2025-01-07",
+        "pagamento": "2025-01-07",
+        "status": "Pago"
+      },
+      {
+        "id_origem": 3,
+        "fornecedor": "PWPB",
+        "tipo_servico": "Apoio Jurídico",
+        "valor": 10000,
+        "centro_custo": "Jurídico",
+        "vencimento": "2025-02-07",
+        "pagamento": null,
+        "status": "Em aberto"
+      },
+      {
+        "id_origem": 6,
+        "fornecedor": "PWPB",
+        "tipo_servico": "Apoio Jurídico",
+        "valor": 10000,
+        "centro_custo": "Jurídico",
+        "vencimento": "2025-03-07",
+        "pagamento": null,
+        "status": "Em aberto"
+      },
+      {
+        "id_origem": 1,
+        "fornecedor": "PWPB",
+        "tipo_servico": "Apoio Jurídico",
+        "valor": 10000,
+        "centro_custo": "Jurídico",
+        "vencimento": "2025-04-07",
+        "pagamento": null,
+        "status": "Em aberto"
+      },
+      {
+        "id_origem": 2,
+        "fornecedor": "PWPB",
+        "tipo_servico": "Apoio Jurídico",
+        "valor": 10000,
+        "centro_custo": "Jurídico",
+        "vencimento": "2025-05-07",
+        "pagamento": null,
+        "status": "Em aberto"
+      },
+      {
+        "id_origem": 5,
+        "fornecedor": "PWPB",
+        "tipo_servico": "Apoio Jurídico",
+        "valor": 10000,
+        "centro_custo": "Jurídico",
+        "vencimento": "2025-06-06",
+        "pagamento": null,
+        "status": "Em aberto"
+      }
+    ],
+    "_total_conferido": 60000
+  },
+  "compradores": {
+    "_origem": "app.notion.com/p/Compradores-19fee8ba950e81c88539c9b0c3c54af6",
+    "_omitido": "A unica linha preenchida trazia um e-mail pessoal (dominio hotmail) de pessoa fisica. NAO importado: o proprio comentario da coluna carbon_compradores.email diz que ali entra razao social e nao dado de pessoa fisica.",
+    "registros": [
+      {
+        "nome": "Comprador sob NDA",
+        "estagio": "recorrente",
+        "sigiloso": true,
+        "_nota": "O Notion mostra 'NDA' no campo de nome e status 'Recorrente'. Nome comercial nao divulgado."
+      }
+    ]
+  },
+  "reunioes_apsis": {
+    "_origem": "app.notion.com/p/Reuni-es-Apsis-Carbon-3f4ee8ba950e82eb8d3581a4c5428bb1",
+    "_nota": "50 reunioes, todas do tipo weekly, de 15/09/2025 a 24/08/2026, sempre as segundas. O sufixo (1) e (2) no nome e contador de subpaginas do Notion, nao parte do titulo.",
+    "tipo": "weekly",
+    "datas": [
+      "2026-08-24",
+      "2026-08-17",
+      "2026-08-10",
+      "2026-08-03",
+      "2026-07-27",
+      "2026-07-20",
+      "2026-07-13",
+      "2026-07-06",
+      "2026-06-29",
+      "2026-06-22",
+      "2026-06-15",
+      "2026-06-08",
+      "2026-06-01",
+      "2026-05-25",
+      "2026-05-18",
+      "2026-05-11",
+      "2026-05-04",
+      "2026-04-27",
+      "2026-04-20",
+      "2026-04-13",
+      "2026-04-06",
+      "2026-03-30",
+      "2026-03-23",
+      "2026-03-16",
+      "2026-03-09",
+      "2026-03-02",
+      "2026-02-23",
+      "2026-02-09",
+      "2026-02-02",
+      "2026-01-26",
+      "2026-01-19",
+      "2026-01-12",
+      "2026-01-05",
+      "2025-12-29",
+      "2025-12-22",
+      "2025-12-15",
+      "2025-12-08",
+      "2025-12-01",
+      "2025-11-24",
+      "2025-11-17",
+      "2025-11-10",
+      "2025-11-03",
+      "2025-10-27",
+      "2025-10-20",
+      "2025-10-13",
+      "2025-10-06",
+      "2025-09-29",
+      "2025-09-22",
+      "2025-09-15"
+    ],
+    "_pauta_padrao": "Rascunho registrado na pagina: atualizar status de atividades ao longo da semana; contar horas; um responsavel faz a ata; consultoria abre atividades; projetos abre atividades; identificar pontos de atencao e barreiras; atualizar backlog; leitura da ata. Nomes de pessoas do rascunho original nao reproduzidos.",
+    "_correcao_25_08_noite": "A lista real tem 93 linhas; a primeira leitura parou nas 50 que o Notion mostra antes do \"Load more\". Completada com 31 semanais (06/01 a 08/09/2025) e 9 reunioes nomeadas. Dois titulos tinham nome de pessoa e foram reduzidos a TI: \"Reuniao <nome> TI Koatinemo\" e \"Reuniao <nome> TI Sao Marcos\".",
+    "datas_completadas": [
+      "2025-09-08",
+      "2025-09-01",
+      "2025-08-25",
+      "2025-08-18",
+      "2025-08-11",
+      "2025-08-04",
+      "2025-07-28",
+      "2025-07-21",
+      "2025-07-14",
+      "2025-07-08",
+      "2025-06-23",
+      "2025-06-16",
+      "2025-06-09",
+      "2025-06-02",
+      "2025-05-26",
+      "2025-05-19",
+      "2025-05-12",
+      "2025-04-28",
+      "2025-04-07",
+      "2025-03-31",
+      "2025-03-24",
+      "2025-03-17",
+      "2025-03-06",
+      "2025-02-24",
+      "2025-02-17",
+      "2025-02-10",
+      "2025-02-03",
+      "2025-01-27",
+      "2025-01-21",
+      "2025-01-13",
+      "2025-01-06"
+    ],
+    "nomeadas": [
+      {
+        "titulo": "Reunião Fortech",
+        "data": "2025-05-16",
+        "tipo": "tematica",
+        "parceiro": "Fortech"
+      },
+      {
+        "titulo": "Reunião Iquantic",
+        "data": "2025-05-07",
+        "tipo": "tematica",
+        "parceiro": "Iquantic"
+      },
+      {
+        "titulo": "Reunião TI Koatinemo",
+        "data": "2025-05-02",
+        "tipo": "tematica",
+        "parceiro": null
+      },
+      {
+        "titulo": "Reunião Bee2Be",
+        "data": "2025-05-02",
+        "tipo": "tematica",
+        "parceiro": "Bee2Be"
+      },
+      {
+        "titulo": "Reunião DINC",
+        "data": "2025-04-30",
+        "tipo": "tematica",
+        "parceiro": "DINC"
+      },
+      {
+        "titulo": "Reunião TI São Marcos e Pimentel Barbosa",
+        "data": "2025-03-28",
+        "tipo": "tematica",
+        "parceiro": null
+      },
+      {
+        "titulo": "Reunião TI São Marcos",
+        "data": "2025-02-14",
+        "tipo": "tematica",
+        "parceiro": null
+      },
+      {
+        "titulo": "MSCI onboarding",
+        "data": "2025-01-09",
+        "tipo": "tematica",
+        "parceiro": "MSCI"
+      },
+      {
+        "titulo": "Reunião Semanal Comercial",
+        "data": "2025-01-06",
+        "tipo": "semanal",
+        "parceiro": null
+      }
+    ]
+  },
+  "atividades_apsis": {
+    "_origem": "app.notion.com/p/Atividades-Apsis-Carbon-19fee8ba950e8120a90ff69c42e1c5d8",
+    "_nota": "View 'Em andamento'. Coluna Responsavel vazia na leitura. HH Executada vazia em todas. Total planejado 29.",
+    "registros": [
+      {
+        "nome": "Preparar proposta para Biosolvit",
+        "inicio": "2024-12-17",
+        "fim": "2025-01-10",
+        "prioridade": "Baixa",
+        "tipo": "Consultoria",
+        "hh_planejadas": 2,
+        "status": "Em andamento"
+      },
+      {
+        "nome": "EVTE Irmãos Salles",
+        "inicio": "2024-12-30",
+        "fim": "2025-01-10",
+        "prioridade": "Média",
+        "tipo": "Novos Negócios",
+        "hh_planejadas": 10,
+        "status": "Em andamento"
+      },
+      {
+        "nome": "Checklist oportunidades JPF",
+        "inicio": "2024-12-30",
+        "fim": "2025-01-10",
+        "prioridade": "Alta",
+        "tipo": "JPF",
+        "hh_planejadas": 1,
+        "status": "Em andamento"
+      },
+      {
+        "nome": "Estudar TI Pimentel Barbosa",
+        "inicio": "2024-12-30",
+        "fim": "2025-01-10",
+        "prioridade": "Média",
+        "tipo": "JPF",
+        "hh_planejadas": 1,
+        "status": "Em andamento"
+      },
+      {
+        "nome": "Organizar Notion",
+        "inicio": "2025-01-06",
+        "fim": "2025-01-31",
+        "prioridade": "Média",
+        "tipo": "Backoffice",
+        "hh_planejadas": 10,
+        "status": "Em andamento"
+      },
+      {
+        "nome": "EVTE Pantanal",
+        "inicio": "2025-01-08",
+        "fim": "2025-01-10",
+        "prioridade": "Alta",
+        "tipo": "Novos Negócios",
+        "hh_planejadas": 5,
+        "status": "Em andamento"
+      }
+    ]
+  },
+  "visitas": {
+    "_origem": "app.notion.com/p/Relat-rio-de-Visitas-1e0ee8ba950e804bb01fdb024d659b8f",
+    "_omitido": "As colunas Contato, Telefone e E-mail estavam preenchidas com nome de pessoa fisica, celular e e-mail pessoal em 18 linhas. NAO importadas (LGPD). O sistema aceita esses campos: quem tem a base pode preencher pela tela, sob a politica de retencao da empresa.",
+    "registros": [
+      {
+        "organizacao": "CCM Estruturas Fotovoltaicas",
+        "localidade": "Fortaleza",
+        "data": "2025-04-24",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "Absolar",
+        "localidade": "Fortaleza",
+        "data": "2025-04-24",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "Canal Solar",
+        "localidade": "Fortaleza",
+        "data": "2025-04-24",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "Satel Brasil",
+        "localidade": "Fortaleza",
+        "data": "2025-04-23",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "Perspectivas Comunicações",
+        "localidade": "Fortaleza",
+        "data": "2025-04-23",
+        "follow_up": "Em andamento"
+      },
+      {
+        "organizacao": "Brasol",
+        "localidade": "Fortaleza",
+        "data": "2025-04-23",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "Ecológica",
+        "localidade": "Fortaleza",
+        "data": "2025-04-23",
+        "follow_up": "Em andamento"
+      },
+      {
+        "organizacao": "Movimento Econômico",
+        "localidade": "Fortaleza",
+        "data": "2025-04-23",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "BMG Energia",
+        "localidade": "Fortaleza",
+        "data": "2025-04-23",
+        "follow_up": "Em andamento"
+      },
+      {
+        "organizacao": "FIEC",
+        "localidade": "Fortaleza",
+        "data": "2025-04-23",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "Siemens",
+        "localidade": "São Paulo",
+        "data": "2026-08-05",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "Sustentech",
+        "localidade": "São Paulo",
+        "data": "2026-08-05",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "SOLOS",
+        "localidade": "São Paulo",
+        "data": "2026-08-05",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "Bradesco",
+        "localidade": "São Paulo",
+        "data": "2026-08-05",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "Green Era",
+        "localidade": "São Paulo",
+        "data": "2026-08-05",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "Itau BBA",
+        "localidade": "São Paulo",
+        "data": "2026-08-05",
+        "follow_up": "Não iniciada"
+      },
+      {
+        "organizacao": "BMA",
+        "localidade": "São Paulo",
+        "data": "2026-08-05",
+        "follow_up": "Não iniciada"
+      }
+    ],
+    "_linha_descartada": "Uma 18a linha tinha o NOME DE UMA PESSOA no proprio campo Organizacao, com telefone. Descartada por inteiro: nao da para anonimizar sem apagar o registro."
+  },
+  "pdd_status": {
+    "_origem": "app.notion.com/p/PDD-19fee8ba950e81a29af5d204af9f3962",
+    "_nota": "43 capitulos, TODOS com status Concluido. O Notion mostra COMPLETE 100%. A estrutura ja esta em carbon_pdd_template, que tem exatamente 43 linhas.",
+    "status_de_todos": "concluido",
+    "total": 43
+  },
+  "monitoring_report_status": {
+    "_origem": "app.notion.com/p/Monitoring-Report-19fee8ba950e8112a629d5e442399de0",
+    "_nota": "32 capitulos, batendo com as 32 linhas de carbon_mr_template. 'Revisao 2' vira estado em_revisao com rodada 2.",
+    "por_capitulo": {
+      "1": "Em andamento",
+      "2.": "Em andamento",
+      "3": "Em andamento",
+      "4": "Em andamento",
+      "4.1.1": "Revisão 2",
+      "4.1.2": "Revisão 2",
+      "4.1.3": "Revisão 2",
+      "4.1.4": "Revisão 2",
+      "4.2.1": "Revisão 2",
+      "4.2.2": "Revisão 2",
+      "4.3.1": "Concluído",
+      "4.3.2": "Revisão 2",
+      "4.4.1": "Revisão 2",
+      "4.4.2": "Revisão 2",
+      "4.4.3": "Revisão 2",
+      "4.4.4": "Revisão 2",
+      "4.4.5": "Revisão 2",
+      "4.4.6": "Revisão 2",
+      "5": "Concluído",
+      "5.1.1": "Revisão 2",
+      "5.1.2": "Revisão 2",
+      "5.1.3": "Revisão 2",
+      "5.1.4": "Revisão 2",
+      "5.1.5": "Revisão 2",
+      "5.1.6": "Revisão 2",
+      "5.1.7": "Revisão 2",
+      "5.1.8": "Revisão 2",
+      "5.2.1": "Revisão 2",
+      "5.2.2": "Revisão 2",
+      "5.3.1": "Revisão 2",
+      "5.3.2": "Revisão 2",
+      "5.4.1": "Revisão 2"
+    },
+    "comentarios_por_capitulo": {
+      "1 - Summary": "The data collected in the field is currently under revision and analysis. Additionally, specific data related to the accountability of GHG reduction is being evaluated to ensure accuracy and compliance with establised methodologies.",
+      "2 - Project Details": "This chapter is being revised"
+    }
+  },
+  "vvb_findings": {
+    "_origem": "app.notion.com/p/1caee8ba950e8024b2c2f7a8f93f06b3",
+    "_vocabulario": {
+      "status": [
+        "Closed",
+        "Open",
+        "New Finding"
+      ],
+      "revisao": [
+        "Concluído",
+        "Em andamento",
+        "Revisão"
+      ],
+      "evidencia": [
+        "N/A",
+        "OK",
+        "Em andamento",
+        "Pendente"
+      ],
+      "documento": [
+        "PD",
+        "MR"
+      ],
+      "tipo": [
+        "CAR",
+        "CL"
+      ]
+    },
+    "_lgpd": "Os campos de acao e comentario citavam primeiro nome de colaborador ('confirmar com X', 'X ja pediu ao juridico'). Trocados por referencia de papel.",
+    "registros": [
+      {
+        "item": "ID - 01",
+        "documento": "PD",
+        "tipo": "CAR",
+        "status": "Closed",
+        "revisao": "Concluído",
+        "evidencia": "N/A",
+        "secao": "Section 2.1.16 - Project Zone Map and Project Location",
+        "descricao": "1. The project location including a set of geodetic coordinates is not displayed in the PDD. 2. Section 2.1.16 in PDD describes the Project Zone but does not display a proper map of the Project Zone as required by CCB Standard.",
+        "acao_requerida": "1. Provide a set of geodetic coordinates of the project location according to CCB Standard requirements. 2. Provide a Project Zone map according to CCB Standard requirements.",
+        "acao_planejada": "1. Incluir coordenadas da TI no PD. 2. Mapa que contenha as aldeias, os rios (HCVs Bio), cemiterios (HCV Comunidade), limites da TI e limites do buffer. Explicar antes do mapa que todo o territorio, de acordo com censo, e HCV para Biodiversidade, e as vilas onde esta a comunidade sao HCVs de cultura e locais sagrados.",
+        "comentario": "Item 1: incluida tabela com coordenadas de acordo com decreto que homologa a TI."
+      },
+      {
+        "item": "ID - 01",
+        "documento": "MR",
+        "tipo": "CL",
+        "status": "Closed",
+        "revisao": "Concluído",
+        "evidencia": null,
+        "secao": "Section 1.1",
+        "descricao": "It is unclear how the GHG emission reduction, Conservation and Sustainable Use of the Forest, and Conservation of Threatened Species listed under Unique Project Benefits differ from the GHG emission reductions and removals, Forest Cover, and Biodiversity Conservation benefits described in Section 1.2 (Standardized Benefit Metrics).",
+        "acao_requerida": "PP is required to clarify how the benefits listed in Section 1.1 are unique to the project and how they differ from the standardized benefits outlined in Section 1.2.",
+        "acao_planejada": null,
+        "comentario": null
+      },
+      {
+        "item": "ID - 01",
+        "documento": "MR",
+        "tipo": "CAR",
+        "status": "Open",
+        "revisao": "Em andamento",
+        "evidencia": "N/A",
+        "secao": null,
+        "descricao": "The scientific names throughout the MR are not following the ABNT NBR 10520/2002 (scientific names should contain the genus and species and should be written in italics).",
+        "acao_requerida": "PP is asked to review the scientific names throughout the MR and PDD.",
+        "acao_planejada": "Verificar os nomes que nao estao em italico.",
+        "comentario": "Conferencia secao a secao registrada na origem: da 1.1 a 5.3.2.1, todas marcadas OK."
+      },
+      {
+        "item": "ID - 01",
+        "documento": "PD",
+        "tipo": "CL",
+        "status": "Open",
+        "revisao": "Revisão",
+        "evidencia": "OK",
+        "secao": "Section 2.1.9 - Ownership",
+        "descricao": "In section 2.1.9 PP has defined the landownership of the Community and their rights to land and the agreement between community and the PP, but it lacks clarity over carbon credit ownership. 2nd round: The investment agreements for both the Upper and Lower groups were presented by the PP. However, the documents contain signatures only from indigenous representatives, with the signatures of Apsis Carbon representatives still missing. Additionally, the Technical Cooperation Agreements mention a different percentage distribution of credits to IPES and INDEVA, which requires further clarification.",
+        "acao_requerida": "PP shall clarify the ownership and distribution of the carbon credits in detail.",
+        "acao_planejada": "1. Incluir que o PP tem contrato de divisao dos creditos de carbono, sem precisar incluir percentual. 2. Informar que o contrato foi passado para a VVB. 2a rodada: fornecer contrato de investimento assinado pela Apsis, ja solicitado ao juridico; contrato OK. Checar contratos com Ipes e Indeva e fornecer aditivos, que corrigem os percentuais.",
+        "comentario": "Ja existe termo de compromisso das associacoes sobre os 40 anos."
+      },
+      {
+        "item": "ID - 02",
+        "documento": "MR",
+        "tipo": "CL",
+        "status": "Open",
+        "revisao": "Concluído",
+        "evidencia": "N/A",
+        "secao": "Section 2.2.4",
+        "descricao": "It is unclear whether the increase in the number of villages from 28 to 31 is considered a project emission factor.",
+        "acao_requerida": "PP is required to clarify whether the establishment of new villages resulted in any emissions and, if so, whether these emissions were accounted for in the project emissions.",
+        "acao_planejada": "Plataforma de monitoramento: confirmar com o responsavel os valores de desmatamento total.",
+        "comentario": "Provavelmente nao ha evidencias. Dados de populacao pedidos ao parceiro em 23/05."
+      },
+      {
+        "item": "ID - 02",
+        "documento": "MR",
+        "tipo": "CAR",
+        "status": "Closed",
+        "revisao": "Concluído",
+        "evidencia": null,
+        "secao": "Section 2.2.6.2",
+        "descricao": "The project zone map presented in Section 2.2.6.2 in MR does not fulfill CCB Standard requirements.",
+        "acao_requerida": "The PP is required to provide a project zone map that complies with CCB Standard requirements.",
+        "acao_planejada": null,
+        "comentario": "Como nao e um Grouped Project, o item foi retirado, conforme o template do VCS e comentario da VVB."
+      },
+      {
+        "item": "ID - 03",
+        "documento": "MR",
+        "tipo": "CAR",
+        "status": "New Finding",
+        "revisao": "Concluído",
+        "evidencia": "Em andamento",
+        "secao": "Section 2.5.5",
+        "descricao": "In MR Section 2.5.5, the section's table was removed by PP. However, the template indicates that when no disputes are observed, the PP must fill in N/A and provide a description of the ongoing measures implemented to protect and preserve property rights.",
+        "acao_requerida": "The PP is required to restore the table and complete it in accordance with the template's requirements.",
+        "acao_planejada": "Incluir tabela.",
+        "comentario": null
+      },
+      {
+        "item": "ID - 04",
+        "documento": "MR",
+        "tipo": "CAR",
+        "status": "New Finding",
+        "revisao": "Concluído",
+        "evidencia": "OK",
+        "secao": "Entire MR",
+        "descricao": "There is information in other languages than English of figures and maps throughout the MR. According to the VCS Standard, all information provided in MR shall be written in English.",
+        "acao_requerida": "PP is required to review all information in the MR and adequate them to the language required by the VCS Standard.",
+        "acao_planejada": "Revisar figuras e tabelas.",
+        "comentario": "Conferencia registrada na origem: figuras 1 a 30 e tabelas 1 a 30 marcadas OK; tabelas 22, 23, 24, 27 e 28 corrigidas; secao 3.1.3 com substituicao de nomes PT para EN."
+      },
+      {
+        "item": "ID - 05",
+        "documento": "MR",
+        "tipo": "CAR",
+        "status": "New Finding",
+        "revisao": "Concluído",
+        "evidencia": "OK",
+        "secao": "MR 5.3.1.2",
+        "descricao": "PP mentions the collection of soil and litter in the Biodiversity Monitoring Plan; however, the methodology applied is not clearly described in the plan.",
+        "acao_requerida": "PP is requested to provide a description of the sampling methods applied to these processes.",
+        "acao_planejada": "Avaliar se a melhor estrategia e retirar.",
+        "comentario": null
+      },
+      {
+        "item": "ID - 06 PK",
+        "documento": "MR",
+        "tipo": "CAR",
+        "status": "New Finding",
+        "revisao": "Concluído",
+        "evidencia": "OK",
+        "secao": "Section 3.1.3",
+        "descricao": "Section 3.1.3 of the MR describes a 10km buffer zone for leakage monitoring, visualized in the provided red polygon and GIS attribute table (BUFFER_10KM) showing a buffered area of 643,695 ha. However, the buffer appears not to have been generated properly, as evidenced by potential multipart or undissolved features. This is not aligned with the project's single forest stratum or leakage calculations and no dissolved shapefile. Undissolved buffers can lead to topological errors, such as inflated or fragmented areas, compromising leakage monitoring accuracy.",
+        "acao_requerida": "Regenerate the 10km leakage belt buffer using standard GIS tools (Dissolve All), ensuring dissolution of any multipart or overlapping features to create a single contiguous polygon. Submit the updated geospatial evidence.",
+        "acao_planejada": null,
+        "comentario": null
+      },
+      {
+        "item": "ID - 02",
+        "documento": "PD",
+        "tipo": "CL",
+        "status": "Closed",
+        "revisao": "Concluído",
+        "evidencia": "Pendente",
+        "secao": "Section 2.1.10 - Project Start Date",
+        "descricao": "In section 2.1.10 PP has defined how the start date is justified based on a partnership and investment agreement, but as per VCS and CCB definition the start date should be an activity that contributes to the reduction or removal of GHG.",
+        "acao_requerida": "PP shall clarify the justification and activity of the start date based on VCS standard v4.7.",
+        "acao_planejada": "Retirar o contrato entre as partes e informar que o monitoramento do territorio comecou em janeiro de 2023.",
+        "comentario": "Avaliar se a construcao da guarita serve como evidencia."
+      },
+      {
+        "item": "ID - 02",
+        "documento": "PD",
+        "tipo": "CAR",
+        "status": "Closed",
+        "revisao": "Concluído",
+        "evidencia": "N/A",
+        "secao": null,
+        "descricao": "1. Several maps throughout the PDD do not display the PA boundaries in the legend. 2. Several maps throughout the PDD display information in Portuguese. 3. Several maps throughout the PDD do not display information about the coordinate system.",
+        "acao_requerida": "1. Correct legend for all maps where the PA boundaries are included. 2. Provide all maps in the PDD with all texts in English. 3. Provide all maps in the PDD with information about the coordinate system.",
+        "acao_planejada": "1. Identificar mapas com os problemas mencionados. 2. Verificar quais mapas sao do parceiro e pedir os shapefiles. 3. Refazer os mapas conforme o guidance do CCB Standard, secao 4 (Maps).",
+        "comentario": "Treze mapas conferidos e marcados OK, entre eles classificacao de Koppen do Para (SEMAS), hidrografia e topografia (IBGE), tipos de solo (EMBRAPA), vegetacao (IBGE), municipios do entorno (IBGE), assentamentos em Novo Repartimento e Itupiranga (INCRA), zonas minerarias (RAISG), unidades de conservacao, zona de manejo de vazamento e exploracao madeireira 2021 (SIMEX)."
+      }
+    ]
+  },
+  "reunioes_parakana": {
+    "_origem": "app.notion.com/p/Reuni-es-Parakan-19fee8ba950e81e09550c388c4e53676",
+    "_nota": "45 reunioes: 40 semanais, duas de governanca, uma tematica (FAQ) e duas por parceiro no mesmo dia (INDEVA e IPES).",
+    "registros": [
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2026-07-06",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2026-06-22",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2026-06-08",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2026-05-25",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2026-05-04",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2026-03-02",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2026-02-23",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2026-01-26",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2026-01-21",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2026-01-12",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-12-08",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-12-01",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-11-26",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-10-20",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-10-13",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-10-08",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-09-23",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-09-15",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-09-08",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-09-01",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-08-18",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-08-11",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-07-28",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-06-30",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-06-23",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-06-16",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-06-09",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-06-02",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-05-26",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-05-19",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-05-13",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-05-05",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-04-28",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-04-14",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-04-11",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-03-27",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-03-17",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-03-10",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-02-25",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana",
+        "data": "2025-02-12",
+        "tipo": "semanal"
+      },
+      {
+        "titulo": "Reuniao - FAQ Parakana",
+        "data": "2026-06-30",
+        "tipo": "tematica"
+      },
+      {
+        "titulo": "Reuniao de Alinhamento Operacional e de Governanca",
+        "data": "2026-06-26",
+        "tipo": "governanca"
+      },
+      {
+        "titulo": "Reuniao - Modelo de governanca",
+        "data": "2025-05-21",
+        "tipo": "governanca"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana - INDEVA",
+        "data": "2025-11-10",
+        "tipo": "semanal_parceiro",
+        "parceiro": "INDEVA"
+      },
+      {
+        "titulo": "Reuniao Semanal Parakana - IPES",
+        "data": "2025-11-10",
+        "tipo": "semanal_parceiro",
+        "parceiro": "IPES"
+      }
+    ]
+  },
+  "atividades_parakana": {
+    "_origem": "app.notion.com/p/Atividades-Parakan-19fee8ba950e814aabdbf83fa0f0a150",
+    "_lgpd": "A coluna Responsavel trazia nome de colaborador. Nao importada.",
+    "registros": [
+      {
+        "nome": "Reorganizar pasta do VVB",
+        "prazo": "2025-04-17",
+        "prioridade": "Alta",
+        "tipo": "JPF",
+        "status": "Nao iniciada"
+      },
+      {
+        "nome": "Fazer reuniao mensal fev e marco/25",
+        "prazo": "2025-04-25",
+        "prioridade": "Media",
+        "tipo": "JPF",
+        "status": "Nao iniciada"
+      }
+    ]
+  },
+  "consultoria": {
+    "_origem": "app.notion.com/p/Consultoria-19fee8ba950e8150b9ffce435eca497a",
+    "_lgpd": "Colunas Responsavel e Envolvidos traziam nome de colaborador. Nao importadas.",
+    "_sem_destino": "O funil AP (oportunidade -> proposta -> consultoria) NAO tem tabela no banco. Fica registrado aqui como fonte ate o dominio existir.",
+    "oportunidades": [],
+    "propostas": [
+      {
+        "codigo": "AP-000XX/25",
+        "status": "Ganha",
+        "grupo_servico": "Descarbonizacao",
+        "criado_em": "2025-02-19T12:24"
+      },
+      {
+        "codigo": "AP-000XX/25",
+        "status": "Elaboracao",
+        "grupo_servico": "Descarbonizacao",
+        "criado_em": "2025-02-19T12:24"
+      },
+      {
+        "codigo": null,
+        "status": "Elaboracao",
+        "grupo_servico": "Carbono",
+        "criado_em": "2025-02-19T12:24"
+      },
+      {
+        "codigo": "AP-000XX/25 - Watch Dog",
+        "status": "Elaboracao",
+        "cliente": "Grupo Sada",
+        "criado_em": "2025-02-19T16:35"
+      },
+      {
+        "codigo": "AP-000xx/25 - Mapeamento Oportunidades",
+        "status": "Elaboracao",
+        "cliente": "Grupo Sada",
+        "grupo_servico": "Carbono",
+        "criado_em": "2025-02-19T17:05"
+      },
+      {
+        "codigo": null,
+        "status": "Elaboracao",
+        "criado_em": "2025-02-19T17:29"
+      },
+      {
+        "codigo": "S1 e S2 [Pampa Sul Energia]",
+        "status": "Elaboracao",
+        "criado_em": "2025-07-08T11:41"
+      }
+    ],
+    "consultorias": [
+      {
+        "projeto": "AP x -25 [IPEL]",
+        "status": "Em andamento",
+        "prazo": "2025-04-01"
+      },
+      {
+        "projeto": "AP 00051 - 24 [J6 - QUEIXADA]",
+        "status": "Em andamento"
+      },
+      {
+        "projeto": "AP x -25 [Assessoria Tecverde]",
+        "status": "Em andamento",
+        "prazo": "2025-02-17"
+      },
+      {
+        "projeto": "AP x -25 [CTA]",
+        "status": "Em andamento"
+      },
+      {
+        "projeto": null,
+        "status": "Nao iniciada"
+      },
+      {
+        "projeto": "AP - 00052-24 [Aquapolo]",
+        "status": "Em andamento"
+      },
+      {
+        "projeto": "AP - 00003-26 [CTA]",
+        "status": "Em andamento"
+      },
+      {
+        "projeto": "AP -",
+        "status": "Nao iniciada"
+      },
+      {
+        "projeto": "AVB - Teste",
+        "status": "Nao iniciada",
+        "_teste": true
+      },
+      {
+        "projeto": "AVB - Teste",
+        "status": "Nao iniciada",
+        "_teste": true
+      }
+    ]
+  },
+  "novos_negocios_jpf": {
+    "_origem": "app.notion.com/p/Novos-Neg-cios-JPF-19fee8ba950e815abf9eca811bf9bf19",
+    "_nota": "As colunas Tipo e Metodologia estao vazias no Notion. O segmento abaixo vem do proprio nome (TI = terra indigena). Flona Tapajos e floresta nacional, que nao cabe em nenhum dos tres valores aceitos, e por isso fica nulo.",
+    "registros": [
+      {
+        "nome": "TI Pimentel Barbosa",
+        "segmento": "terra_indigena"
+      },
+      {
+        "nome": "TI Parecis",
+        "segmento": "terra_indigena"
+      },
+      {
+        "nome": "Flona Tapajos",
+        "segmento": null
+      }
+    ]
+  },
+  "findings_verra": {
+    "_origem": "app.notion.com/p/37cee8ba950e80a5973edeb7fe5046af",
+    "_nota": "Seis findings, todos do tipo CL. A coluna \"Review process\" traz o texto oficial de resposta em ingles; \"Comments\" traz a nota de trabalho em portugues; \"Documents\"/\"Evidence\" traz a lista numerada de evidencias, que vira subitem.",
+    "_lgpd": "Dois primeiros nomes de colaborador no texto de origem foram trocados por referencia de papel.",
+    "registros": [
+      {
+        "item": "1",
+        "tipo": "CL",
+        "status": "Revisão",
+        "descricao": "Information on the governance structure of the Parakana Indigenous communities.",
+        "resposta_oficial": null,
+        "comentario": "A definir com o responsavel se insere ou nao.",
+        "evidencias": []
+      },
+      {
+        "item": "2",
+        "tipo": "CL",
+        "status": "Revisão",
+        "descricao": "Plano de Gestao Territorial e Ambiental (PGTA) of the Parakana Indigenous communities.",
+        "resposta_oficial": "Currently, the Parakana Indigenous communities do not have a formally approved Territorial and Environmental Management Plan (PGTA). The development of a PGTA has been identified as a priority and is included among the project activities.\n\nIn the absence of a formal PGTA, territorial protection, environmental management and community development priorities have been identified through the socioeconomic diagnosis, FPIC processes, community consultations, leadership meetings, and participatory planning exercises such as the Dream Tree methodology. These processes have informed the project's activities and capacity-building initiatives related to territorial monitoring, environmental protection and governance strengthening.\n\nFurthermore, the project has supported several capacity-building activities related to territorial and environmental management, contributing to the future development and implementation of a PGTA.",
+        "comentario": "Apesar de ser obrigacao do governo elaborar, nao havia PGTA. Abordar a importancia de te-lo e o objetivo do plano. Garantir que o projeto de carbono esta dentro do PGTA e explicitar como a FUNAI participou.",
+        "evidencias": [
+          "Diagnostico socioeconomico (parceiro Interelos)",
+          "Treinamento: curso basico de protecao territorial",
+          "Treinamento teorico e pratico no protocolo de atividades ilegais (Apsis e Indeva)",
+          "Ronda pela floresta com os indigenas",
+          "Treinamento de brigada de incendio",
+          "Capacitacao do Conselho Gestor"
+        ]
+      },
+      {
+        "item": "3",
+        "tipo": "CL",
+        "status": "Revisão",
+        "descricao": "Supporting documentation regarding the designation of Instituto Wyrapina Awaete and Associacao Indigena Paranatinga Parakana as representatives of the 21 village communities.",
+        "resposta_oficial": "An indigenous community must establish and select a legal entity to represent it in any contracts or commercial agreements it wishes to enter. Typically, associations are the recommended structure for this purpose.\n\nThe representativeness of these specific associations in the carbon credit project was determined during the FPICs held in December 2022 with the two groups, with the Associacao Paranatinga Parakana representing the Lower Group and the Instituto Wyrapina Awaete (formerly Associacao Aiaparawy Awaete) representing the Upper Group.\n\nBesides that, during the census, each village from both Groups were asked about its priorities and the level of awareness and receptiveness regarding the implementation of the project.",
+        "comentario": null,
+        "evidencias": [
+          "Estatuto do Instituto Wyrapina Awaete",
+          "Ata da diretoria do Instituto Wyrapina Awaete",
+          "Estatuto da Associacao Paranatinga"
+        ]
+      },
+      {
+        "item": "4",
+        "tipo": "CL",
+        "status": null,
+        "descricao": "Clarification regarding the role of the caciques in the decision-making process and the authority delegated to them by the village communities to represent their interests within the project.",
+        "resposta_oficial": "The Parakana governance structure combines formal institutional representation through the indigenous associations and traditional leadership exercised by caciques. Caciques play a fundamental role in facilitating dialogue, communicating information, organizing consultations, and conveying the perspectives and concerns of community members. Their authority derives from the traditional governance system recognized by the Parakana people and from the trust placed in them by their communities. Although caciques do not necessarily hold formal positions within the associations, they are key participants in the decision-making process. Project-related matters are discussed through culturally appropriate consultation processes, including village meetings, FPIC events, seminars, and leadership consultations. Decisions are informed by community discussions and communicated through both traditional leadership structures and the indigenous associations.",
+        "comentario": null,
+        "evidencias": [
+          "Atas das CLPIs",
+          "Relatorio de analise preliminar (parceiro Interelos), a confirmar"
+        ]
+      },
+      {
+        "item": "5",
+        "tipo": "CL",
+        "status": "OK",
+        "descricao": "Clarification on how feedback from the village communities collected during the Tekatawa gatherings is communicated and incorporated into the higher levels of the project's decision-making process.",
+        "resposta_oficial": null,
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "item": "6",
+        "tipo": "CL",
+        "status": "OK",
+        "descricao": "Additional information regarding the benefit-sharing arrangement provided to the VVB.",
+        "resposta_oficial": null,
+        "comentario": null,
+        "evidencias": [
+          "Contratos entre a Apsis e as associacoes"
+        ]
+      }
+    ]
+  },
+  "findings_bezero": {
+    "_origem": "app.notion.com/p/33eee8ba950e809d93dde486914af860",
+    "_nota": "31 pedidos de informacao da BeZero (agencia de rating), lidos ao vivo em 25/08/2026. Nao sao CAR/CL: entram com tipo nulo. Status Concluido vira respondido (quem fecha e a avaliadora); Revisao vira em_andamento.",
+    "_lgpd": "Coluna Responsavel trazia iniciais de colaborador (descartadas). Dois comentarios citavam nome/mencao de pessoa, trocados por papel.",
+    "registros": [
+      {
+        "numero": 1,
+        "rotulo": "PD",
+        "descricao": "Provide full details of the project, including its description, objectives, location, and the proposed activity or technology being implemented. Also indicate the status of the project in any registry or standard body, and what the registry ID is (if any). Also indicate any former registry IDs if the project transitioned from another standard.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": "Ajustar o MR conforme pedido.",
+        "evidencias": []
+      },
+      {
+        "numero": 2,
+        "rotulo": "PP",
+        "descricao": "List all entities and key individuals involved, required, or proposed for the project (e.g. proponent, sponsor, project team, contractors, specialists). Include their backgrounds, roles, interconnections, relevant experience, track record in similar projects, and current onboarding status.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 3,
+        "rotulo": "Project timelines",
+        "descricao": "Provide the full project timeline, including start date, implementation period, stabilisation period, operational period, credit issuance period, and commitment period. Highlight any key risks that could affect the planned schedule.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 4,
+        "rotulo": "Project location/boundary",
+        "descricao": "Provide the project boundaries. These should include the project area(s) and any other spatial zones (e.g. leakage areas) as required by the standards body methodology. Boundaries should be supplied as geospatial vector files (Shapefile, KML, GeoPackage, GeoJSON) consistent with project documentation: they should match visually any embedded site maps, and any reference to the project area in hectares should match the area defined by the geospatial data within 5% error.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 5,
+        "rotulo": "Activity precedence",
+        "descricao": "Describe the uniqueness or commonness of the project activity or technology. Include examples of similar projects that have been successfully implemented and operated at the same scale, where applicable.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 6,
+        "rotulo": "Previous projects",
+        "descricao": "Identify key challenges faced by similar past projects and explain how they were addressed. Describe how these lessons have been incorporated into the current project design and assess the project likelihood of success based on this learning.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 7,
+        "rotulo": "Counterfactual scenario",
+        "descricao": "Explain the counterfactual scenario - what would likely occur without the project activity. Provide evidence or justification supporting this assertion.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 8,
+        "rotulo": "Feasibility & Setup",
+        "descricao": "Submit a detailed project or techno-economic feasibility study, along with any supporting documents (e.g. budget, implementation plan, contracts) that provide insight into project setup, rollout, or construction.",
+        "status": "Concluído",
+        "evidencia": "Pendente",
+        "comentario": "Incluir contratos dos fornecedores, SHA e carta de compromisso da SPE com o funding.",
+        "evidencias": []
+      },
+      {
+        "numero": 9,
+        "rotulo": "Harvest / Forest management plan",
+        "descricao": "Submit the planned harvesting schedule and/or forest management plan if these activities are part of your project scenario. Include key timelines, activities, and management practices.",
+        "status": "Não se aplica",
+        "evidencia": "N/A",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 10,
+        "rotulo": "Regulation",
+        "descricao": "Provide an overview of the regulatory and policy landscape relevant to the project. List all required permissions or licences and indicate their current status (e.g. obtained, pending, not yet applied for).",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 11,
+        "rotulo": "Government stance",
+        "descricao": "Describe the government stance or level of support for the project activities. Include the project proponent perspective on the government willingness and historical track record of support, if applicable.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 12,
+        "rotulo": "Letter of Authorisation / Corresponding adjustments",
+        "descricao": "Provide details of any corresponding adjustments planned or anticipated for the carbon credits issued by the project. Include information on any letters of authorisation received or being sought in relation to Article 6 of the Paris Agreement.",
+        "status": "Não se aplica",
+        "evidencia": "N/A",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 13,
+        "rotulo": "Ownership & land rights",
+        "descricao": "Specify who owns the land and/or equipment required for the project. Explain the basis and nature of the rights acquired by the project to ensure its implementation and operation over its full lifetime.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 14,
+        "rotulo": "Outstanding legal issues",
+        "descricao": "Disclose any outstanding legal or regulatory issues involving the project proponent. If applicable, explain the potential impact of these issues on the project implementation and overall credibility.",
+        "status": "Revisão",
+        "evidencia": "Pendente",
+        "comentario": "Aguardando o de acordo do juridico no texto elaborado pelo advogado externo.",
+        "evidencias": []
+      },
+      {
+        "numero": 15,
+        "rotulo": "Financial analysis",
+        "descricao": "Provide a detailed financial model and feasibility study covering the full project timeline. Include income from carbon and non-carbon sources, capital costs, ongoing operational costs, net cash flows, and financial return metrics such as IRR and payback periods - both with and without carbon finance.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 16,
+        "rotulo": "Funding",
+        "descricao": "Outline the sources of funding for the project and the current status of securing these funds. Identify any risks to the availability of funding during both implementation and operation phases. Describe the project proponent track record in raising funds from the proposed sources.",
+        "status": "Em andamento",
+        "evidencia": "Pendente",
+        "comentario": "Inserir o balanco da SPE.",
+        "evidencias": []
+      },
+      {
+        "numero": 17,
+        "rotulo": "Insurance",
+        "descricao": "Specify the type and amount of insurance coverage the project plans to obtain.",
+        "status": "Não se aplica",
+        "evidencia": "N/A",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 18,
+        "rotulo": "Financial track record",
+        "descricao": "Provide information on the project proponent financial standing and demonstrate their past track record in supporting projects, particularly during periods of financial or operational difficulty.",
+        "status": "Em andamento",
+        "evidencia": "Pendente",
+        "comentario": "Falta a apresentacao dos projetos da Green Musk e o balanco da SPE.",
+        "evidencias": []
+      },
+      {
+        "numero": 19,
+        "rotulo": "Stakeholder landscape",
+        "descricao": "Identify the key local stakeholders relevant to the project activity, noting who may be affected or could raise objections. Describe any engagement to date with these groups and outline your plans for managing relationships, especially with those potentially opposed to or impacted by the project.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 20,
+        "rotulo": "Resettlement and/or FPIC",
+        "descricao": "State whether the project area is inhabited and describe any plans to manage, relocate, or collaborate with these inhabitants. Indicate if resettlement is required and, if so, detail the resettlement plan. Confirm whether Free, Prior and Informed Consent (FPIC) has been obtained or is planned, if applicable.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 21,
+        "rotulo": "Community engagement & Benefit sharing",
+        "descricao": "Provide reports on community engagement and benefit sharing mechanisms. Include an example of any benefit sharing agreement or contract, if available.",
+        "status": "Concluído",
+        "evidencia": null,
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 22,
+        "rotulo": "Counterparties",
+        "descricao": "List the key counterparties and contractors essential to the project success. Provide the status of their onboarding or agreements, and outline contingency plans in case any stakeholder is unwilling or unable to participate.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 23,
+        "rotulo": "Additionality",
+        "descricao": "Explain how the project establishes Additionality, including any tests or justifications used. If the project is deemed automatically additional, cite the accreditor and the specific criteria that support this classification.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 24,
+        "rotulo": "Carbon accounting template",
+        "descricao": "Complete and submit BeZero Carbon ex ante carbon accounting template, covering the project full lifetime. Include estimates for project emissions, leakage, risk buffer allocation, and the baseline scenario.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": "Encaminhado ao responsavel do projeto: na aba 1 (Project information), tabela 1.2, o papel das Associacoes ficou como PP, seguindo a mesma atribuicao do PD - havia duvida entre PP e Project owner. Na aba 2 (Carbon Accounting & Fundamentals), a coluna Project owner pede o nome das instituicoes e inclui as Associacoes, com a mesma duvida. Checar a nota da tabela 1.3.",
+        "evidencias": [
+          "Template BeZero preenchido",
+          "Planilha ERR",
+          "PA_LB Boundaries",
+          "PADA Report",
+          "Validation report",
+          "NPRT"
+        ]
+      },
+      {
+        "numero": 25,
+        "rotulo": "Carbon accounting detail",
+        "descricao": "Provide detailed carbon stock calculations, including data on biomass, plot design, allometric equations used, degradation factors, and sampling methodology.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": "Confirmar se a planilha bruta do inventario entra como evidencia.",
+        "evidencias": [
+          "Carbon accounting doc",
+          "Planilha ERR"
+        ]
+      },
+      {
+        "numero": 26,
+        "rotulo": "Leakage assessment",
+        "descricao": "Explain the project leakage assessment and justify its appropriateness for the project context. Include detailed leakage models, underlying assumptions, and historical and expected land use data or other relevant leakage elements (e.g., market trends).",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 27,
+        "rotulo": "Non-permanence assessment and mitigation",
+        "descricao": "Provide a non-permanence risk assessment, detailing the likelihood of events such as fire, drought, and other natural or anthropogenic risks, and how they will be mitigated. If a risk buffer contribution is proposed, explain how it was determined and justify its appropriateness.",
+        "status": "Em andamento",
+        "evidencia": "Em andamento",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 28,
+        "rotulo": "Baseline models",
+        "descricao": "Submit baseline models for the project, including information on any protected areas within the project or reference region. If available, include the effectiveness index calculated by the project.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": []
+      },
+      {
+        "numero": 29,
+        "rotulo": "MRV",
+        "descricao": "Detail the monitoring and verification plans, including the frequency of activities and the organisations responsible. Include background information and relevant experience of these organisations, particularly in the region and with similar projects.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": null,
+        "evidencias": [
+          "MRV Doc: responsabilidades de cada entidade",
+          "Planilha MP: incluidos os indicadores de clima do PD"
+        ]
+      },
+      {
+        "numero": 30,
+        "rotulo": "Deforestation data",
+        "descricao": "Provide information on historical deforestation and activity trends across all relevant areas. Include data for the historical period and specify the reference region used for comparison.",
+        "status": "Concluído",
+        "evidencia": "OK",
+        "comentario": "Checar se os dados de desmatamento precisam de mais informacoes.",
+        "evidencias": [
+          "Deforestation data",
+          "PADA Report",
+          "LULUC"
+        ]
+      },
+      {
+        "numero": 31,
+        "rotulo": "Soil Sample",
+        "descricao": "Submit soil sampling and analysis procedures, if applicable to your project. Include methods used, frequency, and any relevant standards or protocols followed.",
+        "status": "Não se aplica",
+        "evidencia": "N/A",
+        "comentario": null,
+        "evidencias": []
+      }
+    ]
+  }
+}

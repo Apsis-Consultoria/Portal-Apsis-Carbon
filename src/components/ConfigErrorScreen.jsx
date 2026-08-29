@@ -4,14 +4,14 @@ const SORA = "'Sora', 'Segoe UI', sans-serif"
 const INTER = "'Inter', 'Segoe UI', sans-serif"
 
 // Itens objetivos, na ordem em que vale a pena checar (do mais comum ao menos).
+//
+// Não há variável de ambiente nesta lista, e não é esquecimento: o frontend não
+// tem nenhuma. O primeiro item ocupa o lugar que a URL do Supabase ocupava, e é
+// hoje a causa mais comum de falha no boot em ambiente novo.
 const VERIFICAR = [
   {
-    titulo: 'VITE_SUPABASE_URL',
-    detalhe: 'Precisa apontar para o projeto Supabase do Carbon (https://SEU-PROJETO.supabase.co), sem barra no final.',
-  },
-  {
-    titulo: 'VITE_SUPABASE_ANON_KEY',
-    detalhe: 'A chave anon/publishable do mesmo projeto. Em produção ela é definida no painel de deploy, não no código.',
+    titulo: 'Rewrite de /api na hospedagem',
+    detalhe: 'O frontend chama caminhos relativos /api/<função>. A hospedagem precisa reescrever /api/<*> para https://SEU-PROJETO.supabase.co/functions/v1/<*> com tipo 200 (proxy). Em desenvolvimento, quem faz isso é SUPABASE_API_URL no vite.config.js.',
   },
   {
     titulo: 'Edge Function app-config publicada',

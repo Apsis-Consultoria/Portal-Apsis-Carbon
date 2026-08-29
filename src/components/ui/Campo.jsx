@@ -26,7 +26,7 @@ import { useId } from 'react';
 /* O tamanho da fonte também fica fora, pelo mesmo motivo: 'text-[11px]' do modo
    monoespaçado não pode depender de vencer o 'text-sm' da base. */
 const CLASSE_CAMPO_BASE =
-  'w-full px-3 py-2 bg-white border rounded-xl text-[#1A2B1F] placeholder:text-[#A8B4AC] focus:outline-none focus:ring-2 disabled:bg-[#F4F6F4] disabled:text-[#8A9990] disabled:cursor-not-allowed transition-colors';
+  'w-full px-3 py-2 bg-white border rounded-xl text-[#1A2B1F] placeholder:text-[#A8B4AC] focus:outline-none focus:ring-2 disabled:bg-[#F4F6F4] disabled:text-[#5C7060] disabled:cursor-not-allowed transition-colors';
 
 const BORDA_NORMAL = 'border-[#DDE3DE] focus:border-[#1A4731] focus:ring-[#1A4731]/10';
 const BORDA_ERRO = 'border-[#C0392B] focus:border-[#C0392B] focus:ring-[#C0392B]/10';
@@ -132,7 +132,7 @@ export default function Campo({
   const Apoio = (
     <>
       {dica && (
-        <span id={idDica} className="text-[11px] text-[#8A9990] leading-relaxed">
+        <span id={idDica} className="text-[11px] text-[#5C7060] leading-relaxed">
           {dica}
         </span>
       )}
@@ -211,7 +211,14 @@ export default function Campo({
     /* Número em pt-BR: type="text" com inputMode decimal, e NÃO type="number".
        O campo aceita vírgula (é o separador do teclado brasileiro) e a conversão fica
        com a tela, que sabe recusar ponto de milhar ambíguo - o mesmo cuidado do campo
-       de área em Projetos, onde ler "13.250" como 13,25 falsearia a checagem de 5%. */
+       de área em Projetos, onde ler "13.250" como 13,25 falsearia a checagem de 5%.
+
+       CAMPO QUE ACEITA NEGATIVO PRECISA PASSAR extras={{ inputMode: 'text' }}.
+       O teclado que o `decimal` abre no celular tem dígitos e separador decimal
+       e NÃO tem o sinal de menos: num campo de latitude, a coordenada brasileira
+       fica impossível de digitar no telefone, que é justamente onde ela é
+       preenchida, em campo. Aqui o default continua 'decimal' porque a maioria
+       dos usos é área e quantidade, onde negativo não existe. */
     Controle = (
       <input
         {...comuns}
@@ -248,7 +255,11 @@ export default function Campo({
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      {Rotulo}
+      {/* Sem `rotulo`, o <label> sairia vazio: ocuparia altura (desalinhando o
+          campo dos vizinhos numa linha) e ainda apontaria para o controle sem
+          dizer nada. Nesse caso quem chama é responsável pelo nome acessível,
+          via `extras['aria-label']` ou um cabeçalho que valha para a lista. */}
+      {rotulo ? Rotulo : null}
       {Controle}
       {Apoio}
       {acao}

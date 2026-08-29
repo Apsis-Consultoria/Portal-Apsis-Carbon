@@ -59,7 +59,7 @@ export default function AvisoDiscreto({
       <div
         role={role}
         aria-live={role === 'status' ? 'polite' : undefined}
-        className={`flex items-start gap-2 px-5 py-6 text-xs text-[#8A9990] ${className}`}
+        className={`flex items-start gap-2 px-5 py-6 text-xs text-[#5C7060] ${className}`}
       >
         {Icone && <Icone size={14} className="flex-shrink-0 mt-0.5" aria-hidden="true" />}
         <div className="leading-relaxed">
