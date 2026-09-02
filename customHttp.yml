@@ -1,0 +1,92 @@
+# =============================================================================
+# Cabecalhos HTTP do Portal Apsis Carbon, no AWS Amplify Hosting.
+#
+# POR QUE ESTE ARQUIVO EXISTE, e por que ele nasceu depois de uma falha em
+# producao. Os cabecalhos estavam num bloco `customHeaders` dentro do
+# amplify.yml, e o Amplify NAO os aplicava: em 02/09/2026, com o dominio de
+# producao no ar, uma resposta de /favicon-carbon.png voltou sem
+# X-Frame-Options, sem Referrer-Policy e sem Permissions-Policy.
+#
+# A documentacao da AWS e explicita: cabecalhos personalizados vivem em
+# `customHttp.yml`, na raiz do projeto, e a propria AWS recomenda MIGRAR para
+# fora do amplify.yml quem os tinha la.
+# https://docs.aws.amazon.com/amplify/latest/userguide/custom-headers.html
+#
+# REWRITE NAO MORA AQUI, nem em arquivo nenhum. Redirecionamento e rewrite no
+# Amplify sao configurados SO no console (App settings > Rewrites and
+# redirects). O bloco `customRules` que existia no amplify.yml tambem era
+# ignorado, e foi por isso que /api/* e os links diretos da SPA devolviam 404.
+# As duas regras necessarias estao documentadas no amplify.yml.
+# =============================================================================
+customHeaders:
+  - pattern: '/<*>'
+    headers:
+      # Clickjacking: impede que o Portal seja embutido em iframe de terceiro,
+      # onde um atacante sobrepoe a interface e captura cliques autenticados.
+      # Os dois juntos de proposito: X-Frame-Options para navegador antigo,
+      # frame-ancestors para o resto.
+      - key: 'X-Frame-Options'
+        value: 'DENY'
+      - key: 'Content-Security-Policy'
+        value: "frame-ancestors 'none'"
+      # Impede o navegador de adivinhar o tipo do conteudo e executar como
+      # script algo servido como texto.
+      - key: 'X-Content-Type-Options'
+        value: 'nosniff'
+      # O caminho da URL carrega id de projeto e de registro. Com a politica
+      # padrao, esse caminho viaja no Referer para todo site externo que alguem
+      # abrir a partir daqui.
+      - key: 'Referrer-Policy'
+        value: 'strict-origin-when-cross-origin'
+      # Camera, microfone e pagamento negados: nenhuma tela usa, e negar por
+      # padrao evita que um script injetado peca permissao em nome do dominio.
+      #
+      # GEOLOCALIZACAO E A EXCECAO, e (self) e diferente de (). A lista VAZIA
+      # bloqueia inclusive a propria origem: nem o nosso codigo consegue chamar
+      # navigator.geolocation, por mais que a pessoa autorize no navegador.
+      # (self) libera so este dominio e continua barrando qualquer iframe.
+      #
+      # Quem usa: a capa do questionario de campo, que le a posicao ao abrir
+      # para preencher latitude, longitude, altitude e precisao. O formulario da
+      # ronda registra ponto de alerta de desmatamento, e ali a PRECISAO decide
+      # se vale mandar equipe ao local.
+      #
+      # ISTO NAO APARECE EM DESENVOLVIMENTO: localhost nao passa pelo Amplify.
+      # Quando o upload de foto e video entrar, camera e microphone vao precisar
+      # do mesmo (self).
+      - key: 'Permissions-Policy'
+        value: 'camera=(), microphone=(), geolocation=(self), payment=()'
+
+  # TENTATIVA de esconder de qual projeto Supabase as respostas vem.
+  #
+  # O QUE VAZA HOJE: o gateway do Supabase carimba `sb-project-ref` em TODA
+  # resposta, e o rewrite repassa. O ref nao esta no bundle nem na barra de
+  # endereco, mas aparece na aba Network do DevTools - medido em 25/08/2026.
+  #
+  # ISTO PODE NAO FUNCIONAR: cabecalho personalizado e documentado para o
+  # conteudo que o proprio Amplify serve; se ele sobrescreve cabecalho vindo de
+  # um rewrite de proxy, a documentacao nao diz. Conferir DEPOIS do deploy:
+  #   curl.exe -s -D - -o NUL https://<dominio>/api/app-config | Select-String "sb-"
+  # Sem saida: funcionou. Ainda mostrando sb-project-ref: o lugar certo passa a
+  # ser uma Transform Rule de resposta na Cloudflare.
+  #
+  # NAO REMOVER sb-request-id NEM x-deno-execution-id SEM PENSAR: sao eles que
+  # ligam um erro relatado pelo cliente ao log da funcao no painel do Supabase.
+  #
+  # E VALE LEMBRAR O QUE ISTO NAO E: esconder a URL nao protege o sistema. Quem
+  # defende as funcoes e a autenticacao dentro delas - ID token do Azure
+  # validado contra o JWKS da Microsoft. Isto e defesa em profundidade.
+  - pattern: '/api/<*>'
+    headers:
+      - key: 'sb-project-ref'
+        value: ''
+      - key: 'sb-request-id'
+        value: ''
+      - key: 'sb-gateway-version'
+        value: ''
+      - key: 'x-served-by'
+        value: ''
+      - key: 'x-sb-edge-region'
+        value: ''
+      - key: 'x-deno-execution-id'
+        value: ''

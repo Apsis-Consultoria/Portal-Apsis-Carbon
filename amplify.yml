@@ -23,14 +23,8 @@ frontend:
         #
         # O PADRAO E ESSE, e nao "supabase.co" simples, porque a busca simples da
         # FALSO POSITIVO: a mensagem de erro do ConfigErrorScreen ensina a montar
-        # o rewrite e cita "https://SEU-PROJETO.supabase.co/functions/v1/<*>" como
-        # exemplo. Esse texto esta no bundle de proposito - e ajuda, nao endereco.
-        # Medido em 28/08/2026: a busca antiga acusava exatamente essa linha.
-        #
-        # Checagem que acusa o que nao e problema e pior do que checagem nenhuma:
-        # quem confere aprende a ignorar, e ela deixa de servir no dia em que o
-        # ref de verdade vazar. Os 20 caracteres do padrao sao o formato do ref
-        # do Supabase, que o placeholder em maiusculas nao casa.
+        # o rewrite e cita "https://SEU-PROJETO.supabase.co/functions/v1/<*>"
+        # como exemplo. Esse texto esta no bundle de proposito.
         - npm run build
   artifacts:
     baseDirectory: dist
@@ -40,127 +34,74 @@ frontend:
     paths:
       - node_modules/**/*
 
-# A ORDEM IMPORTA. O Amplify avalia as regras de cima para baixo e para na
-# primeira que casar. Se o catch-all da SPA viesse antes, ele engoliria /api/* e
-# devolveria o index.html no lugar da resposta da funcao - e o sintoma seria
-# "a configuracao do aplicativo retornou um corpo que nao e JSON", culpando a
-# Edge Function por um problema de hospedagem.
+# =============================================================================
+# ESTE ARQUIVO NAO CONFIGURA REWRITE NEM CABECALHO. Ele so descreve o build.
 #
-# A REGRA DE /api NAO ESTA AQUI, e a ausencia e deliberada: o destino contem o
-# ref do projeto Supabase, e deixa-lo no repositorio significaria versionar qual
+# Ate 02/09/2026 havia aqui um bloco `customRules` e um `customHeaders`, e os
+# dois eram SILENCIOSAMENTE IGNORADOS pelo Amplify. O custo apareceu no primeiro
+# dia de producao: /api/app-config devolvia 404 e todo link direto da SPA
+# (/PrestacaoContas, por exemplo) devolvia 404 tambem, porque nem o proxy de
+# /api nem o catch-all da SPA existiam de fato. Os cabecalhos de seguranca
+# tambem nao chegavam ao navegador - conferido numa resposta real.
+#
+# ONDE CADA COISA MORA, de verdade:
+#
+#   CABECALHOS  -> customHttp.yml, na raiz deste repositorio.
+#                  A AWS recomenda explicitamente migrar para fora do
+#                  amplify.yml quem os tinha aqui.
+#                  https://docs.aws.amazon.com/amplify/latest/userguide/custom-headers.html
+#
+#   REWRITE E REDIRECT -> SOMENTE no console. Nao existe arquivo para isso:
+#                  "Amplify supports the following redirect types in the
+#                  console." Nao adianta _redirects, nem netlify.toml, nem
+#                  customRules aqui.
+#                  https://docs.aws.amazon.com/amplify/latest/userguide/redirects.html
+#
+# -----------------------------------------------------------------------------
+# AS DUAS REGRAS QUE PRECISAM EXISTIR NO CONSOLE
+# App settings > Rewrites and redirects, NESTA ORDEM
+# -----------------------------------------------------------------------------
+#   1)  source  /api/<*>
+#       target  https://<REF>.supabase.co/functions/v1/<*>
+#       type    200 (Rewrite)
+#
+#   2)  source  /<*>
+#       target  /index.html
+#       type    200 (Rewrite)
+#
+# A ORDEM IMPORTA e o Amplify avalia de cima para baixo, parando na primeira que
+# casa. Com o catch-all em cima, ele engole /api/* e devolve index.html no lugar
+# da resposta da funcao - e o sintoma e "a configuracao retornou um corpo que
+# nao e JSON", culpando a Edge Function por um problema de hospedagem.
+#
+# A SINTAXE DO CURINGA E <*>, com os sinais de maior e menor. Escrever /api/*
+# nao casa com nada, e o efeito e identico a nao ter regra: 404.
+#
+# SEM A REGRA 2, todo link direto da SPA da 404. A raiz funciona porque
+# index.html e o documento padrao; qualquer outro caminho nao existe como
+# arquivo. Foi o que aconteceu com /PrestacaoContas em 02/09/2026.
+#
+# O DESTINO DA REGRA 1 NAO ESTA NESTE ARQUIVO de proposito: ele contem o ref do
+# projeto Supabase, e versionar isso significaria gravar no repositorio qual
 # projeto e o de producao - exatamente o que a arquitetura /api existe para
-# evitar (ver src/lib/endpoint.js). Ela e configurada no console:
+# evitar (ver src/lib/endpoint.js).
 #
-#   App settings > Rewrites and redirects > Add rule
+# -----------------------------------------------------------------------------
+# COM CLOUDFLARE NA FRENTE (e o caso hoje: as respostas vem com cf-ray e a
+# origem e CloudFront/Amplify)
+# -----------------------------------------------------------------------------
+# A regra continua sendo do Amplify, que e quem serve. O que a Cloudflare
+# precisa e NAO atrapalhar:
 #
-#   source  /api/<*>
-#   target  https://<REF>.supabase.co/functions/v1/<*>
-#   type    200 (Rewrite)
-#
-# E ela precisa vir ANTES do catch-all abaixo, na lista do console.
-#
-# EQUIVALENTE EM DESENVOLVIMENTO: o server.proxy do vite.config.js, alimentado
-# por SUPABASE_API_URL - sem prefixo VITE_, para o Vite se recusar a expor
-# a variavel ao navegador.
-#
-# SE HOUVER CLOUDFLARE NA FRENTE: a regra continua sendo do Amplify, que e quem
-# serve o site. O que a Cloudflare precisa e NAO atrapalhar - /api/* nao pode
-# ser cacheado (as respostas sao por sessao e por usuario) e o cabecalho
-# Authorization tem que passar intacto. Uma regra de cache padrao que ignore
-# query string ou remova cabecalho quebraria a autenticacao de forma
-# intermitente, que e o pior modo de quebrar.
-customRules:
-  - source: /<*>
-    target: /index.html
-    status: '200'
-
-# TENTATIVA de esconder de qual projeto Supabase as respostas vem.
-#
-# O QUE VAZA HOJE: o gateway do Supabase carimba `sb-project-ref` em TODA
-# resposta, e o rewrite repassa. O ref nao esta no bundle nem na barra de
-# endereco, mas aparece na aba Network do DevTools em qualquer requisicao -
-# medido em 25/08/2026.
-#
-# ISTO PODE NAO FUNCIONAR. `customHeaders` e documentado para o conteudo que o
-# proprio Amplify serve; se ele sobrescreve cabecalho vindo de um rewrite de
-# proxy, a documentacao nao diz. Conferir DEPOIS do deploy, com:
-#
-#   curl.exe -s -D - -o NUL https://<dominio>/api/app-config | Select-String "sb-"
-#
-# Sem saida: funcionou. Ainda mostrando sb-project-ref: nao funcionou, e o
-# lugar certo passa a ser uma Transform Rule de resposta na Cloudflare.
-#
-# NAO REMOVER sb-request-id NEM x-deno-execution-id SEM PENSAR: sao eles que
-# ligam um erro relatado pelo cliente ao log da funcao no painel do Supabase.
-# Escondendo os dois, "me manda o id do erro" deixa de existir como caminho de
-# suporte. Estao aqui porque tambem identificam o Supabase, mas a troca e real.
-#
-# E VALE LEMBRAR O QUE ISTO NAO E: esconder a URL nao e o que protege o sistema.
-# Quem defende as funcoes e a autenticacao dentro delas - ID token do Azure
-# validado contra o JWKS da Microsoft no carbon-api, token de sessao HMAC no
-# Secure Share. Isto aqui e defesa em profundidade: obriga o trafego a passar
-# pelo nosso dominio, onde ha log e limite de taxa.
-customHeaders:
-  # CABECALHOS DE SEGURANCA DO SITE INTEIRO.
-  #
-  # Estes existem porque NAO dao para ser entregues pelo <meta> do index.html:
-  # a especificacao manda ignorar frame-ancestors quando a politica chega por
-  # meta, e X-Frame-Options nunca funcionou por meta. Escrever a diretiva la
-  # daria impressao de protecao sem proteger nada, que e pior do que a ausencia.
-  # A CSP principal continua no index.html, onde e versionada junto com o que
-  # ela descreve; aqui fica so o que exige cabecalho de verdade.
-  - pattern: '/<*>'
-    headers:
-      # Clickjacking: impede que o Portal seja embutido em iframe de terceiro,
-      # onde um atacante sobrepoe a interface e captura cliques autenticados.
-      # Os dois juntos de proposito: X-Frame-Options para navegador antigo,
-      # frame-ancestors para o resto.
-      - key: 'X-Frame-Options'
-        value: 'DENY'
-      - key: 'Content-Security-Policy'
-        value: "frame-ancestors 'none'"
-      # Impede o navegador de adivinhar o tipo do conteudo e executar como script
-      # algo servido como texto.
-      - key: 'X-Content-Type-Options'
-        value: 'nosniff'
-      # O caminho da URL do Portal carrega id de projeto e de registro. Com a
-      # politica padrao, esse caminho viaja no Referer para todo site externo que
-      # alguem abrir a partir daqui.
-      - key: 'Referrer-Policy'
-        value: 'strict-origin-when-cross-origin'
-      # Camera, microfone e pagamento continuam negados: nenhuma tela usa, e
-      # negar por padrao evita que um script injetado peca permissao em nome do
-      # dominio.
-      #
-      # GEOLOCALIZACAO E A EXCECAO, e (self) e diferente de (). A lista VAZIA
-      # bloqueia inclusive a propria origem: nem o nosso codigo consegue chamar
-      # navigator.geolocation, por mais que a pessoa autorize no navegador.
-      # (self) libera so este dominio e continua barrando qualquer iframe.
-      #
-      # Quem usa: a capa do questionario de campo, que le a posicao ao abrir
-      # para preencher latitude, longitude, altitude e precisao. O formulario da
-      # ronda registra ponto de alerta de desmatamento, e ali a PRECISAO decide
-      # se vale mandar equipe ao local.
-      #
-      # ISTO NAO APARECE EM DESENVOLVIMENTO. localhost nao passa pelo Amplify,
-      # entao o cabecalho nao existe la e o GPS funciona; com a lista vazia,
-      # falharia so em producao, no campo, sem ninguem por perto para depurar.
-      # Quando o upload de foto e video entrar, camera e microphone vao precisar
-      # do mesmo (self).
-      - key: 'Permissions-Policy'
-        value: 'camera=(), microphone=(), geolocation=(self), payment=()'
-
-  - pattern: '/api/<*>'
-    headers:
-      - key: 'sb-project-ref'
-        value: ''
-      - key: 'sb-request-id'
-        value: ''
-      - key: 'sb-gateway-version'
-        value: ''
-      - key: 'x-served-by'
-        value: ''
-      - key: 'x-sb-edge-region'
-        value: ''
-      - key: 'x-deno-execution-id'
-        value: ''
+#   - /api/* nao pode ser cacheado. As respostas sao por sessao e por usuario, e
+#     uma regra de cache padrao pode servir a resposta de uma pessoa para outra.
+#     Cache Rules > Bypass cache para o caminho /api/*.
+#   - O cabecalho Authorization tem que passar intacto.
+#   - SSL/TLS em Full (strict). "Flexible" com origem que forca HTTPS produz
+#     laco de redirecionamento.
+#   - Web Analytics (Browser Insights) INJETA um script inline mais o
+#     static.cloudflareinsights.com/beacon.min.js na resposta. A CSP do
+#     index.html usa script-src 'self' e bloqueia os dois, o que enche o console
+#     de erro. Desligar o Web Analytics resolve sem afrouxar a CSP; a alternativa
+#     seria permitir o dominio e um hash inline que muda a cada versao do beacon.
+# =============================================================================
