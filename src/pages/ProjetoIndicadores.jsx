@@ -177,8 +177,20 @@ function Celula({ medicao, podeEscrever, salvando, aoSalvar, aoLimpar }) {
   );
 }
 
-export default function ProjetoIndicadores() {
-  const { id: projetoId } = useParams();
+/**
+ * @param {object} props
+ * @param {string} [props.projetoIdFixo]  quando vem da tela de topico Plano de
+ *   Monitoramento, que escolhe o projeto e nao tem `:id` na rota
+ * @param {React.ReactNode} [props.voltar] o link de volta, se houver. A tela de
+ *   topico nao tem para onde voltar: ela E o destino.
+ */
+export default function ProjetoIndicadores({ projetoIdFixo, voltar } = {}) {
+  /* O id vem da ROTA quando a tela e filha de Projetos (/Projetos/:id/Indicadores)
+     e por PROP quando ela e o topico Plano de Monitoramento, que nao tem :id.
+     Duas telas com o mesmo corpo seriam 598 linhas duplicadas, e a segunda copia
+     e onde o defeito aparece. */
+  const { id: idDaRota } = useParams();
+  const projetoId = projetoIdFixo ?? idDaRota;
   const msal = useMsal();
   const clienteQuery = useQueryClient();
 
@@ -269,7 +281,10 @@ export default function ProjetoIndicadores() {
      404). Sem o link, a pessoa fica num beco sem saída dentro do shell - foi
      defeito real, sentido em uso e apontado pelo dono em 25/08/2026. */
 
-  const voltarProjetos = (
+  /* `voltar === null` desliga o link de propriedade: quem chega pelo topico Plano
+     de Monitoramento nao veio de Projetos, e um "voltar" para uma tela em que a
+     pessoa nunca esteve e pior do que nenhum. `undefined` mantem o padrao. */
+  const voltarProjetos = voltar !== undefined ? voltar : (
     <Link
       to={createPageUrl('Projetos')}
       className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#F47920] transition-colors"
@@ -305,14 +320,12 @@ export default function ProjetoIndicadores() {
   return (
     <div className="p-4 sm:p-6 space-y-5">
       <div>
-        <Link
-          to={createPageUrl('Projetos')}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#F47920] transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Projetos
-        </Link>
-        <h1 className="mt-2 text-xl sm:text-2xl font-semibold text-slate-900">
+        {/* O MESMO `voltarProjetos` dos estados de carga e erro, e nao um Link
+            escrito de novo. Estava duplicado aqui, e a duplicata ignorava a prop
+            `voltar`: pelo topico Plano de Monitoramento, a tela continuava
+            oferecendo "voltar para Projetos" a quem nunca esteve em Projetos. */}
+        {voltarProjetos}
+        <h1 className={`${voltarProjetos ? 'mt-2 ' : ''}text-xl sm:text-2xl font-semibold text-slate-900`}>
           Indicadores
         </h1>
         <p className="text-sm text-slate-500">
