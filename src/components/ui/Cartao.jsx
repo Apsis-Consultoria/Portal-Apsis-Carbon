@@ -58,8 +58,22 @@ export default function Cartao({
     // lista respeitem o canto arredondado.
     <div className={`${CLASSE_CARTAO} overflow-hidden ${className}`}>
       {temCabecalho && (
-        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-[#F4F6F4]">
-          <div className="flex items-center gap-3 min-w-0">
+        /*
+         * flex-wrap E O QUE IMPEDE O TITULO DE VIRAR UMA LETRA POR LINHA.
+         *
+         * A acao e `flex-shrink-0` de proposito: um botao apertado corta o
+         * rotulo. Consequencia: quem cede espaco e sempre o bloco do titulo, que
+         * tem `min-w-0`. Com uma acao larga - a busca de 320px da tela de
+         * Indicadores - e a largura de um tablet, o titulo ficava com quase zero
+         * e o `break-words` o quebrava caractere a caractere, na vertical. Visto
+         * em 31/08/2026, na tela de Indicadores a 787px de largura.
+         *
+         * Com wrap, a acao desce para a linha de baixo em vez de espremer. O
+         * `basis-48` no bloco do titulo diz ao flex que abaixo de 12rem ele
+         * prefere quebrar a linha a continuar encolhendo.
+         */
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2.5 px-5 py-4 border-b border-[#F4F6F4]">
+          <div className="flex items-center gap-3 min-w-0 basis-48 grow">
             {Icone && (
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${classeIcone}`}>
                 <Icone size={17} aria-hidden="true" />
