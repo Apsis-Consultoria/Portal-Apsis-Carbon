@@ -15,7 +15,10 @@ import Documentos from '@/pages/Documentos';
  * `menuPai`.
  *
  * `ordem: 3` deixa o item logo depois de Projetos (ordem 2), que é a leitura natural:
- * o documento pendura no projeto.
+ * o documento pendura no projeto. Em seguida vêm Atividades (3.5) e Minhas Horas (4).
+ * O número é exclusivo deste item: até 01/09/2026 Atividades também declarava 3 e o
+ * desempate por título a punha na frente. O agregador src/paginas/indice.js avisa no
+ * console se outro registro declarar o mesmo número.
  */
 export const paginas = [
   {

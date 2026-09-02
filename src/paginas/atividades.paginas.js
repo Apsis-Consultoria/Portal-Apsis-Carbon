@@ -14,9 +14,18 @@ import MinhasHoras from '@/pages/MinhasHoras';
  *   Calculator    - "lembrar de contar as horas", que e literalmente o que a pauta da
  *                   weekly anota como pendencia e o que esta tela resolve.
  *
- * ORDEM NO MENU: 3 e 4, logo depois de BoasVindas (1) e Projetos (2). Atividades vem
- * antes de Minhas Horas porque a primeira e a visao da equipe e a segunda e a acao
+ * ORDEM NO MENU: 3.5 e 4, logo depois de Projetos (2) e Documentos (3). Atividades vem
+ * antes de Minhas Horas porque a primeira é a visão da equipe e a segunda é a ação
  * individual dentro dela.
+ *
+ * POR QUE 3.5 E NÃO UM INTEIRO: até 01/09/2026 Atividades e Documentos declaravam os
+ * dois `ordem: 3`, e quem decidia a posição era o desempate por título de
+ * src/paginas.config.js (A antes de D), não a intenção de ninguém. Documentos quer ficar
+ * colado em Projetos (o documento pendura no projeto) e ficou com o 3; Findings ocupa o
+ * 5. Sobram dois inteiros (3 e 4) para três telas, então o meio número é o menor ajuste
+ * que honra as duas intenções sem renumerar Findings, Metas, Pipeline, Questionários,
+ * Reuniões, Fornecedores e Consultoria. O agregador src/paginas/indice.js avisa no
+ * console se dois registros voltarem a disputar o mesmo número.
  */
 export const paginas = [
   {
@@ -25,7 +34,7 @@ export const paginas = [
     componente: Atividades,
     titulo: 'Atividades',
     subtitulo: 'Base única de atividades, com projeto como dimensão',
-    menu: { icone: 'ClipboardList', ordem: 3, grupo: null },
+    menu: { icone: 'ClipboardList', ordem: 3.5, grupo: null },
   },
   {
     nome: 'MinhasHoras',

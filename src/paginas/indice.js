@@ -44,4 +44,39 @@ export const PAGINAS_BRUTAS = Object.entries(MODULOS).flatMap(([caminho, modulo]
   extrair(caminho, modulo),
 );
 
+/**
+ * Guarda de colisão de `menu.ordem`, no espírito da guarda de rota duplicada de
+ * supabase/functions/carbon-api/rotas/indice.ts.
+ *
+ * Duas páginas com a mesma `ordem` não derrubam nada: src/paginas.config.js desempata
+ * por título. O problema é que esse desempate é acidental. O item que se declarou "logo
+ * depois de X" pode acabar atrás de outro só porque o título dele começa com uma letra
+ * posterior, e ninguém percebe, porque o menu continua abrindo. Foi o caso de Atividades
+ * e Documentos, ambos em 3 até 01/09/2026.
+ *
+ * Avisamos e NÃO lançamos: isto roda no boot, antes de existir ErrorBoundary, e um
+ * throw aqui é a tela branca que o projeto proíbe. Só disputam posição as entradas com
+ * `menu` e `ordem` numérica; tela fora do menu não entra na conta. A primeira
+ * encontrada (ordem alfabética de arquivo) é citada como quem já tinha o número.
+ */
+{
+  const donoDaOrdem = new Map();
+  for (const entrada of PAGINAS_BRUTAS) {
+    const ordem = entrada?.menu?.ordem;
+    if (!Number.isFinite(ordem)) continue;
+
+    const nome = typeof entrada.nome === 'string' && entrada.nome ? entrada.nome : '(sem nome)';
+    const dono = donoDaOrdem.get(ordem);
+    if (dono !== undefined) {
+      console.warn(
+        `[Apsis Carbon] Duas páginas declaram menu.ordem ${ordem}: "${dono}" e "${nome}". ` +
+          'A posição relativa entre elas passa a ser decidida pelo desempate por título, ' +
+          'e não pela intenção declarada. Dê um número próprio a cada uma.',
+      );
+      continue;
+    }
+    donoDaOrdem.set(ordem, nome);
+  }
+}
+
 export default PAGINAS_BRUTAS;
