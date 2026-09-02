@@ -231,6 +231,18 @@ export default function Layout({ children, currentPageName }) {
           label: m.nome,
           rota: montarUrl('QuestionarioLista', { tipo: m.chave }),
         })),
+      /* FIXO, e não vindo do banco como o dos questionários: os três subtópicos
+         da prestação de contas são o PROCESSO (painel, entrada, saída), e não um
+         cadastro que cresce. Um carregador que fosse ao banco buscar três nomes
+         constantes pagaria uma requisição por render do menu para nada. */
+      prestacao: () => [
+        { chave: 'prestacao-painel', label: 'Painel', rota: montarUrl('PrestacaoContas') },
+        { chave: 'prestacao-repasses', label: 'Repasses', rota: montarUrl('PrestacaoAntecipacoes') },
+        { chave: 'prestacao-despesas', label: 'Despesas declaradas', rota: montarUrl('PrestacaoLancamentos') },
+        { chave: 'prestacao-comprovantes', label: 'Comprovantes', rota: montarUrl('PrestacaoComprovantes') },
+        { chave: 'prestacao-atividades', label: 'Atividades de campo', rota: montarUrl('PrestacaoAtividades') },
+        { chave: 'prestacao-cadastros', label: 'Aldeias e eixos', rota: montarUrl('PrestacaoCadastros') },
+      ],
     };
 
     const comSubmenu = [...ITENS_MENU_FIXOS, ...doBanco].map((item) => {

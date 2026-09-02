@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Cria no GitHub as issues descritas em docs/issues/BACKLOG-INICIAL.md.
+ * Cria no GitHub as issues descritas em docs/issues/BACKLOG-INICIAL.md, ou no
+ * arquivo indicado por `--arquivo <nome>` dentro da mesma pasta.
  *
  * Por que este script existe: o `gh` CLI nao esta instalado na maquina de
  * desenvolvimento e o navegador nao tem sessao do GitHub. O `git push` funciona porque
@@ -36,15 +37,32 @@
 
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 const REPO = 'Apsis-Consultoria/Portal-Apsis-Carbon';
 const API = 'https://api.github.com';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
-const ARQUIVO = join(AQUI, '..', 'docs', 'issues', 'BACKLOG-INICIAL.md');
 
-const args = new Set(process.argv.slice(2));
+/*
+ * QUAL ARQUIVO LER. O padrao continua BACKLOG-INICIAL.md, e `--arquivo <nome>`
+ * aponta para outro dentro de docs/issues/.
+ *
+ * O caminho era fixo ate 01/09/2026, quando nasceu o segundo arquivo de issues
+ * (PRESTACAO-CONTAS.md) e ele simplesmente nao era lido - sem erro, sem aviso, e
+ * o script relatava "0 issues" como se o arquivo estivesse vazio.
+ *
+ * So o NOME e aceito, e nao um caminho: `basename` impede que um `../..` no
+ * argumento faca o script ler arquivo de fora de docs/issues/.
+ */
+const listaArgs = process.argv.slice(2);
+const posArquivo = listaArgs.indexOf('--arquivo');
+const nomeArquivo = posArquivo !== -1 && listaArgs[posArquivo + 1]
+  ? basename(listaArgs[posArquivo + 1])
+  : 'BACKLOG-INICIAL.md';
+const ARQUIVO = join(AQUI, '..', 'docs', 'issues', nomeArquivo);
+
+const args = new Set(listaArgs);
 const modoLinks = args.has('--links');
 const modoSeco = args.has('--dry-run');
 // .trim() e proposital: colar token no terminal costuma arrastar espaco ou quebra de
@@ -201,7 +219,11 @@ if (issues.length === 0) {
   process.exit(1);
 }
 
-console.log(`${issues.length} issues lidas de docs/issues/BACKLOG-INICIAL.md\n`);
+/* O nome sai da variavel, e nao escrito a mao: com o texto fixo, rodar
+   `--arquivo PRESTACAO-CONTAS.md` listava as issues certas sob o cabecalho
+   "lidas de BACKLOG-INICIAL.md". Mensagem que mente sobre a propria entrada faz
+   quem le desconfiar do resultado certo. */
+console.log(`${issues.length} issues lidas de docs/issues/${nomeArquivo}\n`);
 
 if (modoSeco) {
   issues.forEach((i, n) => {

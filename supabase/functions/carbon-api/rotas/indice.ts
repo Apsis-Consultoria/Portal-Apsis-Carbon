@@ -20,6 +20,8 @@ import { rotas as rotasMe } from './me.ts';
 import { rotas as rotasModulos } from './modulos.ts';
 import { rotas as rotasNotificacoes } from './notificacoes.ts';
 import { rotas as rotasProjetos } from './projetos.ts';
+import { rotas as rotasPrestacao } from './prestacao.ts';
+import { rotas as rotasAtividadesCampo } from './atividadesCampo.ts';
 import { rotas as rotasPdd } from './pdd.ts';
 import { rotas as rotasSecureShare } from './secureshare.ts';
 import { rotas as rotasAtividades } from './atividades.ts';
@@ -43,6 +45,8 @@ export const TODAS_AS_ROTAS: Rota[] = [
   ...rotasModulos,
   ...rotasNotificacoes,
   ...rotasProjetos,
+  ...rotasPrestacao,
+  ...rotasAtividadesCampo,
   ...rotasPdd,
   ...rotasSecureShare,
   // Os oito abaixo entraram no indice em 25/08/2026. Os arquivos existiam desde

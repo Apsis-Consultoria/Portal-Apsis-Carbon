@@ -282,6 +282,70 @@ export async function lerProjetoVisivel(
 }
 
 /**
+ * Os projetos que esta pessoa pode ver. `null` quer dizer "admin, ve todos", e e
+ * diferente de `[]`, que quer dizer "nao participa de nenhum".
+ *
+ * Serve para a LISTAGEM, onde nao existe um id na URL para gatear: sem ela, uma
+ * rota que lista tudo devolve tudo. Foi essa a falta que deixou
+ * /prestacao/grupos entregar os grupos e os ciclo_id de qualquer projeto para
+ * qualquer conta do dominio, ate 02/09/2026.
+ *
+ * Quem tem um id na mao usa lerProjetoVisivel, que e mais barato e responde 404.
+ */
+export async function projetosVisiveis(ctx: Contexto): Promise<string[] | null> {
+  if (ehAdmin(ctx.registro)) return null;
+
+  const { data, error } = await ctx.admin
+    .from('carbon_projeto_equipe')
+    .select('projeto_id')
+    .eq('usuario_id', ctx.registro.id);
+
+  if (error) {
+    console.error('Falha ao ler carbon_projeto_equipe:', error.message);
+    throw new ErroRota('erro_interno', 500);
+  }
+  return ((data ?? []) as { projeto_id: string }[]).map((l) => l.projeto_id);
+}
+
+/**
+ * Resolve um grupo comunitario CONFERINDO o projeto dele.
+ *
+ * Existe porque os dominios de comunidade (prestacao de contas, atividades de
+ * campo) chegam por `grupo_id`, e nao por `projeto_id`. Aceitar o grupo do corpo
+ * sem resolver o projeto deixava um gestor de qualquer projeto escrever no ciclo
+ * do Parakana: o papel dizia "pode escrever" e nada dizia "pode escrever AQUI".
+ *
+ * 404 tanto para "nao existe" quanto para "nao participa", como lerProjetoVisivel.
+ */
+export async function grupoVisivel(
+  ctx: Contexto,
+  // `string | null` de proposito: e o que lerUuid devolve, e null quer dizer "nao
+  // veio". Recusar aqui, num lugar so, evita cada chamador ter que estreitar o
+  // tipo - e evita que alguem faca isso com `!` e perca a checagem.
+  grupoId: string | null,
+): Promise<{ id: string; projeto_id: string }> {
+  if (!grupoId) throw new ErroRota('campo_obrigatorio', 400, 'grupo_id');
+
+  const { data, error } = await ctx.admin
+    .from('carbon_grupos_comunitarios')
+    .select('id, projeto_id')
+    .eq('id', grupoId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Falha ao ler carbon_grupos_comunitarios:', error.message);
+    throw new ErroRota('erro_interno', 500);
+  }
+  if (!data) throw new ErroRota('nao_encontrado', 404, 'grupo_id');
+
+  const g = data as { id: string; projeto_id: string };
+  if (!(await lerProjetoVisivel(ctx, g.projeto_id))) {
+    throw new ErroRota('nao_encontrado', 404, 'grupo_id');
+  }
+  return g;
+}
+
+/**
  * Releitura SEM portao, para uso interno deste modulo apenas.
  *
  * Existe por um motivo estreito: em criar() e em atualizar(), a linha acabou de
