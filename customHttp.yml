@@ -18,8 +18,20 @@
 # ignorado, e foi por isso que /api/* e os links diretos da SPA devolviam 404.
 # As duas regras necessarias estao documentadas no amplify.yml.
 # =============================================================================
+# -----------------------------------------------------------------------------
+# A SINTAXE DE `pattern` AQUI E GLOB, e NAO a do rewrite
+# -----------------------------------------------------------------------------
+# Este arquivo nasceu em 02/09/2026 com `pattern: '/<*>'`, copiado da regra de
+# rewrite. Estava errado: `<*>` e a sintaxe de redirect e rewrite, que se
+# configuram no console. Para cabecalho a AWS documenta GLOB, e os exemplos dela
+# sao `'*.json'`, `'/path/*'` e `'**/*'`:
+# https://docs.aws.amazon.com/amplify/latest/userguide/custom-header-YAML-format.html
+#
+# O erro nao apareceu porque a Amplify parou de publicar em 29/08/2026 e nenhum
+# build rodou depois. Ele apareceria como cabecalho de seguranca simplesmente
+# ausente na resposta - o mesmo sintoma que fez este arquivo existir.
 customHeaders:
-  - pattern: '/<*>'
+  - pattern: '**/*'
     headers:
       # Clickjacking: impede que o Portal seja embutido em iframe de terceiro,
       # onde um atacante sobrepoe a interface e captura cliques autenticados.
@@ -76,7 +88,7 @@ customHeaders:
   # E VALE LEMBRAR O QUE ISTO NAO E: esconder a URL nao protege o sistema. Quem
   # defende as funcoes e a autenticacao dentro delas - ID token do Azure
   # validado contra o JWKS da Microsoft. Isto e defesa em profundidade.
-  - pattern: '/api/<*>'
+  - pattern: '/api/*'
     headers:
       - key: 'sb-project-ref'
         value: ''
