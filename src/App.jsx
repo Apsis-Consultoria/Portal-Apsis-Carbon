@@ -12,6 +12,17 @@ import Layout from '@/Layout';
 import AcessoBloqueado from '@/pages/AcessoBloqueado';
 
 /**
+ * Subcaminho em que o site e servido, injetado pelo `define` do vite.config.js.
+ *
+ * O `typeof` NAO E PARANOIA: sem ele, um servidor de desenvolvimento que subiu
+ * ANTES desta constante existir serve o modulo com o identificador cru, o
+ * navegador levanta ReferenceError e a tela fica BRANCA - sem nada na interface
+ * dizendo o motivo. Foi exatamente o que aconteceu em 02/09/2026. O mesmo
+ * cuidado esta em src/lib/endpoint.js, e aqui faltava.
+ */
+const BASE_ROTAS = typeof __BASE_ROTAS__ === 'string' ? __BASE_ROTAS__ : '/';
+
+/**
  * Códigos de erro da carbon-api que NÃO podem ficar sem dono. São falhas em que
  * continuar renderizando o app produz uma tela vazia e enganosa (menu só com
  * Boas-Vindas, sino zerado, "tente recarregar" que nunca resolve).
@@ -95,7 +106,7 @@ function App() {
             casa com nenhuma <Route> - e a tela fica vazia sem erro no console.
             A constante e injetada pelo `define` do vite.config.js.
           */}
-          <Router basename={__BASE_ROTAS__}>
+          <Router basename={BASE_ROTAS}>
             <ErrorBoundary>
               <Routes>
                 {/* Home: o Carbon não tem dashboard próprio ainda, então a raiz cai na boas-vindas */}
