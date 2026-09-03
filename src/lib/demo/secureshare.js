@@ -191,6 +191,15 @@ function criarEstado() {
      * alcancar 'Confidencial/Parecer juridico.pdf') na revisao visual.
      */
     arvore: {
+      // A Geral: material que vale para TODOS os clientes. Nada aqui e de um
+      // cliente especifico, de proposito - e o que a tela avisa em destaque.
+      geral: {
+        '': [
+          { nome: 'Politica de privacidade APSIS.pdf', tipo: 'arquivo', tamanho: 184220, criadoEm: emDias(-90), atualizadoEm: emDias(-90) },
+          { nome: 'Apresentacao institucional.pdf', tipo: 'arquivo', tamanho: 3120445, criadoEm: emDias(-60), atualizadoEm: emDias(-14) },
+          { nome: 'Metodologia de credito de carbono.pdf', tipo: 'arquivo', tamanho: 1042118, criadoEm: emDias(-30), atualizadoEm: emDias(-30) },
+        ],
+      },
       'demo-ss-0001': {
         '': [
           { nome: 'Confidencial', tipo: 'pasta', tamanho: null, criadoEm: emDias(-40), atualizadoEm: emDias(-6) },
@@ -242,7 +251,30 @@ function comAgregados(p) {
   };
 }
 
+/**
+ * Projeto SINTETICO da pasta Geral, para o modo demonstracao.
+ *
+ * A Geral nao e linha de carbon_secure_share_projetos nem em producao: o id
+ * 'geral' e reservado (ver ID_GERAL em src/lib/api/secureshare.js). Sem esta
+ * entrada, abrir a tela da Geral em demonstracao cairia em 'nao_encontrado' -
+ * e demonstracao e justamente como o time revisa tela.
+ *
+ * O portal do CLIENTE ja faz o mesmo no dataset dele (secure-share-carbon,
+ * src/lib/demo.js), e os dois usam o mesmo id de proposito.
+ */
+const PROJETO_GERAL_DEMO = {
+  id: 'geral',
+  ap_os: null,
+  empresa: 'Geral',
+  pasta: 'Geral',
+  status: 'ativo',
+  clientes: 0,
+  clientes_sem_acesso: 0,
+  restricoes: 0,
+};
+
 function acharProjeto(id) {
+  if (id === PROJETO_GERAL_DEMO.id) return PROJETO_GERAL_DEMO;
   const p = bd().projetos.find((x) => x.id === id);
   if (!p) throw erro('nao_encontrado');
   return p;

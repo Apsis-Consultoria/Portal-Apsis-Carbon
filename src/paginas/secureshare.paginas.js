@@ -1,5 +1,6 @@
 import SecureShare from '@/pages/SecureShare';
 import SecureShareProjeto from '@/pages/SecureShareProjeto';
+import SecureShareGeral from '@/pages/SecureShareGeral';
 
 /**
  * secureshare.paginas.js - registro das telas do Secure Share.
@@ -24,6 +25,27 @@ export const paginas = [
     // ordem 20: depois dos dominios das issues #1 a #11, que usam o numero da
     // propria issue como ordem.
     menu: { icone: 'ShieldCheck', ordem: 20, grupo: null },
+  },
+  {
+    /**
+     * A pasta Geral, compartilhada com todos os clientes.
+     *
+     * ROTA ESTATICA, e ela CONVIVE com /SecureShare/:id logo abaixo: o React
+     * Router 6 ranqueia por especificidade e nao pela ordem de declaracao, e um
+     * segmento fixo ganha de um dinamico. Entao /SecureShare/Geral cai aqui, e
+     * nao na tela de projeto tentando abrir um projeto de id "Geral".
+     *
+     * Sem item de menu proprio: ela e a primeira coisa da tela de lista, que e
+     * onde a pessoa naturalmente chega. Um segundo item de menu para uma pasta
+     * so competiria com o do dominio.
+     */
+    nome: 'SecureShareGeral',
+    rota: '/SecureShare/Geral',
+    componente: SecureShareGeral,
+    titulo: 'Pasta Geral',
+    subtitulo: 'Visível para todos os clientes',
+    menuPai: 'SecureShare',
+    menu: null,
   },
   {
     /**

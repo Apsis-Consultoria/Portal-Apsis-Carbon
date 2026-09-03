@@ -203,6 +203,19 @@ export async function atualizarProjeto(msal, id, dados) {
  * diligence (milhares de arquivos) travaria a tela e o Graph pagina de 999 em
  * 999 de qualquer forma.
  */
+/**
+ * Identificador reservado da pasta Geral, no lugar de um uuid de projeto.
+ *
+ * O MESMO valor em quatro lugares, e eles nao se importam: aqui, em
+ * rotas/secureshare.ts (ID_GERAL), em carbon-secure-share-upload/index.ts, e no
+ * portal do cliente. Nao e uuid de proposito: nao existe linha de projeto para a
+ * Geral, e inventar uma criaria um cliente fantasma nas views de listagem.
+ *
+ * As funcoes de arquivo e de envio aceitam este id no lugar do id de projeto:
+ * `listarArquivos(msal, ID_GERAL)` e `enviarArquivos(msal, ID_GERAL, itens)`.
+ */
+export const ID_GERAL = "geral";
+
 export async function listarArquivos(msal, id, sub = "") {
   if (MODO_DEMO && MODO_DEMO_ATIVO()) {
     return chamarNoDemo(`/secure-share/projetos/${id}/arquivos`, () =>

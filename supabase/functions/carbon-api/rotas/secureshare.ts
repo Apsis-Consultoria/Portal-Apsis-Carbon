@@ -6,6 +6,7 @@
 //   GET    secure-share/projetos/:id              detalhe (clientes, equipe, permissoes)
 //   PATCH  secure-share/projetos/:id              AP/OS, empresa e status
 //   GET    secure-share/projetos/:id/arquivos     conteudo da pasta no SharePoint
+//                                                 :id = 'geral' abre a pasta Geral
 //   POST   secure-share/projetos/:id/clientes     cadastra cliente externo
 //   PATCH  secure-share/projetos/:id/equipe       adiciona e remove colaborador
 //   POST   secure-share/projetos/:id/permissoes   nivel de um cliente num item
@@ -83,14 +84,46 @@ import {
  * suportado de proposito - se o Carbon ganhar biblioteca propria, basta limpar
  * o campo em carbon_app_config, sem tocar em codigo.
  */
-const CONFIG_PADRAO: ConfigSharePoint & { remetente: string; portalUrl: string } = {
+const CONFIG_PADRAO: ConfigSharePoint & {
+  remetente: string;
+  portalUrl: string;
+  pastaGeral: string;
+} = {
   siteHost: 'apsisconsult.sharepoint.com',
   sitePath: '/sites/Projetos',
   biblioteca: 'Secure Share',
   pastaBase: 'Apsis Carbon',
   remetente: 'portal@apsis.com.br',
   portalUrl: '',
+  /**
+   * Pasta compartilhada com TODOS os clientes, irma das pastas de projeto
+   * dentro de `pastaBase`.
+   *
+   * O MESMO NOME em quatro lugares, e eles nao se importam: aqui,
+   * carbon-secure-share-upload/index.ts (CONFIG_PADRAO.pastaGeral), e no
+   * repositorio secure-share-carbon em _shared/config.ts e
+   * _shared/sessaoProjetos.ts. Todos leem a chave `pastaGeral` da linha
+   * `secure_share` de carbon_app_config, entao o default e so a rede de
+   * seguranca: mude no BANCO, nao aqui.
+   */
+  pastaGeral: 'Geral',
 };
+
+/**
+ * Identificador reservado da pasta Geral, no lugar de um uuid de projeto.
+ *
+ * O MESMO valor de carbon-secure-share-upload/index.ts e do portal do cliente
+ * (secure-share-carbon/src/lib/demo.js usa `projeto_id: 'geral'`). Nao e uuid de
+ * proposito: nao existe linha em carbon_secure_share_projetos para a Geral, e
+ * inventar uma criaria um "cliente" fantasma que apareceria nas duas views de
+ * listagem e nos agregados de acesso.
+ *
+ * QUEM LE: qualquer pessoa autenticada da APSIS. A Geral e, por definicao,
+ * compartilhada com todos, entao nao ha vinculo de projeto para estreitar - por
+ * isso esta rota NAO chama exigirProjeto quando o id e este.
+ * QUEM ESCREVE: so admin ou gestor, e essa checagem vive na funcao de upload.
+ */
+const ID_GERAL = 'geral';
 
 type ConfigSecureShare = typeof CONFIG_PADRAO;
 
@@ -176,6 +209,11 @@ async function lerConfig(ctx: Contexto): Promise<ConfigSecureShare> {
       ? bruto.pastaBase.trim()
       : CONFIG_PADRAO.pastaBase,
     remetente: texto('remetente'),
+    // Lida da MESMA chave que o portal do cliente le, para as duas pontas nunca
+    // apontarem para pastas diferentes: quem sobe aqui e quem le la tem de ser o
+    // mesmo lugar no SharePoint. Se divergirem, a APSIS sobe num canto e o
+    // cliente olha para uma pasta vazia, sem erro nenhum na tela.
+    pastaGeral: texto('pastaGeral'),
     // portalUrl vazio e o estado de HOJE: o portal do cliente ainda nao foi
     // publicado e nao existe endereco de producao em arquivo nenhum dos dois
     // repositorios. O convite sai assim mesmo, sem botao e sem link (ver
@@ -901,25 +939,51 @@ async function atualizarProjeto(ctx: Contexto): Promise<Response> {
 // milhares de arquivos, e trazer tudo de uma vez trava a tela.
 
 async function listarArquivos(ctx: Contexto): Promise<Response> {
-  const projeto = await exigirProjeto(ctx, ctx.params.id);
+  const ehGeral = ctx.params.id === ID_GERAL;
+
+  /*
+   * A GERAL NAO PASSA POR exigirProjeto, e isso e deliberado, nao um desvio.
+   *
+   * exigirProjeto faz duas coisas: acha a linha do projeto e estreita o acesso a
+   * quem e admin, criou o projeto ou esta na equipe DELE. Para a Geral nao existe
+   * linha (ver ID_GERAL) e nao existe vinculo a estreitar: ela e compartilhada
+   * com todos os clientes, entao qualquer pessoa autenticada da APSIS pode LER.
+   * A autenticacao continua valendo - o roteador ja validou o ID token do Azure
+   * antes de chegar aqui, e sem isso nao existe ctx.registro.
+   *
+   * ESCREVER e outra historia e NAO acontece nesta rota: o upload vive em
+   * carbon-secure-share-upload e exige papel admin ou gestor.
+   */
+  const projeto = ehGeral ? null : await exigirProjeto(ctx, ctx.params.id);
 
   const sub = (ctx.url.searchParams.get('sub') ?? '').trim();
   // Barra inicial e '..' sairiam da pasta do projeto e listariam a biblioteca
   // inteira. Recusamos em vez de sanear, para o caminho torto aparecer no log.
+  // Vale IGUAL para a Geral: a pasta dela e irma das de projeto, e um '..' ali
+  // listaria as pastas de todos os clientes.
   if (sub.startsWith('/') || sub.includes('..')) {
     throw new ErroRota('campo_invalido', 400, 'sub');
   }
 
-  const base = nomePasta(projeto);
+  // cfg e a checagem de `base` ficam FORA do try de proposito: o catch abaixo
+  // chama traduzirGraph, que existe para converter erro do Microsoft Graph. Um
+  // ErroRota lancado dentro do try passaria por ele, e o 409 viraria outro erro.
+  const cfg = await lerConfig(ctx);
+  const base = ehGeral ? cfg.pastaGeral : nomePasta(projeto!);
+
   if (!base) {
     // Projeto antigo, gravado antes da recusa acima, pode ter nome vazio. Aqui a
-    // consequencia seria listar a biblioteca inteira para o cliente.
-    console.error('Projeto de Secure Share sem nome de pasta utilizavel:', projeto.id);
+    // consequencia seria listar a biblioteca inteira para o cliente. Para a
+    // Geral, cai aqui se alguem gravar `pastaGeral` vazio em carbon_app_config -
+    // e o mesmo estrago, entao a mesma recusa.
+    console.error(
+      'Secure Share sem nome de pasta utilizavel:',
+      ehGeral ? 'pasta Geral (carbon_app_config.secure_share.pastaGeral)' : projeto!.id,
+    );
     throw new ErroRota('nome_de_pasta_vazio', 409);
   }
 
   try {
-    const cfg = await lerConfig(ctx);
     const itens = await listarPasta(cfg, caminhoNaBiblioteca(cfg, base, sub));
     return respostaJson({ itens, caminho: sub, pasta: base });
   } catch (e) {

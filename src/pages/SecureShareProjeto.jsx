@@ -338,7 +338,15 @@ function Cabecalho({ projeto, msal, onVoltar, onMudou }) {
 
 /* ===== Envio de arquivos ================================================== */
 
-function Envio({ projeto, msal }) {
+/**
+ * Envio de arquivos para a pasta.
+ *
+ * EXPORTADA junto com Arquivos para a tela da pasta Geral reaproveitar o
+ * upload. O destino sai de `projeto.id`, e a funcao
+ * carbon-secure-share-upload ja reconhece o id reservado 'geral' - inclusive
+ * a checagem de papel (admin ou gestor) para escrever nela.
+ */
+export function Envio({ projeto, msal }) {
   const cache = useQueryClient();
   const [fila, setFila] = useState([]);
   const [arrastando, setArrastando] = useState(false);
@@ -553,7 +561,23 @@ function Envio({ projeto, msal }) {
 
 /* ===== Arvore de arquivos ================================================= */
 
-function Arquivos({ projeto, msal, clientes, permissoes, onMudou }) {
+/**
+ * Arvore de arquivos da pasta, com envio e controle de acesso por item.
+ *
+ * EXPORTADA para a tela da pasta Geral (src/pages/SecureShareGeral.jsx)
+ * reaproveitar a arvore inteira em vez de ganhar uma copia que divergiria na
+ * primeira correcao. O `projeto` que ela recebe la e sintetico:
+ * `{ id: 'geral', empresa: 'Geral', pasta: <nome vindo do servidor> }`.
+ *
+ * `semRegras` desliga o controle de acesso por item. Na Geral ele nao existe por
+ * DEFINICAO, e nao por simplificacao: a pasta e compartilhada com todos os
+ * clientes, entao nao ha a quem restringir. O proprio banco registra isso no
+ * comentario de carbon_secure_share_contexto ("p_projeto_id nulo e a pasta
+ * Geral, que por definicao nao tem permissao por item"). Sem esta prop, a tela
+ * mostraria um painel de permissao com lista de clientes vazia, convidando a
+ * pessoa a procurar um cadastro que nao existe.
+ */
+export function Arquivos({ projeto, msal, clientes, permissoes, onMudou, semRegras = false }) {
   const [raiz, setRaiz] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
@@ -624,7 +648,7 @@ function Arquivos({ projeto, msal, clientes, permissoes, onMudou }) {
       const painelAberto = painelItem === caminho;
       const ehPasta = item.tipo === 'pasta';
 
-      const painel = painelAberto ? (
+      const painel = painelAberto && !semRegras ? (
         <li
           key={`${caminho}::painel`}
           style={{ paddingLeft: `${recuo + 28}px` }}
@@ -715,7 +739,9 @@ function Arquivos({ projeto, msal, clientes, permissoes, onMudou }) {
         </li>
       ) : null;
 
-      const botaoPermissao = (
+      // Na Geral nao ha a quem restringir: sem botao, em vez de um botao que
+      // abre um painel vazio.
+      const botaoPermissao = semRegras ? null : (
         <BotaoSecundario
           variante="fantasma"
           icone={Lock}

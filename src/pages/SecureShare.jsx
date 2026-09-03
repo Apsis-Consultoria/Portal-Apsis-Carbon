@@ -25,11 +25,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Plus, X, ShieldCheck, Building2, Users, Calendar, Lock, MailWarning, FolderOpen,
+  Globe2, ChevronRight,
 } from 'lucide-react';
 
 import { listarProjetos, criarProjeto, formatarApOs } from '@/lib/api/secureshare';
 import { MODO_DEMO, MODO_DEMO_ATIVO } from '@/lib/runtimeConfig';
-import { montarUrl } from '@/lib/pageRoutes';
+import { montarUrl, rotaDaPagina } from '@/lib/pageRoutes';
 
 import Tabela from '@/components/ui/Tabela';
 import Badge from '@/components/ui/Badge';
@@ -169,7 +170,7 @@ export default function SecureShare() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               {l.ap_os ? (
-                <span className="font-semibold text-[#1A2B1F]">{l.ap_os}</span>
+                <span className="font-semibold text-[#1A4731]">{l.ap_os}</span>
               ) : (
                 <Badge tom="neutro" tamanho="sm">Sem AP/OS</Badge>
               )}
@@ -265,6 +266,42 @@ export default function SecureShare() {
           Nenhum e-mail sai daqui.
         </AvisoDiscreto>
       )}
+
+      {/* ===== Pasta Geral ==================================================
+          FORA DA TABELA de propósito, e acima dela. A Geral não é um projeto:
+          não tem cliente, não tem AP/OS, não tem prazo e não tem permissão por
+          item. Como linha da tabela, quatro das cinco colunas ficariam vazias e
+          ela pareceria um projeto mal cadastrado.
+
+          O verde da marca (#1A4731) sustenta o bloco. É a diferença visual em
+          relação ao Portal Apsis, que nesta tela usava só os cinzas: aqui o
+          verde marca o que é do Carbon, e o laranja fica reservado para ação. */}
+      <button
+        type="button"
+        onClick={() => navegar(rotaDaPagina('SecureShareGeral') ?? '/SecureShare/Geral')}
+        className="w-full text-left group rounded-xl border border-[#1A4731]/20 bg-[#1A4731]/[0.04]
+                   hover:bg-[#1A4731]/[0.07] hover:border-[#1A4731]/35
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F47920]
+                   transition-colors px-4 py-3.5 flex items-center gap-3.5"
+      >
+        <span className="shrink-0 w-10 h-10 rounded-lg bg-[#1A4731] flex items-center justify-center">
+          <Globe2 size={19} className="text-white" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-[#1A4731]">Pasta Geral</span>
+            <Badge tom="verde" tamanho="sm">Todos os clientes</Badge>
+          </span>
+          <span className="block text-xs text-[#5C7060] mt-0.5">
+            O que você sobe aqui aparece para todos os clientes, de todos os projetos.
+            Somente leitura para eles.
+          </span>
+        </span>
+        <ChevronRight
+          size={18}
+          className="shrink-0 text-[#8A9990] group-hover:text-[#1A4731] transition-colors"
+        />
+      </button>
 
       <Tabela
         legenda="Pastas compartilhadas com clientes no Secure Share"
