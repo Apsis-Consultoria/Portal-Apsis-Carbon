@@ -38,17 +38,46 @@ serão definidos depois, por isso a navegação e os cards de módulo vêm do Su
 3. **Proibido o caractere travessão (em dash).** Em código, comentários, textos,
    markdown, SQL, commits, dados no banco. Use hífen. Se encontrar um travessão
    em arquivo existente, substitua.
-4. **O frontend NÃO TEM VARIÁVEL DE AMBIENTE. NENHUMA.** Não existe `.env`, não
-   existe URL de Supabase nem anon key no bundle. Todas as chamadas vão para o
-   caminho relativo `/api/<função>` (ver `src/lib/endpoint.js`) e quem sabe o
-   endereço real é a hospedagem, por rewrite: em produção uma regra do Amplify,
-   em desenvolvimento o `server.proxy` do `vite.config.js` alimentado por
-   `SUPABASE_API_URL` (sem prefixo `VITE_`, justamente para o Vite se
-   recusar a expô-la ao navegador).
+4. **O frontend não tem `import.meta.env` nem `.env`.** Nenhuma anon key, nenhuma
+   service_role, em nenhuma hipótese. Todas as chamadas vão para
+   `caminhoFuncao()` de `src/lib/endpoint.js`.
 
-   O motivo: com a URL do projeto no bundle, qualquer pessoa que abrisse a tela
-   de login descobriria o endereço e passaria a bater direto nas Edge Functions,
-   fora do nosso domínio, sem log, WAF nem limite de taxa.
+   **O destino é decidido no BUILD, e desde 02/09/2026 tem dois modos.**
+   `vite.config.js` injeta a constante `__BASE_API__` pelo `define`:
+
+   | `SUPABASE_API_URL` no build | `__BASE_API__` | Depende de rewrite? | Endereço no bundle? |
+   |---|---|---|---|
+   | ausente (e sempre em dev) | `/api` | sim | não |
+   | presente | `https://<ref>.supabase.co/functions/v1` | não | **sim** |
+
+   O modo relativo é o DESENHO PREFERIDO, e o motivo continua valendo: com a URL
+   no bundle, qualquer pessoa que abra a tela de login descobre o endereço e
+   passa a bater direto nas Edge Functions, fora do nosso domínio, sem log, WAF
+   nem limite de taxa. Quem defende as funções é o ID token do Azure AD validado
+   dentro delas, então conhecer o endereço não dá acesso: isto é defesa em
+   profundidade que foi perdida, não a fechadura.
+
+   **Por que o segundo modo existe.** Em 02/09/2026 os dois domínios de produção
+   subiram sem as regras de rewrite, que só se configuram no console do Amplify.
+   A Amplify servia `/api/<função>` como arquivo estático: 301 para
+   `/api/<função>/` e depois 404, em toda chamada, nos dois sistemas. Login
+   impossível, e nenhuma mudança de código alcançava o problema enquanto o
+   caminho fosse relativo. A escolha foi entre sistema no ar com endereço visível
+   e sistema fora do ar.
+
+   **COMO VOLTAR AO MODO PREFERIDO, e é de propósito que seja assim:** quando as
+   duas regras de rewrite existirem (ver `docs/PRODUCAO-O-QUE-FALTA.md`), apague
+   a variável `SUPABASE_API_URL` do ambiente de build da Amplify. O próximo build
+   volta para `/api` e o endereço sai do bundle. **Não há código para mexer** - o
+   valor não está escrito em lugar nenhum do repositório, e não deve ser.
+
+   `SUPABASE_API_URL`, e não `VITE_SUPABASE_API_URL`: sem o prefixo o Vite se
+   recusa a expor a variável ao navegador por conta própria, e quem decide se ela
+   entra no bundle é o `define`, num único lugar auditável.
+
+   Azure clientId/tenantId, domínio permitido, e-mail de suporte, textos e
+   imagens do login e feature flags continuam na tabela `carbon_app_config`,
+   servidos pela Edge Function pública `app-config`. Não reintroduza `VITE_*`.
 
    Azure clientId/tenantId, domínio permitido, e-mail de suporte, textos e
    imagens do login e feature flags vivem na tabela `carbon_app_config` e chegam

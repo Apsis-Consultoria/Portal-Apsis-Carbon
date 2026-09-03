@@ -1,18 +1,33 @@
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 
+import { USA_CAMINHO_RELATIVO } from '@/lib/endpoint'
+
 const SORA = "'Sora', 'Segoe UI', sans-serif"
 const INTER = "'Inter', 'Segoe UI', sans-serif"
 
+/*
+ * O PRIMEIRO ITEM DEPENDE DE COMO O BUILD SAIU, e mandar conferir a coisa errada
+ * custa horas de plantão. Se o bundle chama caminho relativo, o suspeito é o
+ * rewrite da hospedagem. Se chama o Supabase direto (SUPABASE_API_URL presente
+ * no build), o rewrite não participa da chamada e citá-lo manda o time de TI
+ * procurar no lugar errado - foi o que aconteceu em 02/09/2026, quando a tela
+ * pedia para conferir um rewrite enquanto o problema estava em outro lugar.
+ *
+ * Os outros dois itens valem nos dois casos.
+ */
+const PRIMEIRO_ITEM = USA_CAMINHO_RELATIVO
+  ? {
+      titulo: 'Rewrite de /api na hospedagem',
+      detalhe: 'O frontend chama caminhos relativos /api/<função>. A hospedagem precisa reescrever /api/<*> para https://SEU-PROJETO.supabase.co/functions/v1/<*> com tipo 200 (proxy). Em desenvolvimento, quem faz isso é SUPABASE_API_URL no vite.config.js.',
+    }
+  : {
+      titulo: 'SUPABASE_API_URL do build aponta para o projeto certo',
+      detalhe: 'Este build chama as Edge Functions direto, sem depender de rewrite: o endereço veio da variável SUPABASE_API_URL no momento do build. Confira o valor em App settings > Environment variables. Ele leva só https://<projeto>.supabase.co, sem /functions/v1 no fim.',
+    }
+
 // Itens objetivos, na ordem em que vale a pena checar (do mais comum ao menos).
-//
-// Não há variável de ambiente nesta lista, e não é esquecimento: o frontend não
-// tem nenhuma. O primeiro item ocupa o lugar que a URL do Supabase ocupava, e é
-// hoje a causa mais comum de falha no boot em ambiente novo.
 const VERIFICAR = [
-  {
-    titulo: 'Rewrite de /api na hospedagem',
-    detalhe: 'O frontend chama caminhos relativos /api/<função>. A hospedagem precisa reescrever /api/<*> para https://SEU-PROJETO.supabase.co/functions/v1/<*> com tipo 200 (proxy). Em desenvolvimento, quem faz isso é SUPABASE_API_URL no vite.config.js.',
-  },
+  PRIMEIRO_ITEM,
   {
     titulo: 'Edge Function app-config publicada',
     detalhe: 'Deve estar no ar com verify_jwt = false, respondendo GET /functions/v1/app-config sem Authorization.',
