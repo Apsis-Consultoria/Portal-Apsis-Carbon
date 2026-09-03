@@ -61,8 +61,54 @@ function lerEnderecoDoProjeto() {
 
 const enderecoDoProjeto = lerEnderecoDoProjeto()
 
+/**
+ * Base das chamadas de API, injetada no bundle em tempo de BUILD.
+ *
+ * -----------------------------------------------------------------------------
+ * ISTO AFROUXA UMA DECISAO DE SEGURANCA, e o afrouxamento e CONDICIONAL
+ * -----------------------------------------------------------------------------
+ * O desenho original (regra 4 do CLAUDE.md) e: o frontend so conhece o caminho
+ * relativo /api/<funcao>, e quem sabe o endereco do Supabase e a hospedagem, por
+ * rewrite. Assim o endereco do projeto nunca entra no bundle, e a unica porta
+ * publica e o nosso dominio - com log, WAF e limite de taxa na frente.
+ *
+ * Em 02/09/2026 os dois dominios de producao subiram SEM as regras de rewrite, e
+ * a Amplify servia /api/<funcao> como se fosse arquivo estatico: 301 para
+ * /api/<funcao>/ e depois 404. Resultado: login impossivel nos dois sistemas.
+ * A regra e de console e nao existe arquivo de repositorio que a substitua.
+ *
+ * A SAIDA, e o custo dela: se SUPABASE_API_URL estiver no ambiente do BUILD, o
+ * endereco absoluto entra no bundle e o navegador chama o Supabase direto, sem
+ * depender de rewrite. O custo e exatamente o que o desenho evitava: quem abrir
+ * o codigo-fonte da pagina ve o endereco e pode bater nas Edge Functions fora do
+ * nosso dominio. O que NAO muda: ninguem entra sem ID token do Azure AD, que e
+ * validado dentro da propria funcao contra o JWKS da Microsoft.
+ *
+ * ELA SE DESFAZ SOZINHA, e e por isso que e assim e nao um endereco escrito no
+ * codigo: no dia em que as duas regras de rewrite existirem, basta APAGAR a
+ * variavel SUPABASE_API_URL do ambiente de build da Amplify. O proximo build
+ * volta a `/api` e o endereco sai do bundle, sem tocar em uma linha de codigo.
+ *
+ * EM DESENVOLVIMENTO CONTINUA `/api`, sempre: ali o proxy do `server` abaixo
+ * resolve, e o dev nao deve exercitar um caminho diferente do de producao mais
+ * do que o necessario.
+ */
+function baseDaApi(comando) {
+  if (comando !== 'build') return '/api'
+  if (!enderecoDoProjeto) return '/api'
+  return enderecoDoProjeto + CAMINHO_FUNCOES
+}
+
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  /*
+   * O valor vai para src/lib/endpoint.js. Precisa de JSON.stringify: `define`
+   * faz substituicao TEXTUAL no codigo, entao sem as aspas o bundle sairia com
+   * um identificador solto e quebraria no parse.
+   */
+  define: {
+    __BASE_API__: JSON.stringify(baseDaApi(command)),
+  },
   // Mesma escolha do portal: o log de warnings do Vite polui o terminal em dev.
   logLevel: 'error',
   server: {
@@ -145,4 +191,4 @@ export default defineConfig({
   plugins: [
     react(),
   ],
-})
+}))
