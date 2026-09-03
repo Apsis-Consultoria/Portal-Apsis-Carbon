@@ -99,15 +99,35 @@ function baseDaApi(comando) {
   return enderecoDoProjeto + CAMINHO_FUNCOES
 }
 
+/**
+ * Subcaminho em que o site e servido. Vazio (raiz) em todo lugar, menos no
+ * GitHub Pages de repositorio de projeto, que serve em
+ * `https://<org>.github.io/<repo>/`.
+ *
+ * SEM ISTO O PAGES SERVE UMA TELA BRANCA: o index.html sairia pedindo
+ * /assets/index-xxxx.js na RAIZ do dominio, onde nao existe nada, e o console
+ * mostraria 404 de arquivo js sem nenhuma pista de que a causa e o subcaminho.
+ *
+ * Alimentada por BASE_PUBLICA no ambiente do build (ver .github/workflows/pages.yml).
+ */
+const basePublica = (process.env.BASE_PUBLICA || '/').replace(/\/*$/, '/')
+
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
+  base: basePublica,
   /*
-   * O valor vai para src/lib/endpoint.js. Precisa de JSON.stringify: `define`
-   * faz substituicao TEXTUAL no codigo, entao sem as aspas o bundle sairia com
-   * um identificador solto e quebraria no parse.
+   * Os valores vao para src/. Precisam de JSON.stringify: `define` faz
+   * substituicao TEXTUAL no codigo, entao sem as aspas o bundle sairia com um
+   * identificador solto e quebraria no parse.
+   *
+   * `__BASE_ROTAS__` vai para o basename do React Router. Nao usamos
+   * `import.meta.env.BASE_URL` (que o Vite tambem preencheria) para manter a
+   * regra de que `src/` nao le import.meta.env: assim existe UM lugar onde se
+   * audita o que o build injeta no bundle.
    */
   define: {
     __BASE_API__: JSON.stringify(baseDaApi(command)),
+    __BASE_ROTAS__: JSON.stringify(basePublica.replace(/\/$/, '') || '/'),
   },
   // Mesma escolha do portal: o log de warnings do Vite polui o terminal em dev.
   logLevel: 'error',

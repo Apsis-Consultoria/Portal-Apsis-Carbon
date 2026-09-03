@@ -1,0 +1,132 @@
+# =============================================================================
+# Publica o Portal no GitHub Pages, para demonstracao.
+#
+# POR QUE ISTO EXISTE, e o que ele NAO e. A hospedagem de producao e o AWS
+# Amplify, em portal.apsiscarbon.com. Em 02/09/2026 a Amplify parou de publicar:
+# o arquivo servido em producao era de 29/08 e nenhum push chegava la. Isto e um
+# caminho alternativo para alguem conseguir abrir as telas enquanto aquilo nao
+# se resolve. Nao substitui a producao e nao deve virar a hospedagem oficial.
+#
+# -----------------------------------------------------------------------------
+# O SITE E PUBLICO NA INTERNET, e isso e decisao consciente do dono
+# -----------------------------------------------------------------------------
+# Pages de repositorio privado em plano que nao seja Enterprise Cloud publica o
+# site para qualquer pessoa com o endereco. Consequencias, ditas por inteiro:
+#
+#   - o ENDERECO DO PROJETO SUPABASE fica publico, porque este build usa o modo
+#     absoluto de __BASE_API__ (ver src/lib/endpoint.js e a regra 4 do
+#     CLAUDE.md). Quem abrir o codigo-fonte da pagina o descobre;
+#   - NENHUM DADO fica publico: as Edge Functions exigem ID token do Azure AD,
+#     validado contra o JWKS da Microsoft dentro delas. Conhecer o endereco nao
+#     da acesso a nada.
+#
+# -----------------------------------------------------------------------------
+# O LOGIN NAO FUNCIONA AQUI ATE ALGUEM MEXER NO AZURE
+# -----------------------------------------------------------------------------
+# O MSAL usa `window.location.origin` como redirectUri. Nesta URL isso vale
+# https://apsis-consultoria.github.io, uma origem que o registro do Azure nao
+# conhece, e o login morre com AADSTS50011 antes de sair da Microsoft.
+#
+# Para funcionar, alguem com acesso ao Azure precisa, no App registration do
+# Carbon: Authentication > Add a platform > Single-page application, e cadastrar
+#
+#     https://apsis-consultoria.github.io/Portal-Apsis-Carbon/
+#
+# Vale registrar que hoje os dois registros do Azure sao do tipo "aplicativo", e
+# nao SPA - entao esse passo nao e so acrescentar uma URL.
+# =============================================================================
+name: Pages (demonstracao)
+
+on:
+  # Sem `push`, de proposito: publicar em cada commit deixaria o site publico
+  # sempre alinhado ao ultimo trabalho em andamento, inclusive tela pela metade.
+  # Aqui quem decide quando publicar e uma pessoa.
+  workflow_dispatch:
+
+# Permissao minima para o deploy de Pages. `contents: read` e so para o checkout.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Uma publicacao por vez. Sem isto, dois disparos proximos disputam o ambiente
+# `github-pages` e o segundo falha no meio.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publicacao.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Confere que o ref do projeto existe
+        # FALHA CEDO, COM MENSAGEM. Sem o secret, o build cairia no modo relativo
+        # (`/api`) e o site publicaria bonito e sem funcionar: toda chamada
+        # devolveria 404, porque no Pages nao existe rewrite nenhum para /api.
+        # Um erro aqui custa um minuto; o site quebrado custa uma tarde.
+        run: |
+          if [ -z "${{ secrets.SUPABASE_PROJECT_REF }}" ]; then
+            echo "::error::secrets.SUPABASE_PROJECT_REF nao esta definido. Sem ele o bundle sai chamando /api, que no Pages nao existe."
+            exit 1
+          fi
+
+      - name: Build
+        env:
+          # Subcaminho do Pages de repositorio de projeto. Precisa das duas
+          # barras: o Vite usa para o caminho dos assets e para o basename das
+          # rotas (ver vite.config.js).
+          BASE_PUBLICA: /${{ github.event.repository.name }}/
+          # Modo absoluto: no Pages nao existe rewrite de /api. O valor leva SO o
+          # endereco do projeto; o /functions/v1 e acrescentado no codigo.
+          SUPABASE_API_URL: https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co
+        run: npm run build
+
+      - name: 404.html para link direto da SPA
+        # O Pages serve arquivo estatico e nao tem rewrite. Um link direto para
+        # /Portal-Apsis-Carbon/PrestacaoContas nao existe como arquivo e cairia
+        # no 404 do GitHub. Servindo o index.html como pagina de 404, o React
+        # Router assume a rota e a tela abre - e o basename ja esta no bundle.
+        run: cp dist/index.html dist/404.html
+
+      - name: Confere que o bundle saiu no modo absoluto
+        # Rede de seguranca contra o build "passar" e o site nao funcionar: se
+        # sobrou "/api" relativo, alguma coisa no vite.config.js mudou e o
+        # `define` deixou de valer.
+        run: |
+          if ! grep -rqE 'https://[a-z]{20}\.supabase\.co/functions/v1' dist/assets/*.js; then
+            echo "::error::o bundle nao tem o endereco absoluto das Edge Functions. No Pages ele e obrigatorio."
+            exit 1
+          fi
+          echo "ok: bundle no modo absoluto"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: publicacao
+        uses: actions/deploy-pages@v4
+
+      - name: Onde ficou
+        run: |
+          echo "### Portal publicado" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.publicacao.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "O login por Azure AD **nao funciona** nesta URL ate a origem" >> $GITHUB_STEP_SUMMARY
+          echo "\`https://apsis-consultoria.github.io\` ser registrada como" >> $GITHUB_STEP_SUMMARY
+          echo "Single-page application no App registration do Azure." >> $GITHUB_STEP_SUMMARY

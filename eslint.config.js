@@ -34,6 +34,9 @@ export default [
          * de digitacao de verdade.
          */
         __BASE_API__: 'readonly',
+        // Subcaminho do site, para o basename do React Router. Mesmo motivo:
+        // e substituida pelo literal em tempo de build.
+        __BASE_ROTAS__: 'readonly',
       },
       parserOptions: {
         ecmaVersion: 2022,

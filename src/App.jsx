@@ -88,7 +88,14 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
         <GuardaDeSessao>
-          <Router>
+          {/*
+            basename: no dominio proprio vale '/' e nada muda. No GitHub Pages de
+            repositorio de projeto o site e servido em /<repo>/, e sem o basename
+            o Router acha que a rota atual e "/Portal-Apsis-Carbon/" - que nao
+            casa com nenhuma <Route> - e a tela fica vazia sem erro no console.
+            A constante e injetada pelo `define` do vite.config.js.
+          */}
+          <Router basename={__BASE_ROTAS__}>
             <ErrorBoundary>
               <Routes>
                 {/* Home: o Carbon não tem dashboard próprio ainda, então a raiz cai na boas-vindas */}
