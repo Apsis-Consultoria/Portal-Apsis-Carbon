@@ -9,6 +9,8 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 
+import { novoPseudonimizador } from './pseudonimos.mjs';
+
 const ENTRADA = 'docs/notion/dados/atas-pseudonimizadas.json';
 const SAIDA = 'supabase/seeds/atas_reunioes.sql';
 
@@ -17,6 +19,29 @@ const dados = JSON.parse(await readFile(ENTRADA, 'utf8'));
 if (!dados.pseudonimizado) {
   throw new Error('a entrada nao esta marcada como pseudonimizada; recusando gerar');
 }
+
+/**
+ * SEGUNDA PASSADA de pseudonimizacao, sobre uma entrada que se declara ja
+ * pseudonimizada. Nao e redundancia: e que a declaracao estava errada.
+ *
+ * A pseudonimizacao original fez 6029 substituicoes e ainda deixou passar seis
+ * ocorrencias, encontradas em 02/09/2026 pelo verificador de seeds:
+ *   - "Luciano", duas vezes, com os vizinhos DA MESMA LINHA ja substituidos
+ *     ("- Luciano - [P265]"), o que mostra que a falta foi do criterio e nao da
+ *     cobertura do texto;
+ *   - "marcelo" em MINUSCULA, quatro vezes. A substituicao era sensivel a caixa
+ *     e a lista tinha so "Marcelo".
+ *
+ * O criterio de origem comparava a coluna `sinal_pessoa` do
+ * revisao-termos-atas.csv com a string '1', e essa coluna e CONTAGEM: Marcelo
+ * tem 12, Luciano nao tinha linha. Ninguem notou porque 6029 substituicoes
+ * parecem cobertura completa.
+ *
+ * A licao esta na ordem das duas guardas abaixo: a declaracao da origem
+ * (`dados.pseudonimizado`) diz o que alguem ACREDITA; conferirSaida() diz o que
+ * o arquivo TEM. As duas juntas, e a segunda vale mais.
+ */
+const pseudo = await novoPseudonimizador();
 
 // Rede de seguranca: se sobrou e-mail, telefone ou CPF, nao gera nada.
 const tudo = dados.atas.map((a) => a.texto).join(' ');
@@ -39,7 +64,12 @@ function sql(v) {
    em silencio, porque ele e um insert-select. */
 const PREFIXO = { parakana: 'reuniao:parakana:', backoffice: 'reuniao:backoffice:' };
 
-const registros = dados.atas.filter((a) => a.texto && a.texto.trim().length > 20);
+/* A segunda passada acontece AQUI, na entrada do pipeline, e nao na hora de
+   montar cada insert: assim tudo que descende de `registros` ja esta limpo, e um
+   campo novo amanha nao nasce fora da protecao. */
+const registros = dados.atas
+  .filter((a) => a.texto && a.texto.trim().length > 20)
+  .map((a) => ({ ...a, texto: pseudo.aplicar(a.texto) }));
 
 const porOrigem = registros.reduce((a, r) => ((a[r.origem] = (a[r.origem] ?? 0) + 1), a), {});
 const marcadores = (tudo.match(/\[P\d+\]/g) ?? []).length;
@@ -138,8 +168,13 @@ begin
 end $$;
 `);
 
-await writeFile(SAIDA, partes.join('\n\n'), 'utf8');
+const sqlGerado = partes.join('\n\n');
+// ANTES de escrever: arquivo com nome de pessoa nao deve nem chegar ao disco.
+pseudo.conferirSaida(sqlGerado, SAIDA);
+
+await writeFile(SAIDA, sqlGerado, 'utf8');
 
 console.log(`gerado ${SAIDA}`);
 console.log(`  atas: ${registros.length} ${JSON.stringify(porOrigem)}`);
 console.log(`  marcadores de pessoa no texto: ${marcadores}`);
+console.log('  ' + pseudo.relatorio());

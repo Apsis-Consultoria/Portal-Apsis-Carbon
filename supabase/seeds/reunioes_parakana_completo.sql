@@ -196,7 +196,7 @@ begin
   insert into public.carbon_reunioes (id, projeto_id, tipo, titulo, data, parceiro)
   values (md5('reuniao:parakana:1f1ee8ba-950e-8152-bfbc-eb26f5053325')::uuid, v_projeto, 'semanal', 'Reunião Semanal Parakanã', date '2025-05-12', null);
   insert into public.carbon_reunioes (id, projeto_id, tipo, titulo, data, parceiro)
-  values (md5('reuniao:parakana:1f2ee8ba-950e-80a9-a856-dd35b0f5e480')::uuid, v_projeto, 'tematica', 'Reunião Tim Parakanã', date '2025-05-13', null);
+  values (md5('reuniao:parakana:1f2ee8ba-950e-80a9-a856-dd35b0f5e480')::uuid, v_projeto, 'tematica', 'Reunião [P865] Parakanã', date '2025-05-13', null);
   insert into public.carbon_reunioes (id, projeto_id, tipo, titulo, data, parceiro)
   values (md5('reuniao:parakana:1f2ee8ba-950e-8086-9c0f-c7ec15d020db')::uuid, v_projeto, 'tematica', 'Reunião Perspectivas', date '2025-05-13', null);
   insert into public.carbon_reunioes (id, projeto_id, tipo, titulo, data, parceiro)
@@ -322,7 +322,7 @@ begin
           'Marcone confirmar data da visita dos advogados para escritório Rio', true, now());
   insert into public.carbon_ata_pendencias (id, ata_id, descricao, concluida, concluida_em)
   values (md5('pendencia:parakana:2efee8ba-950e-80fa-8132-ef52a5bd5013')::uuid, md5('ata:parakana:2026-01-21')::uuid,
-          'Dona Helena visitará Xataopawa no sabado', true, now());
+          'Dona [P469] visitará Xataopawa no sabado', true, now());
   insert into public.carbon_ata_pendencias (id, ata_id, descricao, concluida, concluida_em)
   values (md5('pendencia:parakana:2efee8ba-950e-80b9-aa6b-df8c388df31b')::uuid, md5('ata:parakana:2026-01-21')::uuid,
           'Verificar com Jurídico Apsis um TErmo de cooperação técnica com empresa do PBA', true, now());

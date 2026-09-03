@@ -245,7 +245,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:e1aee8ba-950e-835f-805d-01522c3cb9e7')::uuid, null,
-          'Estratégia de Descarbonização [CTA]: Mary repassar relatório para Caio.', null, 'concluida', 'consultoria',
+          'Estratégia de Descarbonização [CTA]: [P773] repassar relatório para [P771].', null, 'concluida', 'consultoria',
           'Estratégia de Descarbonização [CTA]', date '2025-02-03');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -260,32 +260,32 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:820ee8ba-950e-839c-a6fd-01796f62ab96')::uuid, null,
-          'Revisar desmatamento Martelli', null, 'concluida', 'backoffice',
+          'Revisar desmatamento [P231]', null, 'concluida', 'backoffice',
           null, date '2025-02-03');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:64eee8ba-950e-827d-a99b-8149f6ef4b4d')::uuid, null,
-          'Cobrar envio dos dados abertos por fazenda(Edson)', null, 'concluida', 'backoffice',
+          'Cobrar envio dos dados abertos por fazenda([P606])', null, 'concluida', 'backoffice',
           null, date '2025-02-03');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:302ee8ba-950e-83ab-89fd-81bd62e0a0f9')::uuid, null,
-          'Mary cobrar envio dos relatórios do INDEVA.', null, 'concluida', 'backoffice',
+          '[P773] cobrar envio dos relatórios do INDEVA.', null, 'concluida', 'backoffice',
           null, date '2025-02-03');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:58fee8ba-950e-8243-a0b6-0121301359ad')::uuid, null,
-          'Carol cobrar LP para revisão do PDD.', null, 'concluida', 'backoffice',
+          '[P611] cobrar LP para revisão do PDD.', null, 'concluida', 'backoffice',
           null, date '2025-02-03');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:f6eee8ba-950e-83e5-9c50-81fb2ee3b3c7')::uuid, null,
-          'Mary solicitar contrato social da Apsis Carbon.', null, 'concluida', 'backoffice',
+          '[P773] solicitar contrato social da Apsis Carbon.', null, 'concluida', 'backoffice',
           null, date '2025-02-03');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:6e1ee8ba-950e-8307-a4aa-819c18edc141')::uuid, null,
-          'Assessoria GEE [Tecverde]: Incluir Caio na próxima reunião de fontes como ouvinte.', null, 'concluida', 'backoffice',
+          'Assessoria GEE [Tecverde]: Incluir [P771] na próxima reunião de fontes como ouvinte.', null, 'concluida', 'backoffice',
           null, date '2025-02-03');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -305,7 +305,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:227ee8ba-950e-8230-bae2-81173a9ab1f5')::uuid, null,
-          'Carol fazer especificação para substituição da Nova Terra', null, 'concluida', 'backoffice',
+          '[P611] fazer especificação para substituição da Nova Terra', null, 'concluida', 'backoffice',
           null, date '2025-02-03');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -315,7 +315,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:aeaee8ba-950e-823e-a301-811c8a23971b')::uuid, null,
-          'Remarcar Reunião com Jamel', null, 'concluida', 'backoffice',
+          'Remarcar Reunião com [P620]', null, 'concluida', 'backoffice',
           null, date '2025-02-03');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -415,7 +415,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:7c9ee8ba-950e-8286-b6d2-0156db98c6cc')::uuid, null,
-          'Backup de nova pasta do Yuri', null, 'concluida', 'consultoria',
+          'Backup de nova pasta do [P797]', null, 'concluida', 'consultoria',
           'RAS[CTA]', date '2025-08-25');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -425,7 +425,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:6ebee8ba-950e-8207-b43d-81b806715e12')::uuid, null,
-          'Entender atualizações após reunião interna com Marcelo. Situação dos medidores e enviar propostas para Marcelo.', null, 'concluida', 'consultoria',
+          'Entender atualizações após reunião interna com [P341]. Situação dos medidores e enviar propostas para [P341].', null, 'concluida', 'consultoria',
           'Emissão no MDL [J6 Energia]', date '2025-08-11');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -435,7 +435,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:b27ee8ba-950e-83e2-8c60-81192a0e6015')::uuid, null,
-          'Verificar com Paulo (J6) sobre a calibração antes de 2015. Caso negativo, aplicar fator redutor nos créditos gerados.', 'i. Apresentação propostas dos VVBs e tirar dúvidas sobre a calibração e operação. ii. Site visit: melhor ocorrer fora do período de chuva.', 'concluida', 'consultoria',
+          'Verificar com [P614] (J6) sobre a calibração antes de 2015. Caso negativo, aplicar fator redutor nos créditos gerados.', 'i. Apresentação propostas dos VVBs e tirar dúvidas sobre a calibração e operação. ii. Site visit: melhor ocorrer fora do período de chuva.', 'concluida', 'consultoria',
           'Emissão no MDL [J6 Energia]', date '2025-09-04');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -525,7 +525,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:9f1ee8ba-950e-82a2-b828-01b4620e31f6')::uuid, null,
-          'Envio de opções de novo slogan (Larissa Areas)', null, 'concluida', 'consultoria',
+          'Envio de opções de novo slogan ([P928])', null, 'concluida', 'consultoria',
           'RAS[Acquapolo]', date '2025-09-08');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -540,12 +540,12 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:a6fee8ba-950e-829d-86d3-0101ea803633')::uuid, null,
-          'Informar Leonardo sobre ausência de resposta pela GBF', null, 'concluida', 'consultoria',
+          'Informar [P249] sobre ausência de resposta pela GBF', null, 'concluida', 'consultoria',
           'EVTE - [Fazenda União]', date '2025-10-27');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:baaee8ba-950e-8251-9f40-814f4381972e')::uuid, null,
-          'Enviar para Leonardo versão final MOU', null, 'concluida', 'consultoria',
+          'Enviar para [P249] versão final MOU', null, 'concluida', 'consultoria',
           'EVTE - [Fazenda União]', date '2025-09-08');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -570,7 +570,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:385ee8ba-950e-82bc-a7ae-01ef1feb9000')::uuid, null,
-          'Cobrar minuta do contrato com Leonardo', null, 'concluida', 'consultoria',
+          'Cobrar minuta do contrato com [P249]', null, 'concluida', 'consultoria',
           'EVTE - [Fazenda União]', date '2025-07-21');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -590,7 +590,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:7faee8ba-950e-8303-87ba-81c4527eb7fb')::uuid, null,
-          'Cobrar Leonardo sobre envio do MOU', null, 'concluida', 'consultoria',
+          'Cobrar [P249] sobre envio do MOU', null, 'concluida', 'consultoria',
           'EVTE - [Fazenda União]', date '2025-05-12');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -605,7 +605,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:19eee8ba-950e-8353-bf07-011058aea06e')::uuid, null,
-          'MR: Marcar reunião com Jamel', null, 'concluida', 'backoffice',
+          'MR: Marcar reunião com [P620]', null, 'concluida', 'backoffice',
           null, date '2025-02-17');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -680,7 +680,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:cf0ee8ba-950e-827d-a761-81c0c7584dee')::uuid, null,
-          'IPEL: Mary enviar email com pendências', null, 'concluida', 'backoffice',
+          'IPEL: [P773] enviar email com pendências', null, 'concluida', 'backoffice',
           null, date '2025-03-17');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -700,7 +700,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:fbdee8ba-950e-8355-ad72-81a36e73274a')::uuid, null,
-          'Assessoria GEE Tecverde: Caio cobrar resposta Juliana sobre relatório preliminar', null, 'concluida', 'consultoria',
+          'Assessoria GEE Tecverde: [P771] cobrar resposta Juliana sobre relatório preliminar', null, 'concluida', 'consultoria',
           'Assessoria GEE[TecVerde]', date '2025-03-17');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -725,7 +725,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:ab6ee8ba-950e-826c-b9c9-81c51de9170c')::uuid, null,
-          'RAS CTA - Solicitar transcrições para Rafaela', null, 'concluida', 'consultoria',
+          'RAS CTA - Solicitar transcrições para [P351]', null, 'concluida', 'consultoria',
           'RAS[CTA]', date '2025-03-17');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -740,17 +740,17 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:fa0ee8ba-950e-83d7-a3f5-01e5e76aec37')::uuid, v_projeto,
-          'MR PKN: Confirmar prazo com Jamel sobre resultado final.', null, 'concluida', 'jpf',
+          'MR PKN: Confirmar prazo com [P620] sobre resultado final.', null, 'concluida', 'jpf',
           'JPF - Parakanã', date '2025-03-24');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:7e5ee8ba-950e-833c-804e-81caf0518910')::uuid, null,
-          'Site Visit: Verificar necessidade de visto para Tript', null, 'concluida', 'backoffice',
+          'Site Visit: Verificar necessidade de visto para [P934]', null, 'concluida', 'backoffice',
           null, date '2025-03-24');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:ac6ee8ba-950e-83ea-bbee-01851e0f4bef')::uuid, null,
-          'Site visit: verificar pendências de Viagem com tripti. Montar Checklist.', null, 'concluida', 'backoffice',
+          'Site visit: verificar pendências de Viagem com [P934]. Montar Checklist.', null, 'concluida', 'backoffice',
           null, date '2025-03-24');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -790,7 +790,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:214ee8ba-950e-821d-bd3d-01f8f543e871')::uuid, null,
-          'RAS CTA: CA solicitar transcrições à Rafaela', null, 'concluida', 'backoffice',
+          'RAS CTA: CA solicitar transcrições à [P351]', null, 'concluida', 'backoffice',
           null, date '2025-03-24');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -840,7 +840,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:82dee8ba-950e-8397-b83b-81b739d84d0c')::uuid, null,
-          'Questionar Marcelo se reserva de passagem e hospedagem e data com concessionária antes da consulta pública', null, 'concluida', 'consultoria',
+          'Questionar [P341] se reserva de passagem e hospedagem e data com concessionária antes da consulta pública', null, 'concluida', 'consultoria',
           'Emissão no MDL [J6 Energia]', date '2026-02-09');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -880,7 +880,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:548ee8ba-950e-8325-9e02-01fdcb3b2d4f')::uuid, null,
-          'Verificar com Marcelo necessidade de quantos carros.', null, 'concluida', 'consultoria',
+          'Verificar com [P341] necessidade de quantos carros.', null, 'concluida', 'consultoria',
           'Emissão no MDL [J6 Energia]', date '2026-02-02');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -945,12 +945,12 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:211ee8ba-950e-82f4-abb0-0193e87529c7')::uuid, null,
-          'Msg para Bia(edit): solicitar editoração semelhante a feita pela CTA, focada no texto.', null, 'concluida', 'consultoria',
+          'Msg para [P927](edit): solicitar editoração semelhante a feita pela CTA, focada no texto.', null, 'concluida', 'consultoria',
           'RAS[Acquapolo]', date '2026-01-12');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:7c8ee8ba-950e-8357-8662-01d59f1b3275')::uuid, null,
-          'Montar cronograma para o projeto (apresentação a Edson) (modelo AVB)', null, 'concluida', 'consultoria',
+          'Montar cronograma para o projeto (apresentação a [P606]) (modelo AVB)', null, 'concluida', 'consultoria',
           'Inventário GEE[CTA]', date '2026-01-12');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -990,7 +990,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:facee8ba-950e-8366-9475-819c6b495e40')::uuid, null,
-          'Reunião com Edson/Anderson', null, 'concluida', 'consultoria',
+          'Reunião com [P606]/[P234]', null, 'concluida', 'consultoria',
           'Inventário GEE[CTA]', date '2026-01-15');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1015,7 +1015,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:b67ee8ba-950e-833a-9bd6-8120161a24fa')::uuid, null,
-          'Revisão de comentários da Mara e também para designers', null, 'concluida', 'consultoria',
+          'Revisão de comentários da [P772] e também para designers', null, 'concluida', 'consultoria',
           'RAS[Acquapolo]', date '2025-12-22');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1030,7 +1030,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:8ccee8ba-950e-82c7-8868-01c630394f6e')::uuid, null,
-          'Verificar prazo para revisão atual pela Mara', null, 'concluida', 'consultoria',
+          'Verificar prazo para revisão atual pela [P772]', null, 'concluida', 'consultoria',
           'RAS[Acquapolo]', date '2025-12-22');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1040,7 +1040,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:422ee8ba-950e-82be-ba75-019edc5f93a7')::uuid, null,
-          'Verificar com marcelo como extrai informações do sistema para site visit.', null, 'concluida', 'consultoria',
+          'Verificar com [P341] como extrai informações do sistema para site visit.', null, 'concluida', 'consultoria',
           'Emissão no MDL [J6 Energia]', date '2025-12-22');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1085,7 +1085,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:72dee8ba-950e-82ef-b238-8114ca014b8e')::uuid, null,
-          'Depoimento Carol', null, 'concluida', 'consultoria',
+          'Depoimento [P611]', null, 'concluida', 'consultoria',
           'RAS[Acquapolo]', null);
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1095,7 +1095,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:178ee8ba-950e-82e9-9dc1-8175f6a607b7')::uuid, null,
-          'Verificar com Yuri e Aglaupe possibilidade de diluir mlehor conteúdo entre as páginas.', null, 'concluida', 'consultoria',
+          'Verificar com [P797] e Aglaupe possibilidade de diluir mlehor conteúdo entre as páginas.', null, 'concluida', 'consultoria',
           'RAS[Acquapolo]', null);
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1160,7 +1160,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:176ee8ba-950e-83bd-9ad2-0183aea029c5')::uuid, null,
-          'Informar data de adesão ao Edson.', null, 'concluida', 'consultoria',
+          'Informar data de adesão ao [P606].', null, 'concluida', 'consultoria',
           'Inventário GEE[CTA]', date '2025-10-20');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1185,17 +1185,17 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:5ecee8ba-950e-82a2-8aac-8129f55e093b')::uuid, v_projeto,
-          'Email para Jamel sobre as áreas de não floresta', null, 'concluida', 'jpf',
+          'Email para [P620] sobre as áreas de não floresta', null, 'concluida', 'jpf',
           'JPF - Parakanã', date '2025-10-06');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:92fee8ba-950e-82c5-a372-01c0e0e7288a')::uuid, v_projeto,
-          'Enviar lista de verificadores para MV. Carol.', null, 'concluida', 'jpf',
+          'Enviar lista de verificadores para MV. [P611].', null, 'concluida', 'jpf',
           'JPF - Parakanã', date '2025-10-06');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:90cee8ba-950e-83bc-8827-8164af209fd6')::uuid, v_projeto,
-          'Reunião com Jamel, Guilherme e equipe Earthood - 03/10', null, 'concluida', 'jpf',
+          'Reunião com [P620], Guilherme e equipe Earthood - 03/10', null, 'concluida', 'jpf',
           'JPF - Parakanã', date '2025-09-29');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1230,7 +1230,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:734ee8ba-950e-82aa-a84b-015ed40c4b06')::uuid, null,
-          'Reunião com Paulo Banco', null, 'concluida', 'consultoria',
+          'Reunião com [P614] Banco', null, 'concluida', 'consultoria',
           'Avaliação de valor justo para crédito de carbono [Ambipar]', date '2025-09-15');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1265,7 +1265,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:a6fee8ba-950e-82e0-a784-8161f0306db9')::uuid, v_projeto,
-          'Verificar entregas GIS da Ana e Jamel', null, 'concluida', 'jpf',
+          'Verificar entregas GIS da [P904] e [P620]', null, 'concluida', 'jpf',
           'JPF - Parakanã', date '2025-09-08');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1290,7 +1290,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:3dbee8ba-950e-8300-a82b-8197cc51cec1')::uuid, null,
-          'Revisão das planilhas e envio para marcelo', null, 'concluida', 'consultoria',
+          'Revisão das planilhas e envio para [P341]', null, 'concluida', 'consultoria',
           'Emissão no MDL [J6 Energia]', date '2025-09-08');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1315,7 +1315,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:94aee8ba-950e-82b3-bd58-812d583eecb4')::uuid, null,
-          'FUP no Bruno', null, 'concluida', 'consultoria',
+          'FUP no [P627]', null, 'concluida', 'consultoria',
           'Relatório de impacto socioambiental [ BRLig]', date '2025-08-25');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1350,7 +1350,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:f48ee8ba-950e-8366-bac6-815fdfe8f952')::uuid, v_projeto,
-          'Cobrar do Tim a rota realizada durante os treinamentos', null, 'concluida', 'jpf',
+          'Cobrar do [P865] a rota realizada durante os treinamentos', null, 'concluida', 'jpf',
           'JPF - Parakanã', null);
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1395,7 +1395,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:4d6ee8ba-950e-83e8-901a-01aff2e5cf60')::uuid, v_projeto,
-          'Reunião INDEVA e Joedson - Biodiversidade', '- Verificar o que foi elaborado do protocolo.', 'concluida', 'jpf',
+          'Reunião INDEVA e [P342] - Biodiversidade', '- Verificar o que foi elaborado do protocolo.', 'concluida', 'jpf',
           'JPF - Parakanã', date '2025-08-07');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1475,7 +1475,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:865ee8ba-950e-83fd-ac48-81f797aa2711')::uuid, null,
-          'Verificar com Damião sobre as áreas para Vizinhos Amigos', null, 'concluida', 'novos_negocios',
+          'Verificar com [P490] sobre as áreas para Vizinhos Amigos', null, 'concluida', 'novos_negocios',
           'Novos Negócios', date '2025-07-21');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1500,7 +1500,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:73aee8ba-950e-8291-b3ea-0140cf829ba8')::uuid, v_projeto,
-          'Enviar email para Tim (CC para Karla) confirmando todas as informações logísticas dos treinamentos', null, 'concluida', 'jpf',
+          'Enviar email para [P865] (CC para Karla) confirmando todas as informações logísticas dos treinamentos', null, 'concluida', 'jpf',
           'JPF - Parakanã', null);
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1550,7 +1550,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:37cee8ba-950e-83f4-82c4-81c571be2d78')::uuid, null,
-          'Orçar com Yuri/Aglaupe o projeto editorial do RAS', null, 'concluida', 'consultoria',
+          'Orçar com [P797]/Aglaupe o projeto editorial do RAS', null, 'concluida', 'consultoria',
           'RAS[Acquapolo]', null);
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1625,7 +1625,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:d93ee8ba-950e-8391-9edc-81a6dbc916bb')::uuid, v_projeto,
-          'Cobrar Cinthia sobre estatuto da Paranatinga', null, 'concluida', 'jpf',
+          'Cobrar [P360] sobre estatuto da Paranatinga', null, 'concluida', 'jpf',
           'JPF - Parakanã', null);
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1660,7 +1660,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:158ee8ba-950e-8313-be85-81e37e2058c5')::uuid, null,
-          'marcar reunião sobre resíduos com Luciano Weiss', null, 'concluida', 'consultoria',
+          'marcar reunião sobre resíduos com [P929]', null, 'concluida', 'consultoria',
           'Inventário GEE[CTA]', date '2025-04-07');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1705,12 +1705,12 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:2b1ee8ba-950e-83a7-a740-8137cb127903')::uuid, null,
-          'Verificar especialistas em geração hidrelétrica(Paulo blanco e pedro martins)', null, 'concluida', 'consultoria',
+          'Verificar especialistas em geração hidrelétrica([P614] blanco e pedro martins)', null, 'concluida', 'consultoria',
           'Emissão no MDL [J6 Energia]', date '2025-03-31');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:2e2ee8ba-950e-82c0-aa7b-8126fc231f6f')::uuid, null,
-          'Enviar e-mail para Paulo com nossas dúvidas.', null, 'concluida', 'consultoria',
+          'Enviar e-mail para [P614] com nossas dúvidas.', null, 'concluida', 'consultoria',
           'Emissão no MDL [J6 Energia]', date '2025-03-31');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1720,7 +1720,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:d54ee8ba-950e-8399-a60d-011704da3e27')::uuid, null,
-          'Solicitar certificado de compra da madeira (anderson) para verificar se há tipo de madeira específica(para calcular densidade)', null, 'concluida', 'consultoria',
+          'Solicitar certificado de compra da madeira ([P234]) para verificar se há tipo de madeira específica(para calcular densidade)', null, 'concluida', 'consultoria',
           'Inventário GEE[CTA]', date '2025-03-31');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1745,7 +1745,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:f22ee8ba-950e-83db-b154-017f454d2636')::uuid, null,
-          'Email solicitanto evidências com Anderson', null, 'concluida', 'consultoria',
+          'Email solicitanto evidências com [P234]', null, 'concluida', 'consultoria',
           'Inventário GEE[CTA]', date '2025-03-31');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1760,7 +1760,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:156ee8ba-950e-82a9-8736-0137f3623a8f')::uuid, null,
-          'Verificas as dúvidas das planilhas levantadas pela Leila.', null, 'concluida', 'consultoria',
+          'Verificas as dúvidas das planilhas levantadas pela [P618].', null, 'concluida', 'consultoria',
           'RAS[CTA]', date '2025-03-31');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1775,7 +1775,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:3b8ee8ba-950e-806b-9fba-ccc4cfa85f10')::uuid, null,
-          'Verificar estudo recarga manancial com Mara', null, 'nao_iniciada', 'consultoria',
+          'Verificar estudo recarga manancial com [P772]', null, 'nao_iniciada', 'consultoria',
           'RAS [Aquapolo]', null);
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1835,7 +1835,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:3a3ee8ba-950e-80a9-b8c1-d6bf2fbee771')::uuid, null,
-          'Confirmar revisão co mary', null, 'concluida', 'consultoria',
+          'Confirmar revisão co [P773]', null, 'concluida', 'consultoria',
           'Inventário GEE [Apsis]', date '2026-07-20');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1845,7 +1845,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:39cee8ba-950e-806b-83b9-db7cef4f3393')::uuid, null,
-          'Email para Rômulo e deisiany. Descarbonixação e novas propostas', null, 'concluida', 'consultoria',
+          'Email para [P931] e [P932]. Descarbonixação e novas propostas', null, 'concluida', 'consultoria',
           'Inventário GEE[Salinor]', date '2026-07-13');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1855,7 +1855,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:395ee8ba-950e-80dd-b047-ebc195cc33a5')::uuid, v_projeto,
-          'Reuniões com Tripti E Nova Terra - Email Verra sobre monitoramento', null, 'nao_iniciada', 'jpf',
+          'Reuniões com [P934] E Nova Terra - Email Verra sobre monitoramento', null, 'nao_iniciada', 'jpf',
           'JPF - Parakanã', date '2026-07-06');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1865,7 +1865,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:395ee8ba-950e-804f-a5d5-eb890fdc1dd0')::uuid, null,
-          'Verificar se eqp Marabá tem acesso ao Claude com Leonardo.', null, 'concluida', 'backoffice',
+          'Verificar se eqp Marabá tem acesso ao Claude com [P249].', null, 'concluida', 'backoffice',
           'Interno Apsis Carbon', date '2026-07-06');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1940,7 +1940,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:35dee8ba-950e-8015-ac89-f5b5dc6c822e')::uuid, null,
-          'Planilhar dados após recebimento - Anderson', null, 'concluida', 'consultoria',
+          'Planilhar dados após recebimento - [P234]', null, 'concluida', 'consultoria',
           'Inventário GEE[CTA]', null);
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1950,7 +1950,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:356ee8ba-950e-802c-9337-edd126e34459')::uuid, null,
-          'Simulação de acesso ao sistema antes da auditoria - Luciano e Edson', null, 'concluida', 'consultoria',
+          'Simulação de acesso ao sistema antes da auditoria - [P929] e [P606]', null, 'concluida', 'consultoria',
           'Inventário GEE[CTA]', null);
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -1980,7 +1980,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:341ee8ba-950e-80e4-a9da-d1c26fff2f91')::uuid, v_projeto,
-          'Informar Israel que estamos a disposição para seleção de pessoas para ser capacitada para atuação na associação e na conta azul.', null, 'concluida', 'jpf',
+          'Informar [P467] que estamos a disposição para seleção de pessoas para ser capacitada para atuação na associação e na conta azul.', null, 'concluida', 'jpf',
           'JPF - Parakanã', date '2026-04-13');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -2000,7 +2000,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:bafee8ba-950e-82e1-aeb2-815aecb20f98')::uuid, null,
-          'Remarcar reunião com Marcelo para verificação das pastas e extração do sistema', null, 'concluida', 'consultoria',
+          'Remarcar reunião com [P341] para verificação das pastas e extração do sistema', null, 'concluida', 'consultoria',
           'Emissão no MDL [J6 Energia]', null);
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -2095,22 +2095,22 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:5eaee8ba-950e-823f-a7d2-01ea2169bcb2')::uuid, null,
-          'Marccar reunião com Rhuan', null, 'concluida', 'consultoria',
+          'Marccar reunião com [P930]', null, 'concluida', 'consultoria',
           'Inventário GEE[Cosmos 3D]', null);
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:a03ee8ba-950e-82a1-a2de-81df6c2579a9')::uuid, null,
-          'Verificar chamado da TRia com CCEE sobre dados ausentes. Com Paulo.', null, 'concluida', 'consultoria',
+          'Verificar chamado da TRia com CCEE sobre dados ausentes. Com [P614].', null, 'concluida', 'consultoria',
           'Emissão no MDL [J6 Energia]', date '2026-04-06');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:06cee8ba-950e-82c4-bc1f-818e3e8faabb')::uuid, null,
-          'Cobrar Anderson (envio de dados) e entender motivos de atraso', null, 'concluida', 'consultoria',
+          'Cobrar [P234] (envio de dados) e entender motivos de atraso', null, 'concluida', 'consultoria',
           'Inventário GEE[CTA]', date '2026-03-16');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:133ee8ba-950e-828e-884c-81299ab92227')::uuid, null,
-          'Revisão inventário 2023 após anotações Caio', null, 'nao_iniciada', 'consultoria',
+          'Revisão inventário 2023 após anotações [P771]', null, 'nao_iniciada', 'consultoria',
           'Inventário GEE [Apsis]', date '2026-04-06');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
@@ -2135,7 +2135,7 @@ begin
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)
   values (md5('atividade:todo:1acee8ba-950e-829b-8646-813d57f45c35')::uuid, null,
-          'Verificar com Angela e Leila a configuração do servidor', null, 'concluida', 'consultoria',
+          'Verificar com Angela e [P618] a configuração do servidor', null, 'concluida', 'consultoria',
           'Materialidade [CTA]', date '2026-03-30');
   insert into public.carbon_atividades
     (id, projeto_id, nome, descricao, status, tipo, projeto_externo, data_fim)

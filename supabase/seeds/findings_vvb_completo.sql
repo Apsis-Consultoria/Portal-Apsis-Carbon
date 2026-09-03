@@ -580,7 +580,7 @@ Checar contratos com Ipes e Indeva e fornecer aditivos pois até onde sei nos ad
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
   values (md5('finding:vvb:1eaee8ba-950e-80fa-8e6a-d9869304ae90')::uuid, '12. Spatial Distribution of Authorized and Unauthorized Timber Exploitation in the Amazon in 2021, highlighted in blue is the project area by SIMEX - OK', true, 11);
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
-  values (md5('finding:vvb:1eaee8ba-950e-80fa-8e6a-d9869304ae90')::uuid, '13. Mapas prof Ana - OK', true, 12);
+  values (md5('finding:vvb:1eaee8ba-950e-80fa-8e6a-d9869304ae90')::uuid, '13. Mapas prof [P904] - OK', true, 12);
 
   -- n14 | cl | monitoramento | ID - 03
   insert into public.carbon_findings
@@ -1019,15 +1019,15 @@ Verificar se os valores estão batendo com os quantitativos da tabela - OK', '- 
      'ID - 06', 23, 'pdd', null,
      'In the file Relatório Estoque de Carbono Parakanã 14fev (2), from the SOP evidence folder shared by the PP, section 4.1 mentions a systematic plot distribution. However, section 4.4.1 states that the distribution was based on the access routes used by the indigenous people, and Figure 4 (pasted above) shows that the plots are concentrated along the borders of the project area.', 'PP is requested to clarify and provide evidence of the systematic sampling methodology applied, as well as to explain the absence of plots covering most of the project area
 
-2nd: PP has not yet provided sufficient evidence to illustrate the application of a systematic or random sampling methodology or to explain the concentration of plots along the forest edges. Further clarification and supporting documentation are still required', 'Entender como Zabotto como explicar isso, dizer que tem um relatorio de geoprocesamento que tem “confirmação” dos dados.
+2nd: PP has not yet provided sufficient evidence to illustrate the application of a systematic or random sampling methodology or to explain the concentration of plots along the forest edges. Further clarification and supporting documentation are still required', 'Entender como [P383] como explicar isso, dizer que tem um relatorio de geoprocesamento que tem “confirmação” dos dados.
 
-2nd: E-mail enviado para Zabotto para melhores esclarecimentos. Fazer FUP na quarta caso não tenha respondido.', null,
+2nd: E-mail enviado para [P383] para melhores esclarecimentos. Fazer FUP na quarta caso não tenha respondido.', null,
      'aberto', 'revisao',
-     'pendente', 'Relatório de metodologia e esclarecimento do Zabotto,Em andamento');
+     'pendente', 'Relatório de metodologia e esclarecimento do [P383],Em andamento');
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
-  values (md5('finding:vvb:1caee8ba-950e-8078-a221-d607a7b11226')::uuid, 'Zabotto esta preparando parecer e evidencias - Relatorio já em inglês- OK', true, 0);
+  values (md5('finding:vvb:1caee8ba-950e-8078-a221-d607a7b11226')::uuid, '[P383] esta preparando parecer e evidencias - Relatorio já em inglês- OK', true, 0);
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
-  values (md5('finding:vvb:1caee8ba-950e-8078-a221-d607a7b11226')::uuid, 'Sanquetta fazendo parecer tbm - OK, vai fazer alguns ajustes.', false, 1);
+  values (md5('finding:vvb:1caee8ba-950e-8078-a221-d607a7b11226')::uuid, '[P933] fazendo parecer tbm - OK, vai fazer alguns ajustes.', false, 1);
 
   -- n24 | cl | monitoramento | ID - 06
   insert into public.carbon_findings
@@ -1200,7 +1200,7 @@ Confirmar datas/período com INDEVA.', null,
   values
     (md5('finding:vvb:253ee8ba-950e-807b-8a07-e9e0e06d1d8c')::uuid, v_rodada2, 'cl',
      'ID - 11', 32, 'monitoramento', 'Section 5.3.12',
-     'In section 5.3.1.2 in MR and in section 4.1 in the evidence file “Relatório Estoque de Carbono Parakanã”(Parakana Carbon Stock Report), PP mentions a systematic plot distribution. However, the coordinates provided by PP shows that plots are concentrated along the borders of the project area.', 'PP is requested to clarify and provide evidence of the systematic sampling methodology applied, as well as to explain the absence of plots covering most of the project area.', 'Já enviado ao Zabotto', null,
+     'In section 5.3.1.2 in MR and in section 4.1 in the evidence file “Relatório Estoque de Carbono Parakanã”(Parakana Carbon Stock Report), PP mentions a systematic plot distribution. However, the coordinates provided by PP shows that plots are concentrated along the borders of the project area.', 'PP is requested to clarify and provide evidence of the systematic sampling methodology applied, as well as to explain the absence of plots covering most of the project area.', 'Já enviado ao [P383]', null,
      'aberto', 'em_andamento',
      'pendente', null);
 
@@ -1224,7 +1224,7 @@ Confirmar datas/período com INDEVA.', null,
   values
     (md5('finding:vvb:253ee8ba-950e-808b-82ad-ca2bdd1d046a')::uuid, v_rodada2, 'cl',
      '13 - PK', 34, 'monitoramento', 'Section 2.2.2',
-     'Observation: The section 2.2.2 of the MR mentions baseline reassessment has occurred, but the MR VVBs not reference or summarize the historical RS dataset used in the original PDD for baseline establishment (deforestation trends leading to the projected without-project scenario).', 'Action Required: The PP should provide evidence (e.g., summary tables or maps) of the historical RS data (LANDSAT/Sentinel time series) used to derive the baseline, including how it aligns with the monitored period (2023–2024).', 'Juntar informações database da Ana + Guilherme', null,
+     'Observation: The section 2.2.2 of the MR mentions baseline reassessment has occurred, but the MR VVBs not reference or summarize the historical RS dataset used in the original PDD for baseline establishment (deforestation trends leading to the projected without-project scenario).', 'Action Required: The PP should provide evidence (e.g., summary tables or maps) of the historical RS data (LANDSAT/Sentinel time series) used to derive the baseline, including how it aligns with the monitored period (2023–2024).', 'Juntar informações database da [P904] + Guilherme', null,
      'aberto', 'concluido',
      'pendente', null);
 
@@ -1236,9 +1236,9 @@ Confirmar datas/período com INDEVA.', null,
   values
     (md5('finding:vvb:253ee8ba-950e-809c-918d-d7b6ebc10441')::uuid, v_rodada2, 'cl',
      '14 - PK', 35, 'monitoramento', 'ERR sheet',
-     'Observation: The VVB has assessed “ERR.xlsx” and the sheet “Carbon stocks” are averaged (AB_tree 584.8 tCO2e/ha) and propagated (Average Carbon Stock sheet, 579.63 tCO2e/ha for AB_tree). No GIS maps or RS integration (NDVI for biomass variability) are provided, despite flora/fauna inventories. Without spatial mapping, stock changes (e.g., ∆CBSL,PA-Udef,t in Estimation BLS Emissions sheet) may not reflect heterogeneity in the 351,697 ha area, potentially inflating ERR.', 'Action Required: The PP should provide GIS maps of carbon stocks/forest strata, integrating RS (land cover classification), and recalculate emission factors in ERR (Carbon stock pools sheet).', 'Shapes do relatorio de sensoriamento remoto do Zabotto 
+     'Observation: The VVB has assessed “ERR.xlsx” and the sheet “Carbon stocks” are averaged (AB_tree 584.8 tCO2e/ha) and propagated (Average Carbon Stock sheet, 579.63 tCO2e/ha for AB_tree). No GIS maps or RS integration (NDVI for biomass variability) are provided, despite flora/fauna inventories. Without spatial mapping, stock changes (e.g., ∆CBSL,PA-Udef,t in Estimation BLS Emissions sheet) may not reflect heterogeneity in the 351,697 ha area, potentially inflating ERR.', 'Action Required: The PP should provide GIS maps of carbon stocks/forest strata, integrating RS (land cover classification), and recalculate emission factors in ERR (Carbon stock pools sheet).', 'Shapes do relatorio de sensoriamento remoto do [P383] 
 Incluir explicação do que esta no relatorio no finding e que portanto não irá mudar os fatores de emissão, porque a floresta é homogenea.
-Entender com Jamel se essa explicação esta correta/faz sentido', null,
+Entender com [P620] se essa explicação esta correta/faz sentido', null,
      'aberto', 'em_andamento',
      'pendente', null);
 
@@ -1250,9 +1250,9 @@ Entender com Jamel se essa explicação esta correta/faz sentido', null,
   values
     (md5('finding:vvb:253ee8ba-950e-8016-abbb-dd8971971f37')::uuid, v_rodada2, 'cl',
      '14 - PK', 36, 'monitoramento', 'Section 3.1.2',
-     'Observation: The Section 3.1.2 of the MR lists monitored parameters including deforestation area in the project zone (derived from RS change detection), leakage belt emissions (e.g., via ERR Leakage sheet calculations), forest stratum carbon stocks (ERR Carbon stock pools sheet, e.g., AB_tree at 584.8 tCO2e/ha), and baseline projections (ERR BSL UDef sheet, pixel probabilities). However, no comprehensive geospatial evidence is provided, such as maps of monitored deforestation polygons, leakage belt buffers, or stratified carbon stock rasters. The MR references RS monitoring (Section 2.1.1) and provides a project area KML (Section 2.1.8), but lacks parameter-specific files (shapefiles for AD hotspots or GeoJSON for village buffers integrated with deforestation layers).', 'Action Required: The PP should provide a consolidated package of geospatial evidence for all GIS/RS-dependent parameters in MR Section 3.1.2, including: (1) Vector files (shapefiles) delineating monitored deforestation areas and leakage belts; (2) Raster maps (GeoTIFFs) of carbon stock distributions and forest strata; (3) KML/GeoJSON overlays integrating parameters with project boundaries and villages (31 villages in MR Section 2.2.4); and (4) Metadata on CRS and resolution.', '1. já não esta incluso no material do Jamel?
-2. Zabotto? mapa do Global Forest Watch - Harris et all
-3. Entender com Jamel, 
+     'Observation: The Section 3.1.2 of the MR lists monitored parameters including deforestation area in the project zone (derived from RS change detection), leakage belt emissions (e.g., via ERR Leakage sheet calculations), forest stratum carbon stocks (ERR Carbon stock pools sheet, e.g., AB_tree at 584.8 tCO2e/ha), and baseline projections (ERR BSL UDef sheet, pixel probabilities). However, no comprehensive geospatial evidence is provided, such as maps of monitored deforestation polygons, leakage belt buffers, or stratified carbon stock rasters. The MR references RS monitoring (Section 2.1.1) and provides a project area KML (Section 2.1.8), but lacks parameter-specific files (shapefiles for AD hotspots or GeoJSON for village buffers integrated with deforestation layers).', 'Action Required: The PP should provide a consolidated package of geospatial evidence for all GIS/RS-dependent parameters in MR Section 3.1.2, including: (1) Vector files (shapefiles) delineating monitored deforestation areas and leakage belts; (2) Raster maps (GeoTIFFs) of carbon stock distributions and forest strata; (3) KML/GeoJSON overlays integrating parameters with project boundaries and villages (31 villages in MR Section 2.2.4); and (4) Metadata on CRS and resolution.', '1. já não esta incluso no material do [P620]?
+2. [P383]? mapa do Global Forest Watch - Harris et all
+3. Entender com [P620], 
 4. ?', null,
      'aberto', 'concluido',
      'pendente', null);
@@ -1270,8 +1270,8 @@ Entender com Jamel se essa explicação esta correta/faz sentido', null,
 2nd: The PP provided useful qualitative information on current and planned protection efforts, such as patrols, fire response, and community training, which demonstrate the project''s capacity to improve effectiveness over time. However, the response VVBs not clarify how the ex ante effectiveness index was calculated, nor VVBs it justify why a high initial and fast-growing value should be considered conservative, given the surrounding deforestation pressure.
 
 Although the methodology VVBs not specify how to calculate this index, and recognizing that it VVBs not affect the ex post measurement of actual effectiveness, and that building a quantitative model would involve considerable uncertainty, the selected index should still be supported by a more evidence-based rationale grounded in the region’s high-risk context.', '1. Verificar se mudança de uso de terra ao entorno justifica as premissas
-2. Verificar com Ana, Sanquetta se há outra justificativa que confirme as premissas;
-3. Perguntar a Ana na reunião 25/08.
+2. Verificar com [P904], [P933] se há outra justificativa que confirme as premissas;
+3. Perguntar a [P904] na reunião 25/08.
 4. Incluido PADA Report Verra', null,
      'aberto', 'revisao',
      'pendente', 'PADA Report');
@@ -1302,7 +1302,7 @@ Although the methodology VVBs not specify how to calculate this index, and recog
 2. Procedures to design the PA were described in Section 3.1.3. However, methods used to define forest cover 10 years prior to the start date and data sources were not sufficiently clarified. Additionally, the audit team identified non-forest areas according to VCS Standard requirements within the PA, such as roads and cleaned areas. Figure 27 displays the same map as Figure 14, which visibility VVBs not fit to represent the PA boundaries clearly. 
 The PP is requested to review PA boundaries, explain in detail procedures to define forest cover inside PA boundaries for 10 years prior to the start date, including data sources used for it, and provide a map containing the PA boundaries in suitable visibility, in order to comply with VCS Standard v4.7 and VMD0055 v1.1', 'Mostrar o que fizemos: tiramos os dados de floresta não floresta do mapbiomas do ano.  Mas não retiramos o estradas, rios.  Para comprovar que tem floresta há 10 anos precisamos mostrar anualmente o que tem na area? Confirmar 
 Quando pedir o que queremos, informar que também é importante informar de onde foram tirado os dados.
-Prof Ana', 'Evidencia: atualizar figura do PD em andamento.',
+Prof [P904]', 'Evidencia: atualizar figura do PD em andamento.',
      'aberto', 'concluido',
      'pendente', null);
 
@@ -1321,7 +1321,7 @@ Incluindo PADA report - 23/10', null,
      'aberto', 'revisao',
      'pendente', 'PADA Report');
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
-  values (md5('finding:vvb:1eaee8ba-950e-80d4-9898-d15ecbaa8bcf')::uuid, '1. E-mail enviado para Ana e Sanquetta', false, 0);
+  values (md5('finding:vvb:1eaee8ba-950e-80d4-9898-d15ecbaa8bcf')::uuid, '1. E-mail enviado para [P904] e [P933]', false, 0);
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
   values (md5('finding:vvb:1eaee8ba-950e-80d4-9898-d15ecbaa8bcf')::uuid, '2. Pedido acesso ao link com os mapas desenvolvidos.', false, 1);
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
@@ -1345,7 +1345,7 @@ Incluindo PADA report - 23/10', null,
 
 4. Aerial photographs, satellite images and forest inventory used shall be informed.', '1.  The PP is required to provide a clear and sufficient description of GIS procedures to create the forest stratification map, demonstrating accomplishment with VMD0055 and VMD0016 (X-TR) requirements and informing data sources used in the process.
  
-2.  The PP is requested to provide the map in Section 3.2.2.1, complying with VMD0055 requirements.', null, '- Enviado e-mail para Prof. Ana',
+2.  The PP is requested to provide the map in Section 3.2.2.1, complying with VMD0055 requirements.', null, '- Enviado e-mail para Prof. [P904]',
      'fechado', 'concluido',
      'pendente', 'GIS procedures to create the forest Stratification Map
 Map for Section 3.2.2.1');
@@ -1442,13 +1442,13 @@ Map for Section 3.2.2.1');
 2. Enviar CV de cada um dos integrantes envolvidos separados para os VVBs
 3 Entidades: explicar o que a empresa/organização faz; incluir as principais formações de cada uma das pessoas envolvidas na organização/atividade
 4. Cobrar CV de todo mundo: 
-- IPES e INDEVA: Já temos, tem que pedir mais detalhes para Helena e Raquel
-- Novaterra: CV Jamel, Guilherme e qm mais trabalhou na atividade de monitoramento
-- Zabotto: Curriculo lattes baixado, pedir curriculo do estatistico (?)
-- FUPEF: Ana e Zabotto - CV ok
+- IPES e INDEVA: Já temos, tem que pedir mais detalhes para [P469] e Raquel
+- Novaterra: CV [P620], Guilherme e qm mais trabalhou na atividade de monitoramento
+- [P383]: Curriculo lattes baixado, pedir curriculo do estatistico (?)
+- FUPEF: [P904] e [P383] - CV ok
 - Carbon: CV de todos tem q anexar', null,
      'fechado', 'concluido',
-     'pendente', '1. Estatuto IWA. Cinthia pediu Estatuto Paranatinga para Israel
+     'pendente', '1. Estatuto IWA. [P360] pediu Estatuto Paranatinga para [P467]
 2. CVS enviados
 3. Informação de contratos, estatutos, sites, confirmar com eles se é isso mesmo.');
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
@@ -1456,7 +1456,7 @@ Map for Section 3.2.2.1');
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
   values (md5('finding:vvb:1eaee8ba-950e-80d9-9a26-d7fdadcdf771')::uuid, '2. CVs IPES e INDEVA precisando de revisão.', false, 1);
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
-  values (md5('finding:vvb:1eaee8ba-950e-80d9-9a26-d7fdadcdf771')::uuid, '3. Incluido as experiencias de Marcelo, Cinthia - IPES; Helena  e Augusto - INDEVA', false, 2);
+  values (md5('finding:vvb:1eaee8ba-950e-80d9-9a26-d7fdadcdf771')::uuid, '3. Incluido as experiencias de [P341], [P360] - IPES; [P469]  e [P366] - INDEVA', false, 2);
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
   values (md5('finding:vvb:1eaee8ba-950e-80d9-9a26-d7fdadcdf771')::uuid, '4. Cobrado CV da galera, apresentações institucionais, estatutos (ONGs)', false, 3);
 
@@ -1551,7 +1551,7 @@ Map for Section 3.2.2.1');
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
   values (md5('finding:vvb:1eaee8ba-950e-80c7-8d42-e9ec7850b51b')::uuid, '1. Verificar se linha ainda existe - Fabiano verificou com Michelle - est a inativa', false, 0);
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
-  values (md5('finding:vvb:1eaee8ba-950e-80c7-8d42-e9ec7850b51b')::uuid, '2. Verificar se galera ainda tem foto com o número - Caio enviou', false, 1);
+  values (md5('finding:vvb:1eaee8ba-950e-80c7-8d42-e9ec7850b51b')::uuid, '2. Verificar se galera ainda tem foto com o número - [P771] enviou', false, 1);
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
   values (md5('finding:vvb:1eaee8ba-950e-80c7-8d42-e9ec7850b51b')::uuid, '3. Foto do cartaz exposto na aldeia -  Não tem', false, 2);
   insert into public.carbon_finding_subitens (finding_id, descricao, concluido, ordem)
@@ -1704,7 +1704,7 @@ To resolve this CL, the Project Proponent must provide the following physical ev
 1. Evidence for Leakage Compliance: Submit detailed leakage calculations (ex ante/ex post) using VMD0055, including GIS shapefiles of the 10km leakage belt, RS change detection (e.g., Sentinel-2 time-series 2023-2025) for activity-shifting, and market leakage models (per LK-ME module). Clarify any adjustments for emission sources (e.g., timber harvesting) and provide spreadsheets with spatial data integration.
 2.  RS Evidence for REDD Eligibility and Forest Qualification: Provide time-series satellite data (e.g., Landsat/Sentinel composites 2013-2023) with canopy cover analysis (NDVI >0.4 for >10% cover) and minimum height validation (e.g., LiDAR or field plots per CP-AB). Include geo-referenced maps (.shp/.tif) showing 100% native forest exclusion of any degraded/converted areas (<10% cover or post-2013 loss). If degradation exists, justify via Appendix 1 significance test (<5% emissions).
 3. Category Confirmation for AUDD: Provide documentation (FUNAI/IBGE reports or legal assessments) confirming no planned deforestation (no authorised mining/logging in IT Parakanã). Clarify how historical deforestation is classified as unplanned, with RS evidence ( PRODES alerts showing unauthorised patterns).
-4.  Overall Eligibility Mapping: Submit an updated project boundary map (SIRGAS 2000 datum) delineating eligible vs. non-eligible areas, with accuracy assessments (>85% per Section 9).', '1 - RS Change nos satelites, mas não tem os calculos - Sanquetta? Discutir com FGM
+4.  Overall Eligibility Mapping: Submit an updated project boundary map (SIRGAS 2000 datum) delineating eligible vs. non-eligible areas, with accuracy assessments (>85% per Section 9).', '1 - RS Change nos satelites, mas não tem os calculos - [P933]? Discutir com FGM
 2 - RS - OK
 3 - Fazer evidências - IBGE, ANM
 4 - OK', null,
@@ -2059,7 +2059,7 @@ Provide Geospatial Evidence.', 'Mapa final Verra', null, null,
   values
     (md5('finding:vvb:1eeee8ba-950e-80a0-887a-fdeddd7303cc')::uuid, v_rodada1, 'pd_comment',
      'PD comment', 90, 'pdd', 'Section 3.2.2.3 - Estimation of Emissions from carbon stock',
-     'Methods and criteria to define plot counting and distribution are not presented. It is not clear why central areas of the PA were not covered in the sampling plan.', null, null, 'Incluida informações NT Zabotto',
+     'Methods and criteria to define plot counting and distribution are not presented. It is not clear why central areas of the PA were not covered in the sampling plan.', null, null, 'Incluida informações NT [P383]',
      'respondido', 'revisao',
      'pendente', null);
 
@@ -2073,7 +2073,7 @@ Provide Geospatial Evidence.', 'Mapa final Verra', null, null,
      'PD comment', 91, 'pdd', 'Section 3.2.1.4 - Estimation of Emissions from Carbon Stock Changes',
      '1. Methods and criteria to define plot counting and distribution are not presented. It is not clear why central areas of the PA were not covered in the sampling plan.
 
-2. Clarify which land use/land cover data was used.', null, null, 'Incluido dados da NT do Zabotto',
+2. Clarify which land use/land cover data was used.', null, null, 'Incluido dados da NT do [P383]',
      'respondido', 'revisao',
      'pendente', null);
 

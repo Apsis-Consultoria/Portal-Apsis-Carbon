@@ -30,7 +30,7 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
 SEEDS = RAIZ / 'supabase' / 'seeds'
-ARQ_NOMES = Path('C:/Users/FilipeOliveiraAPSISC/notion-export/nomes-prestacao.csv')
+ARQ_NOMES = Path('C:/Users/FilipeOliveiraAPSISC/notion-export/nomes-seeds.csv')
 
 # DIVIDA CONHECIDA, declarada de proposito e com data.
 #
@@ -44,10 +44,15 @@ ARQ_NOMES = Path('C:/Users/FilipeOliveiraAPSISC/notion-export/nomes-prestacao.cs
 # proposito e este script poder servir de porteiro para o codigo NOVO sem ficar
 # vermelho por uma divida antiga, que e como um verificador vira ruido e depois
 # vira ignorado. Tirar um arquivo desta lista e o ultimo passo da correcao dele.
-DIVIDA_CONHECIDA = {
-    'backoffice_completo.sql',
-    'findings_vvb_completo.sql',
-}
+# VAZIA desde 02/09/2026. `backoffice_completo.sql` e `findings_vvb_completo.sql`
+# estavam aqui e sairam quando os geradores deles passaram a pseudonimizar - que
+# e o ultimo passo da correcao, como este comentario ja previa.
+#
+# O ARQUIVO ainda esta limpo, mas o HISTORICO do git nao: o commit d58fdc4
+# continua com os nomes, e quem clonar o repositorio e olhar aquele commit os ve.
+# Limpar exige reescrever historico (git filter-repo ou BFG) e force push, o que
+# quebra clone existente, e essa decisao e do dono do repositorio.
+DIVIDA_CONHECIDA = set()
 
 # Padroes que nunca deveriam estar em seed, independentemente da lista de nomes.
 PADROES = [
@@ -65,24 +70,44 @@ def carregar_nomes():
             'Sem a lista revisada nao da para afirmar que os seeds estao limpos, e\n'
             '"nao consegui verificar" nao pode passar por "esta limpo".' % ARQ_NOMES
         )
-    nomes = []
+    # Tres codigos especiais, e dois passes para a ORDEM DAS LINHAS nao importar.
+    # Na primeira versao um veto escrito ANTES da linha da pessoa nao tinha
+    # efeito: armadilha silenciosa num CSV editado a mao.
+    #
+    #   MANTER   - veto simples: o termo nao e nome de pessoa, tire do mapa.
+    #   PROTEGER - FRASE que contem um nome mas nao e nome de pessoa. Ela e
+    #              casada ANTES (por ser mais longa) e deixada intacta, o que
+    #              impede o termo curto de casar dentro dela. Nasceu de "Paulo"
+    #              casando em "Sao Paulo", a cidade, dez vezes.
+    vetos, protegidos, mapa = set(), set(), {}
     with io.open(ARQ_NOMES, encoding='utf-8-sig') as f:
         r = csv.reader(f, delimiter=';')
         next(r, None)
         for linha in r:
-            if len(linha) >= 2 and linha[0].strip() and linha[1].strip():
-                if linha[0].strip() != 'MANTER':
-                    nomes.append(linha[1].strip())
-    return nomes
+            if len(linha) < 2 or not linha[0].strip() or not linha[1].strip():
+                continue
+            codigo, termo = linha[0].strip(), linha[1].strip()
+            if codigo == 'MANTER':
+                vetos.add(termo)
+            elif codigo == 'PROTEGER':
+                protegidos.add(termo)
+            else:
+                mapa[termo] = codigo
+    return {t: c for t, c in mapa.items() if t not in vetos}, protegidos
 
 
-nomes = carregar_nomes()
+nomes, protegidos = carregar_nomes()
 if not nomes:
     sys.exit('ABORTADO: a lista de nomes esta vazia. Nada foi verificado.')
 
-# Mais longo primeiro, so para o relatorio apontar o achado mais especifico.
+# MAIS LONGO PRIMEIRO, e nao e cosmetico: e o que faz PROTEGER funcionar. Com as
+# frases protegidas na mesma alternancia, "Sao Paulo" (9 letras) e tentada antes
+# de "Paulo" (5), casa, e o laco a descarta - entao o nome curto nunca chega a
+# casar dentro dela.
 padrao_nomes = re.compile(
-    r'\b(' + '|'.join(re.escape(n) for n in sorted(nomes, key=len, reverse=True)) + r')\b')
+    r'\b(' + '|'.join(
+        re.escape(n) for n in sorted(set(nomes) | protegidos, key=len, reverse=True)
+    ) + r')\b')
 
 arquivos = sorted(SEEDS.glob('*.sql'))
 if not arquivos:
@@ -100,8 +125,12 @@ for arq in arquivos:
     # tela e no log do terminal, que e o que estamos tentando evitar.
     for i, linha in enumerate(texto.splitlines(), 1):
         for m in padrao_nomes.finditer(linha):
-            print('%-9s %s:%d  nome de pessoa em texto versionado (%d caracteres)'
-                  % (rotulo_arq, arq.name, i, len(m.group(1))))
+            if m.group(1) in protegidos:
+                continue  # frase legitima que contem um nome: nao e achado
+            # Imprime o CODIGO, nunca o termo. O codigo identifica de quem se
+            # trata para quem tem a lista, e nao poe o nome no log do terminal.
+            print('%-9s %s:%d  nome de pessoa em texto versionado: %s'
+                  % (rotulo_arq, arq.name, i, nomes[m.group(1)]))
             if conhecido:
                 pendentes += 1
             else:

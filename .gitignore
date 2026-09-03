@@ -41,3 +41,8 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Cache do Python. O import de scripts/pseudonimos.py pelos geradores cria
+# __pycache__/ ao lado deles; e artefato de execucao, nao codigo.
+__pycache__/
+*.pyc

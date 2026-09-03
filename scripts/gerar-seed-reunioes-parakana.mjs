@@ -4,12 +4,32 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 
+import { novoPseudonimizador } from './pseudonimos.mjs';
+
 const ENTRADA = 'docs/notion/dados/reunioes-parakana-bruto.json';
 const SAIDA = 'supabase/seeds/reunioes_parakana_completo.sql';
 
 const dados = JSON.parse(await readFile(ENTRADA, 'utf8'));
 
 const limpo = (v) => String(v ?? '').trim().replace(/\s+/g, ' ');
+
+/* Pseudonimizacao: nome proprio vira marcador estavel [Pnnn], o mesmo para a
+   mesma pessoa em TODOS os seeds. Logica e lista em scripts/pseudonimos.mjs.
+
+   FALTAVA INTEIRO neste gerador, e a origem e `-bruto.json`, sem limpeza previa.
+   Dois vazamentos, achados em 02/09/2026:
+     - 'Dona Helena visitara Xataopawa no sabado', numa pendencia: nome de pessoa
+       da comunidade, em texto livre;
+     - 'Reuniao Tim Parakana', um titulo que nomeia a PESSOA com quem a reuniao
+       foi. E o mesmo formato que o gerador do backoffice ja tratava com
+       semNomeDePessoa, e que aqui ninguem tratava.
+
+   TOPONIMO FICA: as aldeias (Xataopawa, Koatinemo) e as Terras Indigenas
+   (Pimentel Barbosa, Sao Marcos) estao na lista como MANTER, porque parecem nome
+   de pessoa e nao sao - substituir apagaria o nome do territorio, que e a
+   informacao que a tela usa. */
+const pseudo = await novoPseudonimizador();
+const textoLivre = (v) => pseudo.aplicar(limpo(v));
 
 function sql(v) {
   const t = String(v ?? '').trim();
@@ -54,7 +74,8 @@ for (const r of dados.reunioes) {
     continue;
   }
   const { tipo, parceiro } = classificar(r.nome);
-  registros.push({ id: r.id, n: r.n, titulo: limpo(r.nome), data: r.data, tipo, parceiro });
+    // textoLivre no titulo: e ele que carrega 'Reuniao <nome> Parakana'.
+  registros.push({ id: r.id, n: r.n, titulo: textoLivre(r.nome), data: r.data, tipo, parceiro });
 }
 
 const porTipo = registros.reduce((a, r) => ((a[r.tipo] = (a[r.tipo] ?? 0) + 1), a), {});
@@ -66,7 +87,8 @@ const datasComReuniao = new Set(registros.map((r) => r.data));
 const pendencias = [];
 const pendenciasSemReuniao = [];
 for (const p of dados.pendencias) {
-  const desc = limpo(p.atividade);
+  // textoLivre na pendencia: e ela que carregava 'Dona <nome> visitara ...'.
+  const desc = textoLivre(p.atividade);
   if (!desc) continue;
   if (!p.data_reuniao || !datasComReuniao.has(p.data_reuniao)) {
     pendenciasSemReuniao.push(p.n);
@@ -209,7 +231,12 @@ begin
 end $$;
 `);
 
-await writeFile(SAIDA, partes.join('\n'), 'utf8');
+const sqlGerado = partes.join('\n');
+// ANTES de escrever: arquivo com nome de pessoa nao deve nem chegar ao disco,
+// onde um `git add .` distraido o pega.
+pseudo.conferirSaida(sqlGerado, SAIDA);
+
+await writeFile(SAIDA, sqlGerado, 'utf8');
 
 console.log(`gerado ${SAIDA}`);
 console.log(`  reunioes: ${registros.length} ${JSON.stringify(porTipo)}`);

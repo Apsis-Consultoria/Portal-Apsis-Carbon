@@ -43,6 +43,9 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pseudonimos  # noqa: E402  (precisa do sys.path acima)
+
 AQUI = Path(__file__).resolve().parent
 SAIDA = AQUI.parent / 'supabase' / 'seeds' / 'prestacao_blocos.sql'
 PASTA = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / 'Downloads'
@@ -52,7 +55,7 @@ ARQ_CIMA = PASTA / 'Antecipação Grupo de Cima.xlsx'
 ARQ_ATIV = PASTA / 'Atividade Parakanã.xlsx'
 # A mesma lista revisada que o gerar-seed-prestacao.py usa, para a mesma pessoa
 # receber o mesmo marcador nos dois seeds. FORA do repositorio de proposito.
-ARQ_NOMES = Path('C:/Users/FilipeOliveiraAPSISC/notion-export/nomes-prestacao.csv')
+ARQ_NOMES = Path('C:/Users/FilipeOliveiraAPSISC/notion-export/nomes-seeds.csv')
 
 CICLO = {
     ('baixo', 'c1'): 'Outubro 2024 a Abril 2025',
@@ -88,33 +91,12 @@ SUBST_ESTRUTURAL = [
 ]
 
 
-def carregar_nomes():
-    """Termo -> marcador, do arquivo externo. Aborta se ele nao existir."""
-    if not ARQ_NOMES.exists():
-        sys.exit(
-            'ABORTADO: nao encontrei %s.\n'
-            'Esse arquivo carrega os nomes de pessoa das planilhas e vive FORA do\n'
-            'repositorio de proposito. Sem ele o seed sairia com nome de pessoa em\n'
-            'texto livre, o que e dado pessoal sob a LGPD.' % ARQ_NOMES
-        )
-    mapa = {}
-    with io.open(ARQ_NOMES, encoding='utf-8-sig') as f:
-        r = csv.reader(f, delimiter=';')
-        next(r, None)
-        for linha in r:
-            if len(linha) >= 2 and linha[0].strip() and linha[1].strip():
-                codigo, termo = linha[0].strip(), linha[1].strip()
-                if codigo == 'MANTER':
-                    mapa.pop(termo, None)
-                else:
-                    mapa[termo] = codigo
-    return mapa
-
-
-NOMES = carregar_nomes()
-# Mais longo primeiro: nome completo casa antes do primeiro nome isolado.
-PADRAO_NOMES = re.compile(
-    r'\b(' + '|'.join(re.escape(t) for t in sorted(NOMES, key=len, reverse=True)) + r')\b')
+# A logica de carregar, substituir e conferir vive em scripts/pseudonimos.py, e
+# nao aqui: ela estava copiada em cada gerador e a copia divergiu na primeira
+# mudanca de regra. Quando o codigo PROTEGER foi criado - para "Sao Paulo" nao
+# ser confundido com a pessoa "Paulo" - a correcao precisou ir a cinco arquivos,
+# e este era um dos que ficariam para tras.
+PSEUDO = pseudonimos.Pseudonimizador(ARQ_NOMES)
 
 
 def sql(v):
@@ -138,7 +120,7 @@ def texto(v):
     # deixaria "informado pelo [P467]" em vez de "informado pelo responsavel".
     for padrao, troca in SUBST_ESTRUTURAL:
         s = padrao.sub(troca, s)
-    s = PADRAO_NOMES.sub(lambda m: NOMES[m.group(1)], s)
+    s = PSEUDO.aplicar(s)
     return s or None
 
 
@@ -423,7 +405,11 @@ relatorio.append(('atividades MR-1 enriquecidas', n_ben))
 w('')
 w('commit;')
 
-SAIDA.write_text('\n'.join(L) + '\n', encoding='utf-8', newline='\n')
+_sql_gerado = '\n'.join(L) + '\n'
+# ANTES de escrever: arquivo com nome de pessoa nao deve nem chegar ao disco.
+PSEUDO.conferir_saida(_sql_gerado, str(SAIDA))
+
+SAIDA.write_text(_sql_gerado, encoding='utf-8', newline='\n')
 
 print('Escrito: %s' % SAIDA)
 for rotulo, n in relatorio:

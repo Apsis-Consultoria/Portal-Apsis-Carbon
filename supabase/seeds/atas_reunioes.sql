@@ -4018,7 +4018,7 @@ select md5('ata:backoffice:874ee8ba-950e-82cc-8c5b-01a26c4db01f')::uuid, r.id, '
         - [P230] agrícolas
           - Enviará dados reexportados hoje (04/05)
           - [P630] este ano estão muito semelhantes ao do ano passado. [P606] disse que o aumento da produção não é necessariamente proporcional a mudança da produção.
-        - Luciano - [P265]
+        - [P929] - [P265]
           - Informações divergentes sobre resíduos
           - Simular auditoria da extração de dados
     - [P33]
@@ -5143,7 +5143,7 @@ select md5('ata:backoffice:915ee8ba-950e-8205-844a-818effbab831')::uuid, r.id, '
   - [P67] de [P3] [CTA] e Inventário
     - [P22] de fontes
       - MV disparará e-mails hoje com as informações de [P606] e [P234].
-    - Luciano e [P248] já estão iniciando envio de informações
+    - [P929] e [P248] já estão iniciando envio de informações
     - Iniciaremos as cotações de verificadores.
     - [P70] de dados
       - GS - [P370] tratamento e MV revisará.
@@ -5651,7 +5651,7 @@ select md5('ata:backoffice:263ee8ba-950e-836f-a6b6-01d718d55379')::uuid, r.id, '
       - [P302] de cálculo de emissões
         - Status: [P233]
     - Contrato ainda não assinado entre J6 e RINA
-    - [P130] com marcelo como extrai informações do sistema para site visit.
+    - [P130] com [P341] como extrai informações do sistema para site visit.
     - CA fará fup com [P643].
     - [P529] viagens em 2026. [P254] calendário.
   - Relatório de [P2] [Aquapolo]
@@ -5732,7 +5732,7 @@ select md5('ata:backoffice:4b2ee8ba-950e-82a0-986f-81db83b68988')::uuid, r.id, '
       - [P302] de cálculo de emissões
         - Status: [P233]
     - Contrato ainda não assinado entre J6 e RINA
-    - [P130] com marcelo como extrai informações do sistema para site visit.
+    - [P130] com [P341] como extrai informações do sistema para site visit.
   - Relatório de [P2] [Aquapolo]
     - [P759] enviada para ao designers
     - [P611] fazendo capitulo de governança.
@@ -5894,7 +5894,7 @@ select md5('ata:backoffice:96dee8ba-950e-835e-bdd9-815c26e71997')::uuid, r.id, '
       - [P302] de cálculo de emissões
         - Status: [P233]
     - Contrato ainda não assinado entre J6 e RINA
-    - [P130] com marcelo como extrai informações do sistema para site visit.
+    - [P130] com [P341] como extrai informações do sistema para site visit.
   - Relatório de [P2] [Aquapolo]
     - [P759] enviada para ao designers
     - [P611] fazendo capitulo de governança.
@@ -5967,7 +5967,7 @@ select md5('ata:backoffice:9beee8ba-950e-823b-ab63-81350507a8e7')::uuid, r.id, '
       - [P302] de cálculo de emissões
         - Status: [P233]
     - Contrato ainda não assinado entre J6 e RINA
-    - [P130] com marcelo como extrai informações do sistema para site visit.
+    - [P130] com [P341] como extrai informações do sistema para site visit.
   - Relatório de [P2] [Aquapolo]
     - [P629] partes finalizadas -  Aquapolo
       - [P861]: 17/11/2024

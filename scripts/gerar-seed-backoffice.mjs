@@ -4,12 +4,27 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 
+import { novoPseudonimizador } from './pseudonimos.mjs';
+
 const ENTRADA = 'docs/notion/dados/backoffice-reunioes-e-todo.json';
 const SAIDA = 'supabase/seeds/backoffice_completo.sql';
+
 
 const dados = JSON.parse(await readFile(ENTRADA, 'utf8'));
 
 const limpo = (v) => String(v ?? '').trim().replace(/\s+/g, ' ');
+
+/* Pseudonimizacao: nome proprio vira marcador estavel [Pnnn], o mesmo para a
+   mesma pessoa em TODOS os seeds. A logica e a lista vivem em
+   scripts/pseudonimos.mjs: ela estava copiada em cada gerador e a copia divergiu
+   na primeira mudanca de regra (a criacao do codigo PROTEGER).
+
+   ISTO FALTAVA INTEIRO NESTE GERADOR ate 02/09/2026. Existia so
+   semNomeDePessoa, que trata UM formato de titulo de reuniao; as DESCRICOES de
+   tarefa nunca passavam por nada, e era nelas que 28 pessoas estavam nomeadas.
+   Mesma classe de erro do gerador da prestacao de contas. */
+const pseudo = await novoPseudonimizador();
+const pseudonimizar = (t) => pseudo.aplicar(t);
 
 function sql(v) {
   const t = String(v ?? '').trim();
@@ -30,8 +45,12 @@ function sql(v) {
 function semNomeDePessoa(titulo) {
   const t = limpo(titulo);
   const m = t.match(/^Reuni[aã]o\s+\S+\s+(TI\s+.+)$/i);
-  if (m) return 'Reunião ' + m[1];
-  return t;
+  // A regra ESTRUTURAL primeiro, e ela vale mais que a lista: pega nome que
+  // ninguem cadastrou, pela forma da frase. Depois a lista, para o resto do
+  // titulo. Nesta ordem de proposito: invertida, o titulo viraria
+  // "Reuniao [P341] TI Sao Marcos" em vez de perder o nome inteiro.
+  if (m) return pseudonimizar('Reunião ' + m[1]);
+  return pseudonimizar(t);
 }
 
 function classificarReuniao(titulo) {
@@ -75,7 +94,10 @@ function tipoDaTarefa(projeto) {
 const tarefaPuladas = [];
 const tarefas = [];
 for (const t of dados.tarefas) {
-  const nome = limpo(t.atividade);
+  // ESTES DOIS CAMPOS ERAM O VAZAMENTO: `atividade` e `comentarios` sao texto
+  // livre escrito na correria, e e onde as pessoas sao nomeadas. Nenhum dos dois
+  // passava por pseudonimizacao antes de 02/09/2026.
+  const nome = pseudonimizar(limpo(t.atividade));
   if (!nome) {
     tarefaPuladas.push(t.n);
     continue;
@@ -84,7 +106,7 @@ for (const t of dados.tarefas) {
   tarefas.push({
     id: t.id,
     nome,
-    descricao: limpo(t.comentarios),
+    descricao: pseudonimizar(limpo(t.comentarios)),
     status: STATUS[limpo(t.status)] ?? 'nao_iniciada',
     tipo: tipoDaTarefa(projeto),
     projetoExterno: projeto,
@@ -210,9 +232,15 @@ begin
 end $$;
 `);
 
-await writeFile(SAIDA, partes.join('\n'), 'utf8');
+const sqlGerado = partes.join('\n');
+// ANTES de escrever, nao depois: arquivo com nome de pessoa nao deve nem chegar
+// ao disco, onde um `git add .` distraido o pega.
+pseudo.conferirSaida(sqlGerado, SAIDA);
+
+await writeFile(SAIDA, sqlGerado, 'utf8');
 
 console.log(`gerado ${SAIDA}`);
 console.log(`  reunioes de backoffice: ${reunioes.length} (puladas: ${reunPuladas.join(', ') || 'nenhuma'})`);
 console.log(`  atividades: ${tarefas.length} ${JSON.stringify(porTipo)} (puladas: ${tarefaPuladas.join(', ') || 'nenhuma'})`);
 console.log(`  trabalhos distintos: ${projetos.size}`);
+console.log('  ' + pseudo.relatorio());

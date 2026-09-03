@@ -49,6 +49,9 @@ try:
 except ImportError:
     sys.exit('Falta openpyxl. Rode: pip install openpyxl')
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pseudonimos  # noqa: E402  (precisa do sys.path acima)
+
 AQUI = Path(__file__).resolve().parent
 RAIZ = AQUI.parent
 SAIDA = RAIZ / 'supabase' / 'seeds' / 'prestacao_contas.sql'
@@ -58,10 +61,16 @@ ARQ_BAIXO = PASTA / 'Antecipação Grupo de Baixo.xlsx'
 ARQ_CIMA = PASTA / 'Antecipação Grupo de Cima.xlsx'
 ARQ_ATIV = PASTA / 'Atividade Parakanã.xlsx'
 ARQ_TERMOS = Path('C:/Users/FilipeOliveiraAPSISC/notion-export/revisao-termos-atas.csv')
-# Lista revisada de nome de pessoa das planilhas da prestacao. FORA do repositorio
-# porque ela e a propria lista de nomes. Sem ela o script aborta (ver
-# carregar_termos_pessoa). Colunas: codigo;termo;motivo
-ARQ_NOMES = Path('C:/Users/FilipeOliveiraAPSISC/notion-export/nomes-prestacao.csv')
+# Lista revisada de nome de pessoa, COMPARTILHADA por todos os geradores de seed.
+# FORA do repositorio porque ela e a propria lista de nomes. Sem ela o script
+# aborta (ver carregar_termos_pessoa). Colunas: codigo;termo;motivo, e o codigo
+# MANTER e um VETO - o termo nao deve ser substituido.
+#
+# UM ARQUIVO SO, de proposito: Marcelo aparece na prestacao E no backoffice, e
+# duas listas separadas dariam dois marcadores para a mesma pessoa, quebrando a
+# unica coisa que o marcador serve para responder ("esta pessoa aparece aqui e
+# tambem ali?").
+ARQ_NOMES = Path('C:/Users/FilipeOliveiraAPSISC/notion-export/nomes-seeds.csv')
 
 PADRAO_AJUDA = re.compile(r'ajuda de custo', re.I)
 # "Presidente - Fulano", "1o Tesoureiro - Fulano": o cargo fica, o nome sai.
@@ -186,65 +195,28 @@ def chave(nome):
 # desfaria a pseudonimizacao pela porta dos fundos. Mesma decisao do
 # revisao-termos-atas.csv. Sem ele, este script ABORTA: o padrao anterior era
 # devolver mapa vazio e gerar o seed com os nomes crus, calado.
-def carregar_termos_pessoa():
-    mapa = {}
+def heuristica_das_atas():
+    """Fonte SECUNDARIA: os termos que a heuristica das atas marcou com sinal 1.
 
-    # 1. Os que a heuristica das atas marcou com sinal exatamente 1. Ver acima por
-    #    que este criterio nao foi alargado.
+    Ver acima por que o criterio nao foi alargado para `> 0`. A lista revisada
+    sobrepoe isto, e o veto MANTER dela vale por cima - quem aplica as duas
+    regras e o Pseudonimizador, nao este dicionario.
+    """
+    mapa = {}
     if ARQ_TERMOS.exists():
         with io.open(ARQ_TERMOS, encoding='utf-8-sig') as f:
             for linha in csv.reader(f, delimiter=';'):
                 if len(linha) > 3 and linha[3] == '1' and linha[1]:
                     mapa[linha[1]] = linha[0]
-
-    # 2. A lista revisada termo a termo para ESTAS planilhas. Autoritativa: sobrepoe
-    #    a heuristica, que errou a classificacao do Damiao (sinal_org=1, e ele e
-    #    pessoa) e nao conhece quem so aparece aqui (Konomiria, Moipa, Kaoe...).
-    if not ARQ_NOMES.exists():
-        sys.exit(
-            'ABORTADO: nao encontrei %s.\n'
-            'Esse arquivo carrega os nomes de pessoa das planilhas da prestacao e\n'
-            'vive FORA do repositorio de proposito. Sem ele o seed sairia com nome\n'
-            'de pessoa em texto livre, ligado a valor gasto, o que e dado pessoal\n'
-            'sob a LGPD e nao pode entrar no git.' % ARQ_NOMES
-        )
-    #    Codigo MANTER e VETO: tira o termo do mapa. Existe porque a heuristica das
-    #    atas marca palavra comum como pessoa - "Tem", "Houve", "Carro" - e marcou
-    #    MAROXEWARA, que e ALDEIA, com sinal_pessoa=1. Enquanto pseudonimizar()
-    #    rodava so nas atividades isso quase nao aparecia; aplicada na descricao do
-    #    lancamento, "Tem foto?" virou "[P875] foto?".
-    with io.open(ARQ_NOMES, encoding='utf-8-sig') as f:
-        r = csv.reader(f, delimiter=';')
-        next(r, None)  # cabecalho
-        for linha in r:
-            if len(linha) < 2 or not linha[0].strip() or not linha[1].strip():
-                continue
-            codigo, termo = linha[0].strip(), linha[1].strip()
-            if codigo == 'MANTER':
-                mapa.pop(termo, None)
-            else:
-                mapa[termo] = codigo
     return mapa
 
 
-TERMOS_PESSOA = carregar_termos_pessoa()
-# Mais longo primeiro: "Flavio Rodrigues Sousa" tem que casar antes de "Flavio",
-# senao o nome completo sai como tres marcadores em sequencia.
-_padrao_termos = re.compile(
-    r'\b(' + '|'.join(re.escape(t) for t in sorted(TERMOS_PESSOA, key=len, reverse=True)) + r')\b')
-
-trocas_pessoa = Counter()
-
-
-def pseudonimizar(t):
-    if not t:
-        return t
-
-    def troca(m):
-        trocas_pessoa[m.group(1)] += 1
-        return TERMOS_PESSOA[m.group(1)]
-
-    return _padrao_termos.sub(troca, t)
+# Carregar, substituir e conferir vivem em scripts/pseudonimos.py. A logica
+# estava copiada em cada gerador e a copia divergiu na primeira mudanca de
+# regra: quando o codigo PROTEGER nasceu - para "Sao Paulo" nao ser confundido
+# com a pessoa "Paulo" - a correcao precisou ir a cinco arquivos.
+PSEUDO = pseudonimos.Pseudonimizador(ARQ_NOMES, extras=heuristica_das_atas())
+pseudonimizar = PSEUDO.aplicar
 
 
 # ===== Estado ================================================================
@@ -745,7 +717,14 @@ for at in atividades:
 w('')
 w('commit;')
 
-SAIDA.write_text('\n'.join(L) + '\n', encoding='utf-8', newline='\n')
+_sql_gerado = '\n'.join(L) + '\n'
+# ANTES de escrever, nao depois: arquivo com nome de pessoa nao deve nem chegar
+# ao disco, onde um `git add .` distraido o pega. E esta conferencia que torna
+# impossivel repetir o defeito de 02/09/2026 - pseudonimizacao aplicada em
+# alguns campos e nao naquele que carregava o dado.
+PSEUDO.conferir_saida(_sql_gerado, str(SAIDA))
+
+SAIDA.write_text(_sql_gerado, encoding='utf-8', newline='\n')
 
 # ===== Relatorio =============================================================
 
@@ -766,14 +745,12 @@ print('Descricoes retidas por LGPD (valor sempre importado):')
 for k, n in retidos.most_common():
     print('  %4d  %s' % (n, k))
 print('Observacoes de frase unica descartadas (nome mora nelas): %d' % obs_descartadas)
-# Relatorio POR CODIGO, e nao por termo: imprimir o termo colocaria o nome de volta
-# na tela e no log do terminal.
-_por_codigo = Counter()
-for _termo, _n in trocas_pessoa.items():
-    _por_codigo[TERMOS_PESSOA[_termo]] += _n
-print('Nomes de pessoa trocados por marcador: %d ocorrencias em %d pessoas distintas'
-      % (sum(_por_codigo.values()), len(_por_codigo)))
-print('  ' + '  '.join('%s=%d' % (c, n) for c, n in sorted(_por_codigo.items())))
+# Relatorio POR CODIGO, e nao por termo: imprimir o termo colocaria o nome de
+# volta na tela e no log do terminal. Quem conta e o proprio Pseudonimizador,
+# que ja acumula por codigo.
+# Sem .capitalize(): ele rebaixa os codigos para [p341] e o relatorio deixa de
+# casar com o que o verificador imprime. O texto ja vem completo do modulo.
+print(PSEUDO.relatorio()[0].upper() + PSEUDO.relatorio()[1:])
 print('Lancamentos conciliados automaticamente por valor e mes: %d' % conciliados)
 if descartes:
     print('Linhas nao importadas: %d (sem valor ou sem data)' % len(descartes))

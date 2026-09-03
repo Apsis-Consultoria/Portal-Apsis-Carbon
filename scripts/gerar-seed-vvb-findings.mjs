@@ -9,6 +9,8 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 
+import { novoPseudonimizador } from './pseudonimos.mjs';
+
 const ENTRADA = 'docs/notion/dados/vvb-findings-bruto.json';
 const SAIDA = 'supabase/seeds/findings_vvb_completo.sql';
 
@@ -53,6 +55,20 @@ const EVIDENCIA_ESTADO = {
 
 const limpo = (v) => String(v ?? '').trim();
 
+/* Pseudonimizacao: nome proprio vira marcador estavel [Pnnn], o mesmo para a
+   mesma pessoa em TODOS os seeds. Logica e lista em scripts/pseudonimos.mjs.
+
+   FALTAVA INTEIRO neste gerador. Os findings da VVB citam quem levantou e quem
+   respondeu cada ponto - "Incluido as experiencias de <nome>, <nome> - IPES" -
+   e isso entrava no seed em texto puro.
+
+   NAO e aplicada dentro de `limpo`, de proposito: `limpo` tambem normaliza chave
+   de mapa (VEREDITO, TIPO, DOCUMENTO, ANDAMENTO), e substituir ali faria a busca
+   falhar em silencio e cair no valor padrao. O que garante que nenhum campo
+   ficou de fora e pseudo.conferirSaida(), chamada antes de escrever. */
+const pseudo = await novoPseudonimizador();
+const textoLivre = (v) => pseudo.aplicar(limpo(v));
+
 /** Literal SQL. Vazio vira null, para nao gravar string vazia onde cabe nulo. */
 function sql(v) {
   const t = limpo(v);
@@ -74,7 +90,9 @@ function subitensDe(texto) {
   const linhas = limpo(texto).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   if (linhas.length < 2) return [];
   return linhas.map((l, i) => ({
-    descricao: l,
+    // Cada linha do checklist e texto livre, e era AQUI que estava o nome no
+    // finding 1459: "Incluido as experiencias de <nome>, <nome> - IPES".
+    descricao: textoLivre(l),
     concluido: /\b(ok|corrigido|conclu[ií]do|feito)\b\.?$/i.test(l),
     ordem: i,
   }));
@@ -87,8 +105,9 @@ const pulados = [];
 const registros = [];
 
 for (const l of linhas) {
-  const descricao = limpo(l.descricao);
-  const titulo = limpo(l.titulo);
+  // textoLivre, e nao limpo: estes dois carregam nome de pessoa na origem.
+  const descricao = textoLivre(l.descricao);
+  const titulo = textoLivre(l.titulo);
 
   // descricao_en e NOT NULL com check de nao-vazio. Linha sem descricao e sem
   // titulo nao tem conteudo nenhum na origem: sao 3 linhas em branco do Notion,
@@ -104,7 +123,7 @@ for (const l of linhas) {
   }
   usados.add(l.id);
 
-  const evidencia = limpo(l.evidencia);
+  const evidencia = textoLivre(l.evidencia);
   const estadoEvidencia = EVIDENCIA_ESTADO[evidencia] ?? 'pendente';
   // O rotulo curto ja virou estado; guardar o mesmo texto de novo seria ruido.
   const notaEvidencia = EVIDENCIA_ESTADO[evidencia] ? '' : evidencia;
@@ -121,15 +140,15 @@ for (const l of linhas) {
     identificador: limpo(l.item),
     capitulo: titulo,
     descricao: texto,
-    acaoExigida: limpo(l.acao_exigida),
-    plano: limpo(l.acao_realizar),
+    acaoExigida: textoLivre(l.acao_exigida),
+    plano: textoLivre(l.acao_realizar),
     veredito,
     andamento: ANDAMENTO[limpo(l.status)] ?? null,
     estadoEvidencia,
     notaEvidencia,
     subitens: subitensDe(l.comentarios),
     // Comentario de uma linha nao vira subitem: fica como resposta do finding.
-    comentarioSolto: subitensDe(l.comentarios).length ? '' : limpo(l.comentarios),
+    comentarioSolto: subitensDe(l.comentarios).length ? '' : textoLivre(l.comentarios),
   });
 }
 
@@ -280,7 +299,12 @@ begin
 end $$;
 `);
 
-await writeFile(SAIDA, partes.join('\n'), 'utf8');
+const sqlGerado = partes.join('\n');
+// ANTES de escrever, nao depois: um arquivo com nome de pessoa nao deve nem
+// chegar ao disco, onde um `git add .` distraido o pega.
+pseudo.conferirSaida(sqlGerado, SAIDA);
+
+await writeFile(SAIDA, sqlGerado, 'utf8');
 
 console.log(`gerado ${SAIDA}`);
 console.log(`  findings: ${registros.length} (rodada 1: ${naRodada1}, rodada 2: ${naRodada2})`);
