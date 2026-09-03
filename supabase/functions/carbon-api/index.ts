@@ -303,7 +303,7 @@ async function garantirUsuario(usuario: Usuario): Promise<RegistroUsuario | null
   const { data, error } = await admin
     .from('carbon_usuarios')
     .upsert({ email: usuario.email, nome: usuario.nome }, { onConflict: 'email' })
-    .select('id, email, nome, papel, ativo')
+    .select('id, email, nome, papel, ativo, cargo_id')
     .single();
 
   if (error || !data) {
@@ -311,7 +311,42 @@ async function garantirUsuario(usuario: Usuario): Promise<RegistroUsuario | null
     return null;
   }
 
-  return data as RegistroUsuario;
+  /*
+   * AREAS RESOLVIDAS A CADA REQUISICAO, e nao guardadas em cache.
+   *
+   * Mudanca de cargo tem de valer na requisicao SEGUINTE. Com cache por isolate
+   * ela valeria quando o isolate morresse - sem hora marcada e diferente em cada
+   * um, entao metade das requisicoes usaria a permissao velha e ninguem
+   * entenderia por que "tirei o acesso e ela continua entrando". E o mesmo
+   * raciocinio que ja levou o cache da config do Secure Share a ganhar prazo.
+   *
+   * A conta inteira mora em carbon_areas_do_usuario: sempre_liberada, chave de
+   * emergencia do admin, ponte de quem ainda nao tem cargo, e as areas do cargo
+   * ativo. Duplicar qualquer um desses ramos aqui criaria duas politicas.
+   */
+  const { data: areas, error: erroAreas } = await admin
+    .rpc('carbon_areas_do_usuario', { p_usuario_id: data.id });
+
+  if (erroAreas) {
+    // FALHA FECHADA. Sem saber as areas, a unica resposta segura e negar: seguir
+    // com lista vazia bloquearia tudo (que ja e negar) e seguir com tudo
+    // liberado transformaria um erro de banco em escalada de privilegio.
+    console.error('Falha ao resolver areas do usuario:', erroAreas.message);
+    return null;
+  }
+
+  return {
+    ...(data as Omit<RegistroUsuario, 'areas'>),
+    // A funcao devolve setof text: o cliente entrega [{ carbon_areas_do_usuario: 'x' }]
+    // ou ['x'] conforme a versao. Normalizamos os dois para nao depender disso.
+    areas: (areas ?? [])
+      .map((linha: unknown) =>
+        typeof linha === 'string'
+          ? linha
+          : String((linha as Record<string, unknown>)?.carbon_areas_do_usuario ?? ''),
+      )
+      .filter(Boolean),
+  } as RegistroUsuario;
 }
 
 // -----------------------------------------------------------------------------
@@ -362,10 +397,42 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return respostaErro('usuario_inativo', 403);
     }
 
-    // Escrita so para admin e gestor. A leitura NAO se decide aqui: ela e por
-    // participacao no projeto e e aplicada dentro da consulta. Ver o comentario
-    // de AUTORIZACAO no topo deste arquivo.
-    if (casamento.rota.escrita && !podeEscrever(registro)) {
+    /*
+     * PORTAO DE AREA. Vale para LEITURA E ESCRITA, e essa e a mudanca de
+     * 03/09/2026: com cargos, ver e editar sao a MESMA permissao. Se a area da
+     * rota nao esta nas areas da pessoa, a rota nao existe para ela.
+     *
+     * O que NAO mudou: a visibilidade POR PROJETO continua sendo participacao em
+     * carbon_projeto_equipe, aplicada dentro da consulta (ver comVisibilidade em
+     * rotas/projetos.ts). Sao eixos diferentes - area diz QUAIS TELAS, equipe diz
+     * QUAIS LINHAS - e junta-los faria um cargo com a area "projetos" enxergar a
+     * carteira inteira, que nao e o que ninguem pediu.
+     */
+    const area = casamento.rota.area;
+    if (!area) {
+      // FALHA FECHADA para rota sem area. Acontece se um dominio novo for
+      // registrado no indice sem passar por comArea(). Liberar seria o mesmo que
+      // publicar uma rota sem autorizacao e so descobrir na auditoria.
+      console.error(`Rota sem area declarada: ${casamento.rota.metodo} ${casamento.rota.padrao}`);
+      return respostaErro('erro_interno', 500);
+    }
+    if (!registro.areas.includes(area)) {
+      return respostaErro('sem_permissao', 403);
+    }
+
+    /*
+     * O portao ANTIGO de escrita continua, e nao e redundancia.
+     *
+     * Ele so morde em quem ainda NAO TEM CARGO: nesse caso
+     * carbon_areas_do_usuario devolve as areas pela regra do papel, e um
+     * colaborador sem cargo recebe apenas as areas sempre liberadas - o que ja o
+     * barra acima. Para quem tem cargo, `podeEscrever` olha o papel, que passa a
+     * ser irrelevante, e por isso a condicao exige tambem cargo ausente.
+     *
+     * Sai do codigo quando todo mundo tiver cargo. Enquanto a ponte existir, ela
+     * precisa das duas pernas.
+     */
+    if (casamento.rota.escrita && !registro.cargo_id && !podeEscrever(registro)) {
       return respostaErro('sem_permissao', 403);
     }
 

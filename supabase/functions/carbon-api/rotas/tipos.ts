@@ -32,6 +32,19 @@ export type RegistroUsuario = {
   nome: string | null;
   papel: string;
   ativo: boolean;
+  /** Cargo da pessoa. Nulo significa "ainda sem cargo": vale a regra antiga do papel. */
+  cargo_id?: string | null;
+  /**
+   * Areas efetivas, vindas de public.carbon_areas_do_usuario.
+   *
+   * VER E EDITAR sao a MESMA permissao: se a area esta aqui, a pessoa le e
+   * escreve nela. Foi decisao do dono, e e o que torna o portao uma pergunta so.
+   *
+   * Resolvidas UMA VEZ por requisicao, antes do handler, junto com o upsert do
+   * usuario. Nao e cache entre requisicoes de proposito: mudanca de cargo tem de
+   * valer na requisicao seguinte, e nao quando um isolate morrer.
+   */
+  areas: string[];
 };
 
 /**
@@ -89,4 +102,17 @@ export type Rota = {
   padrao: string;
   escrita: boolean;
   handler: (ctx: Contexto) => Promise<Response>;
+  /**
+   * AREA de acesso da rota, conferida contra o cargo da pessoa antes do handler.
+   *
+   * NAO E PREENCHIDA ROTA A ROTA, de proposito: quem carimba e `comArea()` no
+   * indice.ts, um arquivo de dominio por vez. Rota nova nasce coberta pela area
+   * do arquivo em que foi escrita, e nao existe o caminho "esqueci de marcar" -
+   * que numa lista de mais de cem rotas e uma questao de tempo.
+   *
+   * Opcional no tipo porque as rotas sao DECLARADAS sem ela; depois de passar
+   * pelo indice, toda rota tem area. O index.ts recusa a rota sem area em vez de
+   * liberar (ver o portao la).
+   */
+  area?: string;
 };

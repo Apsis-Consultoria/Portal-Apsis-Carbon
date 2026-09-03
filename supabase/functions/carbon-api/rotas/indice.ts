@@ -16,6 +16,7 @@
 
 import type { Rota } from './tipos.ts';
 
+import { rotas as rotasAcessos } from './acessos.ts';
 import { rotas as rotasMe } from './me.ts';
 import { rotas as rotasModulos } from './modulos.ts';
 import { rotas as rotasNotificacoes } from './notificacoes.ts';
@@ -40,15 +41,35 @@ import { rotas as rotasMetas } from './metas.ts';
 import { rotas as rotasPipeline } from './pipeline.ts';
 import { rotas as rotasQuestionarios } from './questionarios.ts';
 
+/**
+ * Carimba a AREA de acesso em todas as rotas de um dominio.
+ *
+ * POR ARQUIVO, e nao rota a rota: sao mais de cem rotas, e marcar uma a uma
+ * garante que alguem esqueca a proxima. Aqui a rota nova nasce coberta pela area
+ * do arquivo em que foi escrita, sem ninguem lembrar de nada.
+ *
+ * A area e a unidade de acesso do sistema (tabela carbon_areas) e corresponde a
+ * UM arquivo de registro de paginas do frontend e a UM modulo de rota aqui. Quem
+ * decide se a pessoa tem a area e carbon_areas_do_usuario, no banco; este
+ * arquivo so diz de qual area cada rota faz parte.
+ */
+function comArea(area: string, rotas: Rota[]): Rota[] {
+  return rotas.map((r) => ({ ...r, area }));
+}
+
 export const TODAS_AS_ROTAS: Rota[] = [
-  ...rotasMe,
-  ...rotasModulos,
-  ...rotasNotificacoes,
-  ...rotasProjetos,
-  ...rotasPrestacao,
-  ...rotasAtividadesCampo,
-  ...rotasPdd,
-  ...rotasSecureShare,
+  /* Gestao de acessos: cargos e quem tem cada um. A area `acessos` e a que
+     administra as outras, e por isso o banco recusa deixar o sistema sem
+     ninguem ativo que a tenha (constraint trigger em carbon_cargo_areas). */
+  ...comArea('acessos', rotasAcessos),
+  ...comArea('nucleo', rotasMe),
+  ...comArea('nucleo', rotasModulos),
+  ...comArea('nucleo', rotasNotificacoes),
+  ...comArea('projetos', rotasProjetos),
+  ...comArea('prestacao', rotasPrestacao),
+  ...comArea('atividades', rotasAtividadesCampo),
+  ...comArea('projetos', rotasPdd),
+  ...comArea('secureshare', rotasSecureShare),
   // Os oito abaixo entraram no indice em 25/08/2026. Os arquivos existiam desde
   // 14/08 e nunca tinham sido registrados: 66 rotas escritas, testadas de forma
   // isolada e inalcancaveis em producao. O sintoma era "as telas nao carregam
@@ -56,32 +77,32 @@ export const TODAS_AS_ROTAS: Rota[] = [
   // carbon-api respondia 404 para todas elas, porque de fato nao existiam no
   // roteador. Ao acrescentar um dominio novo, o passo 2 do cabecalho e o que
   // costuma ser esquecido.
-  ...rotasAtividades,
-  ...rotasDocumentos,
-  ...rotasEvidencias,
-  ...rotasFindings,
-  ...rotasFornecedores,
-  ...rotasIndicadores,
-  ...rotasMonitoramento,
-  ...rotasReunioes,
+  ...comArea('atividades', rotasAtividades),
+  ...comArea('documentos', rotasDocumentos),
+  ...comArea('evidencias', rotasEvidencias),
+  ...comArea('findings', rotasFindings),
+  ...comArea('fornecedores', rotasFornecedores),
+  ...comArea('indicadores', rotasIndicadores),
+  ...comArea('monitoramento', rotasMonitoramento),
+  ...comArea('reunioes', rotasReunioes),
   // Separado de rotasReunioes de proposito: e a unica parte da tela que depende
   // de um sistema externo (Microsoft Graph) e que pode estar indisponivel por
   // falta de permissao. Ver o cabecalho de reunioesteams.ts.
-  ...rotasReunioesTeams,
-  ...rotasVisitas,
+  ...comArea('reunioes', rotasReunioesTeams),
+  ...comArea('atividades', rotasVisitas),
   // Os quatro abaixo entraram em 26/08/2026. As tabelas e as funcoes SQL deles
   // existiam desde 14/08 e ja tinham dado carregado; faltava so a publicacao,
   // que e este arquivo. E a mesma armadilha que deixou oito modulos em 404 por
   // onze dias: migration aplicada nao e rota no ar.
-  ...rotasConsultoria,
-  ...rotasCredito,
-  ...rotasMetas,
-  ...rotasPipeline,
+  ...comArea('consultoria', rotasConsultoria),
+  ...comArea('credito', rotasCredito),
+  ...comArea('metas', rotasMetas),
+  ...comArea('pipeline', rotasPipeline),
   // Questionarios de campo, 27/08/2026. A ordem de casamento nao e problema
   // aqui: o index.ts compila as rotas ordenadas por quantidade de parametros,
   // entao 'questionarios/modelos' (zero) ganha de 'questionarios/:id' (um) sem
   // depender da posicao nesta lista.
-  ...rotasQuestionarios,
+  ...comArea('questionarios', rotasQuestionarios),
 ];
 
 // Guarda de colisao. Duas rotas com o mesmo metodo e o mesmo padrao fariam a

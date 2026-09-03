@@ -97,10 +97,15 @@ async function obterIdToken(msal) {
 }
 
 /**
- * chamarApi - GET/POST/PATCH em /api/carbon-api<caminho> (caminho relativo, sem env).
+ * chamarApi - GET/POST/PATCH/DELETE em /api/carbon-api<caminho> (relativo, sem env).
  *
- * A Edge Function aceita hoje apenas estes tres metodos; qualquer outro volta como
- * 405 'metodo_nao_permitido'.
+ * O metodo precisa existir em ALGUMA rota do carbon-api: o roteador monta
+ * METODOS_ACEITOS a partir da propria tabela de rotas, e recusa o que nao estiver
+ * la com 405 'metodo_nao_permitido'. DELETE ja e usado por mais de vinte rotas.
+ *
+ * (Este comentario dizia "apenas estes tres metodos" ate 03/09/2026, quando ja
+ * havia DELETE em producao ha semanas. Documentacao desatualizada sobre o que a
+ * API aceita custa uma rodada de depuracao em cima da hipotese errada.)
  *
  * @param {string} caminho  Ex.: '/me', '/modulos', '/projetos/<uuid>/pdd'
  * @param {{ instance: object, accounts: array }} msal  Vindo do useMsal()

@@ -18,7 +18,7 @@ import { createPageUrl } from '@/utils';
 import { rotaInternaSegura, urlExternaSegura } from '@/utils/urlSegura';
 import { montarUrl } from '@/lib/pageRoutes';
 import { ITENS_MENU_FIXOS, paginaPorNome } from '@/paginas.config';
-import { obterModulos, obterNotificacoes } from '@/lib/carbonApi';
+import { obterPerfil, obterModulos, obterNotificacoes } from '@/lib/carbonApi';
 import { listarModelosQuestionario } from '@/lib/api/questionarios';
 import { getConfig } from '@/lib/runtimeConfig';
 import {
@@ -29,6 +29,7 @@ import {
   ClipboardList, Users, Settings, Sparkles, Cloud, Recycle, Handshake, Award,
   ShieldCheck, Calculator, Layers, Megaphone, FolderTree, Target, Goal, Briefcase,
   Coins,
+  KeyRound,
 } from 'lucide-react';
 
 /**
@@ -67,6 +68,7 @@ const LOGO_SIMBOLO_SRC = '/login/logo-carbon-simbolo.png';
  * Para oferecer um ícone novo aos módulos, acrescente o import acima e a chave aqui.
  */
 const ICONES = {
+  KeyRound,
   Home,
   Leaf,
   TreePine,
@@ -150,6 +152,25 @@ export default function Layout({ children, currentPageName }) {
   // Módulos do menu. staleTime de 5 min porque a lista muda com frequência de dias,
   // não de segundos. Erro de rede não derruba o shell: `data` fica undefined e o
   // default [] mantém apenas o item fixo "Boas-Vindas".
+  /*
+   * AREAS DA PESSOA, para esconder do menu o que ela nao acessa.
+   *
+   * ESCONDER NAO E AUTORIZAR: quem autoriza e o carbon-api, que confere a area
+   * da rota antes de cada handler. Este filtro existe para ninguem olhar um menu
+   * cheio de telas que respondem 403 - e nao para proteger nada.
+   *
+   * ENQUANTO CARREGA, `undefined` significa "ainda nao sei", e nesse caso o menu
+   * NAO e filtrado. O inverso (assumir lista vazia) faria o menu piscar vazio a
+   * cada abertura, o que parece perda de acesso e gera chamado.
+   */
+  const { data: perfil } = useQuery({
+    queryKey: ['carbon', 'me'],
+    queryFn: () => obterPerfil({ instance, accounts }),
+    enabled: autenticado,
+    staleTime: 60_000,
+  });
+  const areasDaPessoa = Array.isArray(perfil?.areas) ? new Set(perfil.areas) : null;
+
   const { data: modulos = [] } = useQuery({
     queryKey: ['carbon', 'modulos'],
     queryFn: async () => {
@@ -245,7 +266,15 @@ export default function Layout({ children, currentPageName }) {
       ],
     };
 
-    const comSubmenu = [...ITENS_MENU_FIXOS, ...doBanco].map((item) => {
+    /* Filtra pelo que a pessoa acessa. `areasDaPessoa` nulo = perfil ainda
+       carregando: nao filtra, para o menu nao piscar vazio. Item sem area
+       declarada tambem passa - ele nao veio do registro de paginas (e modulo do
+       banco), e esconder por falta de metadado seria esconder por engano. */
+    const visiveis = [...ITENS_MENU_FIXOS, ...doBanco].filter(
+      (item) => !areasDaPessoa || !item.area || areasDaPessoa.has(item.area),
+    );
+
+    const comSubmenu = visiveis.map((item) => {
       const carregar = item.submenu ? CARREGADORES_SUBMENU[item.submenu] : null;
       if (!carregar) return item;
       const subitens = carregar().filter((s) => s.rota);
@@ -255,7 +284,7 @@ export default function Layout({ children, currentPageName }) {
     });
 
     return comSubmenu;
-  }, [modulos, modelosQuestionario]);
+  }, [modulos, modelosQuestionario, areasDaPessoa]);
 
   // Fecha o menu do usuário ao clicar fora
   useEffect(() => {
