@@ -223,6 +223,16 @@ export async function listarArquivos(msal, id, sub = "") {
     );
   }
   const consulta = sub ? `?sub=${encodeURIComponent(sub)}` : "";
+
+  /*
+   * A GERAL TEM CAMINHO PROPRIO, sem :id. Nao e
+   * `/secure-share/projetos/geral/arquivos`: o roteador da Edge Function confere
+   * todo parametro de rota contra UUID_RE antes de despachar, entao a palavra
+   * "geral" voltava 400 id_invalido sem chegar na rota. Afrouxar aquela
+   * conferencia abriria excecao nas rotas de todos os dominios.
+   */
+  if (id === ID_GERAL) return chamar(`/secure-share/geral/arquivos${consulta}`, msal);
+
   return chamar(`/secure-share/projetos/${cam(id)}/arquivos${consulta}`, msal);
 }
 

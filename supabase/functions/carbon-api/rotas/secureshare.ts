@@ -939,7 +939,23 @@ async function atualizarProjeto(ctx: Contexto): Promise<Response> {
 // milhares de arquivos, e trazer tudo de uma vez trava a tela.
 
 async function listarArquivos(ctx: Contexto): Promise<Response> {
-  const ehGeral = ctx.params.id === ID_GERAL;
+  /*
+   * A GERAL E RECONHECIDA PELA AUSENCIA DE :id, e nao por um id especial.
+   *
+   * A primeira versao usava `secure-share/projetos/geral/arquivos`, e devolvia
+   * 400 sempre: o roteador em index.ts confere TODO parametro de rota contra
+   * UUID_RE antes de despachar (ver a nota "Todo parametro de rota no Apsis
+   * Carbon e chave primaria uuid"), entao 'geral' morria como id_invalido sem
+   * nunca chegar aqui.
+   *
+   * A saida NAO foi afrouxar aquela validacao: ela vale para as rotas de todos
+   * os dominios, e abrir excecao ali trocaria um caminho de rota por um buraco
+   * em todas. A Geral ganhou caminho proprio, `secure-share/geral/arquivos`, sem
+   * parametro nenhum - e ausencia de projeto e justamente como o banco ja
+   * representa a Geral (ver o comentario de carbon_secure_share_contexto, onde
+   * p_projeto_id nulo significa a pasta Geral).
+   */
+  const ehGeral = !ctx.params.id;
 
   /*
    * A GERAL NAO PASSA POR exigirProjeto, e isso e deliberado, nao um desvio.
@@ -1450,6 +1466,25 @@ export const rotas: Rota[] = [
   {
     metodo: 'GET',
     padrao: 'secure-share/projetos/:id/arquivos',
+    escrita: false,
+    handler: listarArquivos,
+  },
+  {
+    /**
+     * A pasta Geral, compartilhada com todos os clientes.
+     *
+     * MESMO handler, caminho SEM parametro. Nao e
+     * `secure-share/projetos/geral/arquivos` porque o roteador confere todo
+     * parametro de rota contra UUID_RE e devolveria 400 id_invalido antes de
+     * chegar aqui - e afrouxar aquela conferencia para caber uma palavra
+     * abriria excecao nas rotas de todos os dominios.
+     *
+     * `escrita: false` porque aqui so se LE. Quem escreve na Geral e a Edge
+     * Function carbon-secure-share-upload, que tem o portao de papel proprio
+     * (admin ou gestor).
+     */
+    metodo: 'GET',
+    padrao: 'secure-share/geral/arquivos',
     escrita: false,
     handler: listarArquivos,
   },

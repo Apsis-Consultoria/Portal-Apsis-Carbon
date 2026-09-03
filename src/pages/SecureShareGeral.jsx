@@ -52,7 +52,24 @@ import { Envio, Arquivos } from '@/pages/SecureShareProjeto';
  * reconhecem. `pasta` aqui e so rotulo de tela: o nome que vale e o que o
  * servidor devolve, lido de carbon_app_config.secure_share.pastaGeral.
  */
-const PROJETO_GERAL = { id: ID_GERAL, empresa: 'Geral', ap_os: null, pasta: 'Geral' };
+const PROJETO_GERAL = {
+  id: ID_GERAL,
+  empresa: 'Geral',
+  ap_os: null,
+  pasta: 'Geral',
+  /**
+   * `status: 'ativo'` NAO E ENFEITE, e sem ele a tela nasceu quebrada.
+   *
+   * `Envio` desabilita a area de arrastar com `projeto?.status !== 'ativo'`, e a
+   * primeira versao deste objeto nao tinha a chave: `undefined !== 'ativo'` e
+   * verdade, entao a Geral abria com "Projeto encerrado" e ninguem conseguia
+   * subir nada - exatamente o problema que esta tela existe para resolver.
+   *
+   * A Geral nao tem ciclo de vida: nao se encerra, nao se reabre e nao aparece
+   * no seletor de status. Ela e sempre ativa, e e isso que a constante afirma.
+   */
+  status: 'ativo',
+};
 
 export default function SecureShareGeral() {
   const msal = useMsal();
@@ -74,14 +91,24 @@ export default function SecureShareGeral() {
         descricao="Visível para todos os clientes, de todos os projetos"
       />
 
-      {/* O aviso vem ANTES da area de envio, e nao depois: quem chega aqui para
-          subir um arquivo precisa ler isto antes de arrastar, nao depois de o
-          envio terminar. E o unico erro grave possivel nesta tela. */}
-      <AvisoDiscreto tom="ambar" titulo="O que entra aqui todos veem." icone={Users}>
-        Qualquer pessoa que acesse o portal do cliente, de <strong>qualquer projeto</strong>,
-        vê e baixa o conteúdo desta pasta. Documento de um cliente específico não vem para
-        cá: use a pasta do projeto dele.
-      </AvisoDiscreto>
+      {/* OS DOIS AVISOS JUNTOS, e ANTES da area de envio.
+          Eles respondem a mesma pergunta - "quem vê o que eu subir aqui?" - e
+          separados por 700 pixels de arvore de arquivos a resposta ficava pela
+          metade em cada ponta: em cima "todos veem", e so no fim da pagina
+          "mas o cliente nao escreve". Quem chega para subir um arquivo precisa
+          das duas antes de arrastar, nao depois de o envio terminar. */}
+      <div className="space-y-2.5">
+        <AvisoDiscreto tom="ambar" titulo="O que entra aqui todos veem." icone={Users}>
+          Qualquer pessoa que acesse o portal do cliente, de <strong>qualquer projeto</strong>,
+          vê e baixa o conteúdo desta pasta. Documento de um cliente específico não vem para
+          cá: use a pasta do projeto dele.
+        </AvisoDiscreto>
+
+        <AvisoDiscreto tom="azul" titulo="Somente leitura para o cliente." icone={Lock}>
+          O portal do cliente mostra esta pasta como <strong>Compartilhado com todos</strong> e
+          recusa envio dela: só a equipe da APSIS escreve aqui.
+        </AvisoDiscreto>
+      </div>
 
       <Envio projeto={PROJETO_GERAL} msal={msal} />
 
@@ -97,11 +124,6 @@ export default function SecureShareGeral() {
         semRegras
         onMudou={() => {}}
       />
-
-      <AvisoDiscreto tom="azul" titulo="Somente leitura para o cliente." icone={Lock}>
-        O portal do cliente mostra esta pasta como <strong>Compartilhado com todos</strong> e
-        recusa envio dela: só a equipe da APSIS escreve aqui.
-      </AvisoDiscreto>
     </div>
   );
 }
