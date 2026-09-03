@@ -1,5 +1,57 @@
 # Producao: o que falta para os dois sistemas subirem
 
+> **ATUALIZACAO 03/09/2026, e ela vem ANTES de tudo o que esta escrito abaixo.**
+>
+> A Amplify **nao publica desde 29/08/2026**. Enquanto isso valer, nada no
+> repositorio muda producao, e as duas pendencias das secoes seguintes nao sao o
+> problema atual.
+>
+> **A prova, e ela nao depende de acesso a AWS.** O hash do bundle do Vite e
+> deterministico pelo conteudo, entao da para perguntar a producao se o build de
+> hoje esta la:
+>
+> ```
+> cd "C:\Users\<voce>\Sistemas\portal-apsis-carbon"; npx.cmd vite build; ls dist\assets\*.js
+> curl.exe -s -o NUL -w "%{http_code}`n" https://portal.apsiscarbon.com/assets/<o-hash-que-saiu>.js
+> ```
+>
+> Medido em 03/09/2026: os dois bundles que o codigo atual produz devolvem
+> **404**, e o de 29/08 (`index-DfuvEQGW.js`) devolve **200**. Um 404 em caminho
+> de asset com hash NAO pode ser cache do CloudFront: nao existe o que guardar
+> para um caminho que nunca foi pedido, entao a requisicao foi a origem e o
+> arquivo nao esta lá. Confirma tambem o `Last-Modified` do `index.html`:
+> portal `Sat, 29 Aug 2026 01:02:49 GMT`, secureshare `Sat, 29 Aug 2026 00:59:17
+> GMT`.
+>
+> **NAO E O REPOSITORIO, e isso foi conferido item por item:** `npm ci` passa com
+> o lock coerente (lockfileVersion 3, 388 pacotes); nao existe `.npmrc`
+> versionado e `ignore-scripts` e false; `amplify.yml` e buildspec valido
+> (`preBuild: npm ci`, `build: npm run build`, `baseDirectory: dist`, sem
+> `customRules` nem `customHeaders` sobrando); `npm run build` e `eslint` passam.
+>
+> **OS DOIS APPS PARARAM COM 3 MINUTOS DE DIFERENCA**, e e o dado mais util aqui.
+> Dois builds falhando por conta propria nao param no mesmo minuto. Isso aponta
+> para algo comum aos dois, no nivel da conexao ou da conta - o candidato mais
+> provavel e a autorizacao do GitHub App da AWS Amplify ter sido revogada ou
+> expirada, o que faz o webhook parar de chegar e nenhum build ser DISPARADO
+> (diferente de build disparado e falhando).
+>
+> **O QUE OLHAR NO CONSOLE, nesta ordem:**
+>
+> 1. **Deployments** do app: qual foi o ultimo e em que data. Se o ultimo for de
+>    29/08, nenhum build foi disparado desde entao e o problema e o gatilho, nao
+>    o build.
+> 2. Se aparecerem builds depois de 29/08 com falha, abrir o log: ai a causa esta
+>    no build e o paragrafo acima esta errado.
+> 3. **App settings > Repository**: se o branch conectado e `main` e se o aviso
+>    de reconectar a conexao do GitHub aparece.
+> 4. Em **GitHub > Settings > Applications > AWS Amplify**: se a autorizacao
+>    ainda existe e se cobre os dois repositorios.
+> 5. Se o build automatico por push esta ligado para o branch.
+>
+> Um `Redeploy this version` (ou um build manual) responde a duvida em dois
+> minutos: se o build roda e publica, o gatilho e o problema.
+
 Documento de entrega para quem tem acesso ao AWS Amplify e ao DNS na Cloudflare.
 Nao ha nada a fazer no codigo dos repositorios: as duas pendencias abaixo sao de
 hospedagem. Medido em 02/09/2026.
