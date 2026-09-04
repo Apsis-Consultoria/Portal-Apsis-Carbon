@@ -170,9 +170,17 @@ async function criarCargo(ctx: Contexto): Promise<Response> {
   const id = (data as { id: string }).id;
 
   if (areas.length) {
+    // RPC, e nao insert direto: a mesma funcao usada na edicao, para os dois
+    // caminhos gravarem area do mesmo jeito. Ver carbon_cargo_definir_areas.
+    // A funcao do banco tambem confere (ela conhece antes e depois), e a
+    // conferencia daqui existe para a recusa chegar como 409 com codigo proprio
+    // em vez de erro de RPC. Duas camadas, mesma regra, mesma mensagem.
+    if (!areas.includes(AREA_ACESSOS)) {
+      await exigirQueNaoZere(ctx, { cargoAlvo: id, cargoPerdeArea: true });
+    }
+
     const { error: erroAreas } = await ctx.admin
-      .from('carbon_cargo_areas')
-      .insert(areas.map((area) => ({ cargo_id: id, area })));
+      .rpc('carbon_cargo_definir_areas', { p_cargo_id: id, p_areas: areas });
 
     if (erroAreas) {
       /*
@@ -212,6 +220,14 @@ async function atualizarCargo(ctx: Contexto): Promise<Response> {
   }
 
   if (Object.keys(mudancas).length) {
+    // DESATIVAR um cargo tira o acesso de todo mundo que o tem. Os constraint
+    // triggers do banco sairam em 20260903200000 (tinham impasse: recusavam a
+    // propria acao que recuperava um sistema ja sem administrador), entao a
+    // guarda deste caminho passou a ser daqui.
+    if (mudancas.ativo === false) {
+      await exigirQueNaoZere(ctx, { cargoAlvo: id, cargoAtivoNovo: false });
+    }
+
     const { error } = await ctx.admin.from('carbon_cargos').update(mudancas).eq('id', id);
     if (error) {
       if (error.code === '23505') throw new ErroRota('cargo_duplicado', 409, 'nome');
@@ -223,36 +239,26 @@ async function atualizarCargo(ctx: Contexto): Promise<Response> {
 
   if (trocaAreas) {
     /*
-     * TROCA O CONJUNTO INTEIRO: apaga e insere. A tela manda o estado final, e
-     * nao um diff, porque diff calculado no cliente e a origem classica de
-     * permissao fantasma - a tela acha que tirou, o servidor nao recebeu, e
-     * ninguem percebe ate alguem abrir uma tela que nao deveria.
+     * UMA CHAMADA, e nao delete + insert.
      *
-     * O constraint trigger do banco e DEFERRABLE justamente para isto: ele
-     * confere no fim da transacao, e nao no meio, entao o estado transitorio
-     * "sem nenhuma area" nao dispara a trava.
+     * Pelo PostgREST cada chamada e a sua propria transacao, e o gatilho adiado
+     * do banco conferiria o estado ENTRE as duas - onde o cargo esta sem area
+     * nenhuma. Editar um cargo que tem a area `acessos` era recusado por isso,
+     * mesmo quando o estado final a mantinha. A funcao faz delete e insert na
+     * MESMA transacao, e a conferencia cai sobre o estado final.
+     *
+     * A tela manda o CONJUNTO FINAL, e nao um diff: diff calculado no cliente e
+     * a origem classica de permissao fantasma.
      */
-    const { error: erroDel } = await ctx.admin
-      .from('carbon_cargo_areas')
-      .delete()
-      .eq('cargo_id', id);
+    const { error: erroAreas } = await ctx.admin
+      .rpc('carbon_cargo_definir_areas', { p_cargo_id: id, p_areas: areas });
 
-    if (erroDel) {
-      if (erroDel.code === 'P0001') throw new ErroRota('sem_administrador_de_acesso', 409);
-      console.error('Falha ao limpar areas do cargo:', erroDel.message);
+    if (erroAreas) {
+      if (erroAreas.code === 'P0001') throw new ErroRota('sem_administrador_de_acesso', 409);
+      if (erroAreas.code === 'P0002') throw new ErroRota('nao_encontrado', 404);
+      if (erroAreas.code === '23503') throw new ErroRota('area_desconhecida', 400, 'areas');
+      console.error('Falha ao gravar areas do cargo:', erroAreas.message);
       throw new ErroRota('erro_interno', 500);
-    }
-
-    if (areas.length) {
-      const { error: erroIns } = await ctx.admin
-        .from('carbon_cargo_areas')
-        .insert(areas.map((area) => ({ cargo_id: id, area })));
-
-      if (erroIns) {
-        if (erroIns.code === 'P0001') throw new ErroRota('sem_administrador_de_acesso', 409);
-        console.error('Falha ao gravar areas do cargo:', erroIns.message);
-        throw new ErroRota('erro_interno', 500);
-      }
     }
   }
 
@@ -260,6 +266,11 @@ async function atualizarCargo(ctx: Contexto): Promise<Response> {
 }
 
 async function apagarCargo(ctx: Contexto): Promise<Response> {
+  // Apagar solta quem tinha o cargo (ON DELETE SET NULL). Se esse cargo era o
+  // unico que administrava acessos, ninguem sobra - e sem os triggers do banco
+  // a guarda e daqui.
+  await exigirQueNaoZere(ctx, { cargoAlvo: ctx.params.id, cargoApagado: true });
+
   const { error } = await ctx.admin.from('carbon_cargos').delete().eq('id', ctx.params.id);
 
   if (error) {
@@ -273,22 +284,26 @@ async function apagarCargo(ctx: Contexto): Promise<Response> {
 }
 
 /**
- * Confere se a mudanca deixaria o sistema sem ninguem que administre acessos.
+ * Quantas pessoas ATIVAS administram acessos por CARGO, sob uma mudanca
+ * hipotetica. Sem argumentos, e o estado atual.
  *
- * Roda ANTES do update, e nao depois: desfazer um update de permissao exige uma
- * segunda escrita que pode falhar, e o intervalo entre as duas e exatamente a
- * janela em que ninguem administra nada.
- *
- * O caminho de PESSOA nao e coberto pelo trigger do banco de proposito (ver o
- * cabecalho deste arquivo), entao a checagem tem de existir aqui.
+ * `papel = 'admin'` nao entra: e a chave de emergencia, e contagem que a inclui
+ * ensina o time a depender dela no dia a dia. Espelha
+ * public.carbon_administradores_de_acesso.
  */
-async function garantirQueSobraAdministrador(
+async function contarAdministradores(
   ctx: Contexto,
-  pessoaId: string,
-  cargoNovo: string | null | undefined,
-  ativoNovo: boolean | undefined,
-): Promise<void> {
-  const { data: cargosComAcesso, error } = await ctx.admin
+  hipotese: {
+    pessoaId?: string;
+    cargoNovo?: string | null;
+    ativoNovo?: boolean;
+    cargoAlvo?: string;
+    cargoAtivoNovo?: boolean;
+    cargoApagado?: boolean;
+    cargoPerdeArea?: boolean;
+  } = {},
+): Promise<number> {
+  const { data: comArea, error } = await ctx.admin
     .from('carbon_cargo_areas')
     .select('cargo_id, carbon_cargos!inner(ativo)')
     .eq('area', AREA_ACESSOS)
@@ -300,9 +315,16 @@ async function garantirQueSobraAdministrador(
   }
 
   const idsComAcesso = new Set(
-    (cargosComAcesso ?? []).map((c) => String((c as Record<string, unknown>).cargo_id)),
+    (comArea ?? []).map((c) => String((c as Record<string, unknown>).cargo_id)),
   );
-  if (idsComAcesso.size === 0) return; // ninguem administra por cargo ainda: a ponte do papel vale
+
+  // Aplica a hipotese sobre o CARGO antes de contar pessoas.
+  if (hipotese.cargoAlvo) {
+    const some = hipotese.cargoApagado
+      || hipotese.cargoAtivoNovo === false
+      || hipotese.cargoPerdeArea === true;
+    if (some) idsComAcesso.delete(hipotese.cargoAlvo);
+  }
 
   const { data: pessoas, error: erroPessoas } = await ctx.admin
     .from('carbon_usuarios')
@@ -313,15 +335,41 @@ async function garantirQueSobraAdministrador(
     throw new ErroRota('erro_interno', 500);
   }
 
-  const sobra = (pessoas ?? []).some((p) => {
+  return (pessoas ?? []).filter((p) => {
     const linha = p as { id: string; cargo_id: string | null; ativo: boolean };
-    const ehAlvo = linha.id === pessoaId;
-    const cargo = ehAlvo && cargoNovo !== undefined ? cargoNovo : linha.cargo_id;
-    const ativo = ehAlvo && ativoNovo !== undefined ? ativoNovo : linha.ativo;
-    return ativo && cargo && idsComAcesso.has(String(cargo));
-  });
+    const ehAlvo = linha.id === hipotese.pessoaId;
+    const cargo = ehAlvo && hipotese.cargoNovo !== undefined ? hipotese.cargoNovo : linha.cargo_id;
+    const ativo = ehAlvo && hipotese.ativoNovo !== undefined ? hipotese.ativoNovo : linha.ativo;
+    // Cargo apagado deixa quem o tinha sem cargo (ON DELETE SET NULL).
+    const cargoVale = cargo && !(hipotese.cargoApagado && cargo === hipotese.cargoAlvo);
+    return ativo && cargoVale && idsComAcesso.has(String(cargo));
+  }).length;
+}
 
-  if (!sobra) throw new ErroRota('sem_administrador_de_acesso', 409);
+/**
+ * Recusa REDUZIR A ZERO o numero de quem administra acessos.
+ *
+ * A regra NAO e "nunca chegue a zero", e sim "nao reduza a zero":
+ *
+ *     antes > 0  e  depois = 0   ->  recusa
+ *     antes = 0                  ->  deixa passar
+ *
+ * O segundo caso e o que a primeira versao errava. Com o sistema ja sem
+ * administrador, uma trava que so olha o estado final recusa exatamente a acao
+ * que conserta - e trava que impede a recuperacao e pior do que trava nenhuma.
+ * Foi o que apareceu ao rodar a migration de verdade.
+ *
+ * Roda ANTES da escrita: desfazer depois exige uma segunda escrita que pode
+ * falhar, e o intervalo entre as duas e a janela em que ninguem administra nada.
+ */
+async function exigirQueNaoZere(
+  ctx: Contexto,
+  hipotese: Parameters<typeof contarAdministradores>[1],
+): Promise<void> {
+  const antes = await contarAdministradores(ctx);
+  if (antes === 0) return; // ja estava em zero: este e o caminho de volta
+  const depois = await contarAdministradores(ctx, hipotese);
+  if (depois === 0) throw new ErroRota('sem_administrador_de_acesso', 409);
 }
 
 async function atualizarPessoa(ctx: Contexto): Promise<Response> {
@@ -358,12 +406,11 @@ async function atualizarPessoa(ctx: Contexto): Promise<Response> {
 
   if (!Object.keys(mudancas).length) throw new ErroRota('nada_para_atualizar', 400);
 
-  await garantirQueSobraAdministrador(
-    ctx,
-    id,
-    mudancas.cargo_id as string | null | undefined,
-    mudancas.ativo as boolean | undefined,
-  );
+  await exigirQueNaoZere(ctx, {
+    pessoaId: id,
+    cargoNovo: mudancas.cargo_id as string | null | undefined,
+    ativoNovo: mudancas.ativo as boolean | undefined,
+  });
 
   const { error } = await ctx.admin.from('carbon_usuarios').update(mudancas).eq('id', id);
   if (error) {
