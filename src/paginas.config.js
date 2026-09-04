@@ -133,5 +133,18 @@ export const ITENS_MENU_FIXOS = PAGINAS.filter((p) => p.menu && p.rota).map((p) 
   grupo: p.menu.grupo,
   submenu: p.menu.submenu,
   rota: p.rota,
+  /**
+   * AREA de acesso, derivada do nome do arquivo de registro (ver
+   * src/paginas/indice.js). O Layout esconde o item quando ela nao esta nas
+   * areas da pessoa.
+   *
+   * ESCONDER NAO E AUTORIZAR. Quem autoriza e o carbon-api, que confere a area
+   * da rota antes de cada handler: um item escondido continua recusado no
+   * servidor se alguem digitar a URL, e um item visivel por engano nao da acesso
+   * a nada. A regra 6 do CLAUDE.md global e explicita ("autorizacao sempre
+   * server side; nunca dependa de filtro feito no frontend"), e o filtro daqui
+   * existe para a pessoa nao ver um menu cheio de telas que dao 403.
+   */
+  area: p.area,
   paginas: [p.nome, ...PAGINAS.filter((f) => f.menuPai === p.nome).map((f) => f.nome)],
 }));

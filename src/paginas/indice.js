@@ -39,9 +39,32 @@ function extrair(caminho, modulo) {
   return [];
 }
 
+/**
+ * AREA de acesso da tela, derivada do NOME DO ARQUIVO de registro.
+ *
+ * `./prestacao.paginas.js` -> area `prestacao`. E a mesma chave da tabela
+ * carbon_areas no banco e a mesma que o indice de rotas da Edge Function carimba
+ * por arquivo de dominio (ver comArea em rotas/indice.ts).
+ *
+ * DERIVADA, e nao escrita em cada entrada, pelo mesmo motivo de la: sao 36 telas
+ * e quem acrescenta a 37a nao vai lembrar de marcar. Assim tela nova nasce na
+ * area do dominio em que foi registrada, e a unica forma de errar a area e
+ * colocar o arquivo no nome errado - que e visivel na hora.
+ *
+ * A entrada pode SOBRESCREVER declarando `area` explicitamente. Serve para a
+ * excecao rara: uma tela que mora no arquivo de um dominio mas pertence a outra
+ * area de acesso.
+ */
+function areaDoArquivo(caminho) {
+  return String(caminho).replace(/^.*\//, '').replace(/\.paginas\.js$/, '');
+}
+
 /** Entradas na ordem de descoberta, ainda SEM defaults aplicados nem ordenacao. */
 export const PAGINAS_BRUTAS = Object.entries(MODULOS).flatMap(([caminho, modulo]) =>
-  extrair(caminho, modulo),
+  extrair(caminho, modulo).map((pagina) => ({
+    area: areaDoArquivo(caminho),
+    ...pagina,
+  })),
 );
 
 /**
