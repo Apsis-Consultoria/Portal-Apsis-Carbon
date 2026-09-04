@@ -101,9 +101,27 @@ export function criarDuble(respostas: Resposta[] = [], respostasRpc: Resposta[] 
   return { admin, consultas, rpcs };
 }
 
-/** Registro de colaborador para os testes. Nome e e-mail ficticios (LGPD). */
-export function registro(papel: string, id = 'u-1'): RegistroUsuario {
-  return { id, email: `pessoa.${id}@apsis.com.br`, nome: null, papel, ativo: true };
+/**
+ * Registro de colaborador para os testes. Nome e e-mail ficticios (LGPD).
+ *
+ * `areas` NAO tem default de "todas": o campo e explicito porque o portao de
+ * area do index.ts confere exatamente ele, e um default generoso faria o teste
+ * do portao passar sem exercitar o portao. Quem testa handler de dominio passa a
+ * area daquele dominio; quem testa a recusa passa `[]`.
+ *
+ * O campo nasceu obrigatorio em 03/09/2026, com os cargos, e quebrou o
+ * typecheck do `deno test` - que roda ANTES do deploy no workflow. Resultado: as
+ * rotas novas ficaram 404 em producao sem nenhum erro visivel na tela, porque o
+ * deploy simplesmente nao aconteceu. Se for acrescentar campo obrigatorio em
+ * RegistroUsuario, rode `deno test --allow-env carbon-api/testes/` antes do
+ * push.
+ */
+export function registro(
+  papel: string,
+  id = 'u-1',
+  areas: string[] = ['nucleo', 'projetos'],
+): RegistroUsuario {
+  return { id, email: `pessoa.${id}@apsis.com.br`, nome: null, papel, ativo: true, areas };
 }
 
 /** Monta um Contexto completo em cima do duble. */
