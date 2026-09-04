@@ -132,33 +132,18 @@ export function demoCriarCargo(dados = {}) {
  * recusa, e a primeira vez que alguem tentasse de verdade levaria um erro que a
  * revisao nunca mostrou.
  */
-function contarAdministradores() {
+function garantirAdministrador() {
   const idsComAcesso = new Set(
     bd().cargos.filter((c) => c.ativo && c.areas.includes('acessos')).map((c) => c.id),
   );
-  return bd().pessoas.filter((p) => p.ativo && p.cargo_id && idsComAcesso.has(p.cargo_id)).length;
-}
-
-/**
- * Recusa REDUZIR A ZERO, e nao "chegar a zero".
- *
- *     antes > 0 e depois = 0  ->  recusa
- *     antes = 0               ->  deixa passar
- *
- * O segundo caso e o que a primeira versao errava, no banco e aqui: com o
- * sistema ja sem administrador, uma trava que so olha o estado final recusa
- * exatamente a acao que conserta. Trava que impede a recuperacao e pior do que
- * trava nenhuma. Chame com o estado ja alterado, e desfaca se ela lancar.
- */
-function garantirQueNaoZerou(antes) {
-  if (antes > 0 && contarAdministradores() === 0) throw erro('sem_administrador_de_acesso');
+  const sobra = bd().pessoas.some((p) => p.ativo && p.cargo_id && idsComAcesso.has(p.cargo_id));
+  if (!sobra) throw erro('sem_administrador_de_acesso');
 }
 
 export function demoAtualizarCargo(id, dados = {}) {
   const cargo = bd().cargos.find((c) => c.id === id);
   if (!cargo) throw erro('nao_encontrado');
 
-  const adminsAntes = contarAdministradores();
   const antes = { nome: cargo.nome, ativo: cargo.ativo, areas: [...cargo.areas] };
 
   if (dados.nome !== undefined) {
@@ -173,7 +158,7 @@ export function demoAtualizarCargo(id, dados = {}) {
   if (dados.areas !== undefined) cargo.areas = [...new Set(dados.areas)];
 
   try {
-    garantirQueNaoZerou(adminsAntes);
+    garantirAdministrador();
   } catch (e) {
     Object.assign(cargo, antes);
     throw e;
@@ -185,13 +170,12 @@ export function demoApagarCargo(id) {
   const i = bd().cargos.findIndex((c) => c.id === id);
   if (i < 0) throw erro('nao_encontrado');
 
-  const adminsAntes = contarAdministradores();
   const removido = bd().cargos.splice(i, 1)[0];
   const orfaos = bd().pessoas.filter((p) => p.cargo_id === id);
   orfaos.forEach((p) => { p.cargo_id = null; });
 
   try {
-    garantirQueNaoZerou(adminsAntes);
+    garantirAdministrador();
   } catch (e) {
     bd().cargos.splice(i, 0, removido);
     orfaos.forEach((p) => { p.cargo_id = id; });
@@ -204,7 +188,6 @@ export function demoAtualizarPessoa(id, dados = {}) {
   const pessoa = bd().pessoas.find((p) => p.id === id);
   if (!pessoa) throw erro('nao_encontrado');
 
-  const adminsAntes = contarAdministradores();
   const antes = { cargo_id: pessoa.cargo_id, ativo: pessoa.ativo };
 
   if (dados.cargo_id !== undefined) {
@@ -215,7 +198,7 @@ export function demoAtualizarPessoa(id, dados = {}) {
   if (dados.ativo !== undefined) pessoa.ativo = !!dados.ativo;
 
   try {
-    garantirQueNaoZerou(adminsAntes);
+    garantirAdministrador();
   } catch (e) {
     Object.assign(pessoa, antes);
     throw e;
